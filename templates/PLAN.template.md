@@ -10,6 +10,9 @@
 
 - **Última atualização:** <data> (<resumo 1 linha da sessão atual> | <anterior> | ...)
 - **Bloco ativo:** 🎯 **<B-id — título>** (<🔧 mecânico | 🔬 descoberta>).
+- **🎬 Próximo:** <⚙️ Executor | 🧠 Planejador> · **Ponto de entrada:** <1ª tarefa não-concluída>
+  (<gates 🔁 a reestabelecer antes: DoR, armar carga/probe...>). ← o `start` lê ESTA linha p/ decidir o
+  papel sem perguntar; `handoff`/`end` a mantêm atual.
 - **Próximo passo:** <passo concreto e imediato>.
 - **Blockers:** <nenhum | descrição + dono + próxima ação>.
 
@@ -44,7 +47,13 @@ serão detalhados/replanejados ao chegar a vez — a ordem pode mudar.
 
 ### Tarefas
 
-- [ ] <tarefa atômica com uma checagem de pronto>
+> **Gate por-sessão (🔁) × marco ([ ]):** marque com **🔁** as tarefas que TODA sessão de execução refaz
+> (DoR, armar carga/probe/shells — processos vivos que não persistem); use checkbox `[ ]`/`[x]` só para
+> **marcos** (resultados que persistem no relatório). Assim ninguém confunde "reestabelecer setup" com
+> "refazer trabalho perdido".
+
+- 🔁 **<T0 — DoR + setup>** — reverificar toda sessão de execução (não é marco).
+- [ ] <tarefa-marco atômica com uma checagem de pronto>
 - [ ] <...>
 
 ---

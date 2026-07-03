@@ -16,7 +16,12 @@ Está em curso o **<ESCOPO/ÉPICO>**, conduzido pelo sistema de controle de sess
    verdade**. Não precisa ler o PLAN inteiro.
 2. Resuma para <SEU_NOME> **onde paramos + o próximo passo**, sem reler relatórios antigos
    (`<reports/>`). Relatórios só sob demanda, para reconstruir um detalhe.
-3. **Identifique seu papel** (🧠 Planejador ou ⚙️ Executor — abaixo) e confirme o foco.
+3. **Seu papel vem do baton `🎬 Próximo` do cabeçalho Agora — não pergunte se ele existe.** Se diz
+   **⚙️ Executor**, esta é sessão de Executor: **comece a executar** do ponto de entrada à risca (não pare
+   pra perguntar o papel). Se diz **🧠 Planejador**, entre planejando. Só pergunte se o baton faltar.
+4. **Gates (🔁) não são retrabalho.** O Executor reestabelece os gates por-sessão do ponto de entrada
+   (reverificar DoR, rearmar carga/probe/shells) — processos vivos não sobrevivem entre sessões; os
+   *resultados* já feitos estão persistidos (`[x]` + relatório). Reestabelecer setup ≠ refazer trabalho.
 
 > **Regra de ouro (invariante anti-duplicação):** cada fato mora em **um** arquivo; o resto aponta
 > (link), nunca copia. Estado e plano → `<PLAN.md>`. Detalhe denso → `<reports/>`. Ganchos → memória.
@@ -65,9 +70,11 @@ Quando ele pedir para encerrar:
 1. **Gere** `<reports/>RELATORIO_<bloco>_<AAAA-MM-DD>.md` pelo template — guarda o detalhe (comandos,
    saídas, números) que permite resgatar uma ação de sessões anteriores com precisão.
 2. **Atualize `<PLAN.md>`** (in-place): cabeçalho "Agora" (resumo encadeado, bloco ativo, próximo passo,
-   blockers); Board (estados); bloco ativo (checkboxes; se fechou, **promova o próximo de rascunho a
-   detalhado** e replaneje o resto); Registro de sessões (1 linha + link).
+   blockers); **baton `🎬 Próximo`** (papel + ponto de entrada da próxima sessão); Board (estados); bloco
+   ativo (checkboxes; se fechou, **promova o próximo de rascunho a detalhado** e replaneje o resto);
+   Registro de sessões (1 linha + link).
 3. Atualize ponteiros de memória só se algo de alto nível mudou.
+4. **Commit** do relatório + PLAN + demais mudanças (nas convenções do repo; em cada repo tocado).
 
 ---
 
