@@ -82,6 +82,14 @@ O argumento após `/sessao` indica a operação. Sem argumento, pergunte qual é
 - **Papéis:** Planejador (modelo forte) deixa o bloco executor-ready e NÃO implementa, especificando
   decisões e restrições — não keystrokes. Executor (modelo barato) executa à risca, e ao divergir do
   plano PARA e escala de volta — não improvisa decisão de design. Auto-verifica contra a DoD.
+- **Fronteira de papel = PARADA de sessão (NÃO auto-promoção):** o Executor **nunca vira Planejador
+  dentro da mesma sessão**. Quando o baton viraria `🧠 Planejador` — o bloco ativo **fecha** e o próximo
+  está em rascunho / é 🔬 descoberta, OU surge no meio da execução **qualquer coisa que dê vontade de
+  (re)planejar** (decisão de design, ambiguidade, estado inesperado, DoD inalcançável) — o Executor
+  **PARA explicitamente, grava o baton `🎬 Próximo: 🧠 Planejador` + o motivo, e reporta ao usuário**.
+  Ele **não** detalha o próximo bloco, **não** escreve contrato novo e **não** executa uma 1ª passada de
+  descoberta. Planejar é do modelo forte, em sessão separada. Detalhar+executar um bloco de uma vez, na
+  mesma sessão de Executor, **é violação de protocolo** — mesmo que "pareça pronto para seguir".
 - **Estimativas são guia de fatiamento, não SLA.** Gere RELATÓRIO só quando o usuário pedir.
 - **Baton de papel (`🎬 Próximo`):** o cabeçalho "Agora" carrega SEMPRE uma linha
   `🎬 Próximo: <⚙️ Executor|🧠 Planejador> · Ponto de entrada: <tarefa>`. É a fonte de verdade do papel
