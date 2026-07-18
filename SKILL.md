@@ -22,14 +22,21 @@ Os templates ficam em `templates/` ao lado deste arquivo. O panorama completo do
 
 O argumento após `/sessao` indica a operação. Sem argumento, pergunte qual é.
 
+### `help` — mostrar o guia de uso da skill
+Leia `HELP.md` (ao lado deste arquivo) e apresente o guia (subcomandos, papéis, conceitos-chave, ciclo
+de vida). Não altera nada no projeto. Use também quando o usuário pedir "help"/"ajuda"/"como uso o sessao".
+
 ### `init` — instalar o sistema num projeto novo
 1. Leia `templates/AGENTS.template.md` e `templates/PLAN.template.md`.
 2. Levante os `<PLACEHOLDERS>` com o usuário (não invente): nome do projeto; escopo; lista inicial de
    blocos (id + título + tipo 🔧 mecânico / 🔬 descoberta); como tratá-lo; ambiente/guardrails;
-   política de commit; idioma; pasta de relatórios.
+   política de commit; idioma; pasta de relatórios; **label de apontamento** (card do GitLab p/ o
+   `resumo-trabalho`, se houver — é o identificador que liga o `end` deste projeto ao apontamento do
+   card; opcional, pode ficar em branco).
 3. Crie no projeto: `AGENTS.md` (ou `CLAUDE.md` se já existir) e `PLAN.md` (raiz ou subpasta do
    escopo), preenchidos. Detalhe **só o bloco B1**; deixe os demais em uma linha, marcados `(rascunho)`.
-   Copie `templates/template-relatorio.md` para a pasta de relatórios.
+   Grave o label de apontamento (se houver) na linha "Card / label de apontamento" das Convenções do
+   `AGENTS.md`. Copie `templates/template-relatorio.md` para a pasta de relatórios.
 4. Confirme o plano da estrutura ANTES de criar; depois mostre a árvore criada.
 
 ### `start` — início de sessão
@@ -57,7 +64,13 @@ O argumento após `/sessao` indica a operação. Sem argumento, pergunte qual é
 4. **Commit obrigatório** das edições do handoff (mesma regra do `end` — não deixe o PLAN pronto porém
    não-commitado, senão a próxima sessão lê estado do working tree). Reporte o hash.
 
-### `end` — fim de sessão (só quando o usuário pedir)
+### `end` — fim de sessão
+Duas portas de entrada para este ritual:
+- **Fim de sessão no meio de um bloco** (bloco ainda aberto) → **só quando o usuário pedir** (gerar
+  relatório é ato explícito; não assuma que a sessão encerrou).
+- **Fechamento de bloco inteiro** (toda a DoD do bloco satisfeita) → o **Executor auto-dispara este
+  ritual por si, sem o usuário pedir**, *antes* de passar o baton (ver "Papéis" nas Regras invioláveis).
+
 1. Gere `RELATORIO_<bloco>_<AAAA-MM-DD>.md` na pasta de relatórios, pelo template (detalhe denso:
    comandos, saídas, números).
 2. Atualize o `PLAN.md` **in-place** (nunca duplique linhas): cabeçalho "Agora"; Board; checkboxes do
@@ -67,7 +80,25 @@ O argumento após `/sessao` indica a operação. Sem argumento, pergunte qual é
    entrada: `⚙️ Executor` se o bloco segue executor-ready; `🧠 Planejador` se a fronteira exige
    (re)planejamento (bloco fechou e o próximo está em rascunho, ou surgiu decisão de design em aberto).
 4. Atualize ponteiros de memória só se algo de alto nível mudou.
-5. **Commit obrigatório do que foi feito** (sobrepõe qualquer hábito de "sem commit"): commite o
+5. **Registre o apontamento do dia no `resumo-trabalho` (se o projeto tiver label).** É o elo que mantém
+   os apontamentos do card sincronizados sem depender de `registrar` manual — o `gerar <card>` do dia
+   sai completo porque todo relatório do dia vira entrada no log automaticamente:
+   - Leia o **label de apontamento** do projeto (linha "Card / label de apontamento" nas Convenções do
+     `AGENTS.md`). Sem label configurado → **pule este passo** (projeto sem card associado).
+   - Colete os relatórios do **dia de hoje** na pasta de relatórios (`RELATORIO_*_<AAAA-MM-DD>.md` com a
+     data de hoje — inclui o que você acabou de gerar **e** quaisquer outros blocos fechados hoje em
+     sessões anteriores que ainda não foram registrados).
+   - Para cada relatório, cheque idempotência: procure o basename do relatório
+     (`RELATORIO_<bloco>_<data>.md`) no `~/.claude/work-log/<label-slug>.md`. **Se já aparece, pule** (já
+     registrado). Senão, sintetize uma entrada `registrar` densa e factual a partir do relatório
+     (formato e regras do `resumo-trabalho`: seções O que foi feito / Problemas-Correções / Validações /
+     Pendências, denso e factual, sem inventar nada fora do relatório) e faça **append** no log do label.
+     Logo abaixo do cabeçalho `## [data hora] <projeto>`, inclua a linha
+     `**Relatório-fonte:** <caminho/RELATORIO_<bloco>_<data>.md>` — é ela que torna o passo idempotente.
+     Uma entrada por relatório.
+   - Log é **append-only e global** (`~/.claude/work-log/`), fora do repo — **não** entra no commit do
+     passo 6. Confirme em 1 linha quais relatórios viraram entrada (ou "nada novo a registrar").
+6. **Commit obrigatório do que foi feito** (sobrepõe qualquer hábito de "sem commit"): commite o
    relatório novo, o `PLAN.md` e as demais mudanças da sessão, seguindo as convenções de commit do
    repo (mensagem no padrão do projeto). Se a sessão tocou **mais de um repo** (ex.: repos irmãos
    operator/clusters), commite em **cada** um. Se estiver na branch default, crie/*use* a branch de
@@ -82,6 +113,13 @@ O argumento após `/sessao` indica a operação. Sem argumento, pergunte qual é
 - **Papéis:** Planejador (modelo forte) deixa o bloco executor-ready e NÃO implementa, especificando
   decisões e restrições — não keystrokes. Executor (modelo barato) executa à risca, e ao divergir do
   plano PARA e escala de volta — não improvisa decisão de design. Auto-verifica contra a DoD.
+- **Executor fecha o próprio bloco (auto-`end` na fronteira):** ao concluir um **bloco inteiro** (toda a
+  DoD satisfeita), o Executor **dispara o ritual `end` por si — commit + relatório + atualização in-place
+  do PLAN — sem o usuário pedir**, e só então grava o baton `🎬 Próximo`. É o mesmo `end`, auto-disparado
+  no fechamento de bloco. **Não** vale para terminar só alguns steps no meio de um bloco (bloco ainda
+  aberto) — aí não há relatório nem fechamento, só atualização de checkboxes/estado, e o `end` continua
+  sendo ato explícito do usuário. Isto **não** contradiz a "Fronteira de papel = PARADA": o Executor
+  fecha o bloco terminado (relatório+commit) e PARA; **não** planeja o próximo.
 - **Fronteira de papel = PARADA de sessão (NÃO auto-promoção):** o Executor **nunca vira Planejador
   dentro da mesma sessão**. Quando o baton viraria `🧠 Planejador` — o bloco ativo **fecha** e o próximo
   está em rascunho / é 🔬 descoberta, OU surge no meio da execução **qualquer coisa que dê vontade de
@@ -95,6 +133,11 @@ O argumento após `/sessao` indica a operação. Sem argumento, pergunte qual é
   `🎬 Próximo: <⚙️ Executor|🧠 Planejador> · Ponto de entrada: <tarefa>`. É a fonte de verdade do papel
   da próxima sessão — `handoff`/`end` a gravam, `start` a lê e age sem perguntar. Sem baton, o `start`
   fica adivinhando o papel (bug): mantenha-a sempre atual.
+- **Sincronia com `resumo-trabalho` (label = identificador do projeto):** se o projeto tem um **label de
+  apontamento** no `AGENTS.md`, o `end` alimenta o `resumo-trabalho` a partir dos **relatórios do dia**
+  (uma entrada `registrar` por relatório novo, marcada com `**Relatório-fonte:**` p/ idempotência). Assim
+  o `gerar <card>` do dia sempre reflete tudo que fechou — sem depender de `registrar` manual. Os
+  relatórios são a matéria-prima; nada é inventado fora deles. O log continua append-only e global.
 - **Gate por-sessão × marco (não confundir):** um **marco** é um resultado que persiste (medição/entrega →
   checkbox `[x]` + relatório). Um **gate por-sessão** é pré-condição/processo vivo que **não** sobrevive
   entre sessões (DoR = "está saudável agora?"; armar carga/probe/shells) e **é reestabelecido toda sessão

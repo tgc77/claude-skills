@@ -31,6 +31,13 @@ plano rígido que a realidade contradiz.
 Mapa mental: **regras** (AGENTS) · **estado+plano** (PLAN, fonte única) · **detalhe** (reports) ·
 **ganchos** (memória). Não existe arquivo de STATUS separado — ele é a primeira seção do `PLAN.md`.
 
+**Escoadouro opcional — apontamentos por card:** se o projeto declara um **label de apontamento** nas
+Convenções do `AGENTS.md` (o card do GitLab), o `end` alimenta o log da skill `resumo-trabalho`
+(`~/.claude/work-log/<label>.md`) a partir dos `RELATORIO_*_<hoje>.md` — uma entrada por relatório novo,
+marcada com `**Relatório-fonte:**` (idempotente). Assim `/resumo-trabalho gerar <label>` dá o
+apontamento do dia completo sem `registrar` manual. É consumidor a jusante dos relatórios, fora do repo
+— não é um 5º artefato do modelo.
+
 ---
 
 ## Rolling-wave (elaboração progressiva)
@@ -70,7 +77,9 @@ descoberta: deixe um modelo só tocar — o overhead de handoff come o ganho.
 
 ## Como instalar num projeto novo
 
-1. Copie `AGENTS.template.md` → `AGENTS.md` (ou `CLAUDE.md`) na raiz do projeto e preencha os `<…>`.
+1. Copie `AGENTS.template.md` → `AGENTS.md` (ou `CLAUDE.md`) na raiz do projeto e preencha os `<…>` —
+   inclusive o **label de apontamento** nas Convenções, se o projeto tem um card no `resumo-trabalho`
+   (deixe `—` se não tem; liga/desliga a integração de apontamentos automáticos).
 2. Copie `PLAN.template.md` → `PLAN.md` (na raiz ou numa subpasta do escopo) e preencha o Board inicial.
 3. Copie `template-relatorio.md` para a pasta de relatórios do projeto.
 4. (Opcional) Cole o **`BOOTSTRAP.md`** na 1ª sessão com um agente forte para ele montar/validar tudo.

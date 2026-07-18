@@ -74,7 +74,11 @@ Quando ele pedir para encerrar:
    ativo (checkboxes; se fechou, **promova o próximo de rascunho a detalhado** e replaneje o resto);
    Registro de sessões (1 linha + link).
 3. Atualize ponteiros de memória só se algo de alto nível mudou.
-4. **Commit** do relatório + PLAN + demais mudanças (nas convenções do repo; em cada repo tocado).
+4. **Registre o apontamento do dia no `resumo-trabalho`** (se houver label de apontamento nas Convenções):
+   para cada `RELATORIO_*_<hoje>.md` ainda não registrado (idempotência pelo basename no log do label),
+   sintetize uma entrada `registrar` a partir do relatório e faça append em `~/.claude/work-log/<label>.md`
+   com a linha `**Relatório-fonte:**`. Log global/append-only — não entra no commit.
+5. **Commit** do relatório + PLAN + demais mudanças (nas convenções do repo; em cada repo tocado).
 
 ---
 
@@ -82,6 +86,10 @@ Quando ele pedir para encerrar:
 
 - **Fonte única de verdade:** `<PLAN.md>`. **Relatórios:** `<reports/>RELATORIO_<bloco>_<data>.md`
   (template `<template-relatorio.md>`).
+- **Card / label de apontamento (resumo-trabalho):** `<label-do-card ou —>` — identificador do projeto
+  p/ o `resumo-trabalho`. O `end` registra o apontamento do dia neste label a partir dos relatórios do
+  dia (idempotente por `**Relatório-fonte:**`). Em branco (`—`) = projeto sem card associado; o `end`
+  pula esse passo.
 - **Trate o usuário por "<SEU_NOME>".** Não exponha mecânica interna do agente nos relatórios; use links reais.
 - **Estimativas são guia, não SLA.** **Idioma:** <idioma>.
 - **Política de commit:** <ex.: commits sempre em branch, nunca na main; sem push sem pedir; Conventional Commits>.
