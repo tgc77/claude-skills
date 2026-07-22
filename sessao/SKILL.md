@@ -102,11 +102,36 @@ Duas portas de entrada para este ritual:
    relatório novo, o `PLAN.md` e as demais mudanças da sessão, seguindo as convenções de commit do
    repo (mensagem no padrão do projeto). Se a sessão tocou **mais de um repo** (ex.: repos irmãos
    operator/clusters), commite em **cada** um. Se estiver na branch default, crie/*use* a branch de
-   trabalho do projeto antes. Faça `push` só se o usuário pedir ou se for a prática já estabelecida do
-   projeto. Ao fim, reporte o(s) hash(es) de commit.
+   trabalho do projeto antes. **Exceção que sobrepõe o "sem push": commit destinado a deploy leva
+   `push` no mesmo turno, sem esperar pedido** (ver "Entrega destinada a deploy" nas Regras
+   invioláveis). Fora desse caso, faça `push` só se o usuário pedir ou se for a prática já estabelecida
+   do projeto. Ao fim, reporte o(s) hash(es) de commit.
 
 ## Regras invioláveis (valem em qualquer subcomando)
 
+- **Entrega destinada a deploy = `push` no mesmo turno, e o pipeline tem mais elos que o commit.**
+  Quando o commit existe **para ser deployado**, deixá-lo só local é entrega incompleta: quem builda
+  (Jenkins/CI) lê do **remoto**, então um commit não-pushado vira um deploy que "não mudou nada", sem
+  erro nenhum — o modo de falha mais caro e mais confuso, porque parece problema de deploy e é falha de
+  autoria. **Por isso: commitou para deploy → pushou, sem esperar o usuário pedir.** Isto sobrepõe o
+  "sem `push` sem pedir" do `end`/`handoff`; para todo o resto, a regra normal continua valendo.
+  **E o push não é o último elo.** Antes de anunciar "versão X pronta para deployar", confira a cadeia
+  inteira, porque *qualquer* elo faltando produz o **mesmo sintoma silencioso** (deploy roda, nada muda):
+  1. **Versão bumpada** onde o projeto exige (ex.: `Chart.yaml` **e** `VERSION` juntos) — sem bump, o
+     deploy não rola release nova.
+  2. **Commit + push** — o CI builda do remoto, não do working tree.
+  3. **Job de build/publicação** rodado *depois* do push — é ele que empacota e publica o artefato
+     (`.tgz`, imagem) no repositório. Pular este elo faz o job de deploy reusar o **artefato anterior**,
+     que continua lá.
+  4. **Job de deploy selecionando a versão nova** — se o deploy escolhe versão de uma lista, escolher a
+     antiga é no-op.
+  Ao delegar a um humano, **peça os jobs explicitamente e por nome** ("rode o build e depois o deploy
+  selecionando a versão X"); dizer só "deploya a versão X" já custou ciclos. **Diagnóstico barato (5 s)
+  quando o deploy "não pegou":** leia o estado **vivo** do objeto (ex.: `kubectl get deploy <x> -o
+  jsonpath='{.spec.template.spec.containers[0].args}'`) + a idade do pod — se os args são os antigos e o
+  pod não foi recriado, o artefato nunca mudou, e aí a pergunta é *qual elo faltou*, não "o deploy
+  falhou". **Não presuma qual elo foi:** verifique (o remoto tem o commit? o artefato novo existe?)
+  antes de apontar a causa.
 - **Anti-duplicação:** estado/plano → `PLAN.md`; detalhe denso → relatórios; ganchos → memória. Nunca
   suba detalhe de relatório para o PLAN.
 - **Rolling-wave:** detalhe só o bloco ativo (+ próximo). Replanejar na fronteira do bloco é ritual.

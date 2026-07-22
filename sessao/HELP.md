@@ -77,7 +77,10 @@ O argumento depois de `/sessao` indica a operação. Sem argumento, o agente per
    pelo basename no log do label) sintetiza uma entrada `registrar` e faz append em
    `~/.claude/work-log/<label>.md` com a linha `**Relatório-fonte:**`. Log global/append-only, fora do commit.
 6. **Commit obrigatório** (relatório + PLAN + mudanças), nas convenções do repo, em cada repo tocado.
-   Reporta o(s) hash(es).
+   Reporta o(s) hash(es). **Se o commit é destinado a deploy, o `push` sai no mesmo turno** (o CI builda
+   do remoto) — e o push **não** é o último elo: bump → commit+push → **job de build** → job de deploy
+   *selecionando a versão nova*. Qualquer elo faltando dá o mesmo sintoma silencioso: "deploya e não
+   muda nada". Ver "Entrega destinada a deploy" nas Regras invioláveis do `SKILL.md`.
 
 ### `help` — este documento
 Exibe o guia de uso da skill (subcomandos, papéis, conceitos, ciclo de vida). Não altera nada no
