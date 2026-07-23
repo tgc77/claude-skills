@@ -59,6 +59,97 @@ Derive o nome de arquivo do label informado: minúsculas, espaços/caracteres n�
 `prefect-45.md`. Guarde o texto original do label na primeira linha do arquivo (`# Label: <original>`)
 pra exibir bonito depois, mesmo que o slug normalize a grafia.
 
+## 🗣️ Regra do leitor não-técnico (OBRIGATÓRIA em `registrar` **e** `gerar`)
+
+**Quem lê estes apontamentos é a chefia do usuário, não a equipe técnica.** São pessoas que conhecem o
+projeto e o negócio, mas **não mexem no código nem no cluster**. Um apontamento cheio de jargão sem
+apoio não é lido como "trabalho denso": é lido como "não entendi o que foi feito", e o trabalho perde
+o crédito que merece.
+
+> **Regra de ouro — as duas metades valem juntas:**
+> **(1) NUNCA remova, suavize ou generalize o detalhe técnico.** Nomes de arquivo, métricas, flags,
+> comandos, números e causa raiz entram **exatamente como ocorreram**. Transparência é o valor
+> principal deste apontamento.
+> **(2) NUNCA solte o detalhe técnico cru, sem preparação.** Todo termo que exige conhecimento
+> especializado vem **precedido** de uma explicação curta que permita entendê-lo.
+>
+> Não é resumir mais. É **acrescentar uma camada de contexto antes do detalhe**. O apontamento fica um
+> pouco mais longo — e isso é aceito e desejado.
+
+### Teste do gatilho (aplique a cada termo; é mecânico, não subjetivo)
+
+Um termo **precisa** de explicação se cai em alguma destas 4 categorias:
+
+| Categoria | Exemplos | Precisa? |
+|---|---|---|
+| **Componente/ferramenta específica** do stack | `kube-state-metrics`, `cAdvisor`, PgBouncer, Authelia, CNPG, SeaweedFS | ✅ Sim, na 1ª menção |
+| **Mecanismo não-óbvio** de infraestrutura | ConfigMap que não recarrega, PVC RWO single-attach, scrape interval, SD de pod | ✅ Sim, explique o *porquê* em 1 frase |
+| **Código interno do projeto** | `D-B6-23`, `B6f/P2a`, `Q1-Q8`, nomes de bloco/contrato | ✅ Sim — diga o que o código designa |
+| **Métrica ou unidade criada pela análise** | pod-segundos, CPU·min, cold-start decomposto, `datname` | ✅ Sim — diga o que mede e por que importa |
+
+**NÃO explique** o que o público já domina — commit, branch, deploy, banco de dados, ambiente de
+desenvolvimento, teste, versão. Explicar o óbvio é condescendente e desperdiça espaço.
+
+### As 3 formas de explicar (use as três; cada uma tem limite de tamanho)
+
+1. **Bloco de contexto no topo do resumo** — seção `## 🧭 Para entender este apontamento`, logo após o
+   Objetivo. **3 a 6 itens**, **1 linha cada**, só os termos que o dia inteiro usa repetidamente.
+   Formato: `- **<termo>** — <o que é, em linguagem de negócio>.`
+   Se o dia teve menos de 3 termos que se repetem, **omita a seção** e use só as formas 2 e 3.
+2. **Aposto inline na 1ª menção** — o termo aparece, seguido de travessão e explicação de **até ~15
+   palavras**. A partir da 2ª menção, use o termo puro (não repita a explicação).
+   Ex.: "o `kube-state-metrics` — o componente que traduz objetos do Kubernetes em métricas — passou a…"
+3. **Frase de propósito abrindo cada subseção** — **1 frase**, antes dos bullets técnicos, dizendo
+   *para que serviu* aquele conjunto de trabalho. Responde "por que isso importa?" antes do "o quê".
+
+### Exemplo — antes e depois (siga este padrão)
+
+❌ **Errado (cru — o detalhe está certo, mas ninguém de fora entende):**
+```
+- **D-B6-23:** sem `checksum/config` no pod template, o ConfigMap muda e o pod não é recriado;
+  `up{job="cnpg-postgres"}` volta vazio e o Prometheus segue com a config antiga.
+```
+
+❌ **Também errado (explicado, mas o detalhe foi apagado — proibido):**
+```
+- Encontrado um problema de configuração no monitoramento, que foi diagnosticado e será corrigido.
+```
+
+✅ **Certo (explica antes, mantém tudo):**
+```
+- **D-B6-23 — o Prometheus continuou rodando com a configuração antiga.** O Prometheus é o serviço
+  que coleta as métricas da POC, e ele lê sua configuração de um arquivo entregue pelo Kubernetes
+  (um "ConfigMap"). O problema: o Kubernetes só reinicia o serviço quando o *nome* desse arquivo
+  muda — não quando o *conteúdo* muda. Resultado: a configuração nova foi entregue e ignorada, sem
+  erro nenhum. Tecnicamente: falta a anotação `checksum/config` no template do pod, e o sintoma é
+  `up{job="cnpg-postgres"}` retornar **vazio** (job inexistente na configuração carregada) em vez de
+  `0` (job existente com alvo caindo) — pod de pé há 3d21h.
+```
+
+**A estrutura do ✅ é sempre a mesma, nesta ordem:** título em negrito com o efeito em linguagem
+comum → 1-2 frases de contexto → o detalhe técnico completo, introduzido por "Tecnicamente:" ou
+equivalente.
+
+### Anti-padrões (rejeite se aparecerem)
+
+- **Glossário no fim** do documento — a explicação tem de vir **antes** do termo, não depois.
+- **Trocar o termo técnico por paráfrase** ("um componente de métricas" em vez de
+  `kube-state-metrics`) — o nome exato precisa aparecer, é o que torna o apontamento rastreável.
+- **Repetir a explicação** a cada menção do mesmo termo — só na primeira.
+- **Explicar o óbvio** (commit, deploy, branch) ou virar tutorial de Kubernetes.
+- **Diluir número em adjetivo** — "melhorou bastante" no lugar de "11 s → 1 s". Número é o produto.
+
+### Checklist antes de entregar (rode mentalmente, item a item)
+
+- [ ] Todo termo das 4 categorias do gatilho tem explicação **na 1ª menção**?
+- [ ] Nenhum detalhe técnico foi removido em relação ao que está no log?
+- [ ] Cada subseção de "O que foi feito" abre com 1 frase de propósito?
+- [ ] O bloco `🧭 Para entender este apontamento` tem 3-6 itens de 1 linha (ou foi omitido por não
+      haver termos recorrentes)?
+- [ ] Os números aparecem como números, não como adjetivos?
+- [ ] Um gerente que conhece o projeto mas não mexe no código conseguiria explicar, com suas palavras,
+      **o que foi feito e por que importa**, depois de ler uma vez?
+
 ## `registrar` — passo a passo
 
 1. Resolva o label: explícito no comando > label ativo da sessão > pergunte (nunca invente).
@@ -87,7 +178,13 @@ pra exibir bonito depois, mesmo que o slug normalize a grafia.
 
    Omita subseções vazias. Escreva denso e factual (nomes de arquivo, causa raiz, comandos
    relevantes) — é matéria-prima do resumo final, não resuma demais aqui.
-5. Confirme em 1 linha (label usado + projeto), sem reescrever o conteúdo todo no chat.
+5. **Aplique a Regra do leitor não-técnico já aqui**, nos itens que caem no teste do gatilho: cada
+   achado técnico entra com o **efeito em linguagem comum** antes do detalhe cru. **Por que no log e
+   não só no resumo:** quem `registrar` está com o contexto vivo na cabeça; quem `gerar` (muitas vezes
+   outro modelo, dias depois) só tem o log. Se a explicação não for registrada agora, ela terá de ser
+   **reconstruída** depois — e é aí que ela sai errada ou genérica. Explicação registrada uma vez é
+   transportada de graça para todos os resumos futuros daquele card.
+6. Confirme em 1 linha (label usado + projeto), sem reescrever o conteúdo todo no chat.
 
 ## `gerar` — passo a passo
 
@@ -100,11 +197,16 @@ pra exibir bonito depois, mesmo que o slug normalize a grafia.
 2. Se o arquivo do label não existir ou não houver entradas no escopo pedido: avise e ofereça gerar a
    partir só da conversa atual (perguntando o card, se ainda não souber) em vez de inventar dados.
 3. Leia `templates/template-apontamentos.md` e sintetize as entradas no modelo exato — você decide
-   como mapear o conteúdo livre nas seções fixas (Objetivo, O que foi feito com subseções por
-   tema/projeto, Problemas em tabela, Validações, Diagnóstico final, Resultado prático, Pendências).
-   Em `gerar dia`, uma subseção de "O que foi feito" por card. Não invente itens fora dos registros.
-4. Substitua `DD/MM/AAAA` pela data real.
-5. **Referências de MR/issue SEMPRE cross-project totalmente qualificadas.** O apontamento é colado
+   como mapear o conteúdo livre nas seções fixas (Objetivo, Para entender este apontamento, O que foi
+   feito com subseções por tema/projeto, Problemas em tabela, Validações, Diagnóstico final, Resultado
+   prático, Pendências). Em `gerar dia`, uma subseção de "O que foi feito" por card. Não invente itens
+   fora dos registros.
+4. **Aplique a Regra do leitor não-técnico e rode o checklist dela antes de entregar.** Não é opcional
+   nem "quando sobrar espaço": é critério de aceitação do resumo. Se o log já traz a explicação
+   (porque quem registrou aplicou a regra), **transporte-a** — não reescreva do zero nem invente uma
+   nova. Se o log veio cru, é aqui que a camada de contexto é construída.
+5. Substitua `DD/MM/AAAA` pela data real.
+6. **Referências de MR/issue SEMPRE cross-project totalmente qualificadas.** O apontamento é colado
    num card que quase sempre vive em **outro** projeto do GitLab. Uma referência curta (`!1`, `#4`)
    resolve para o MR/issue de **mesmo número no projeto do card** — repo ERRADO. Portanto: nunca
    escreva `!1`/`#4` soltos; use sempre `grupo/projeto!1` (ou `grupo/projeto#4`), ou a URL completa
@@ -112,7 +214,7 @@ pra exibir bonito depois, mesmo que o slug normalize a grafia.
    log), não o do card. Ex.: MR !1 do `sfz-cobranca-cnpg-clusters-chart` → escrever
    `<grupo>/sfz-cobranca-cnpg-clusters-chart!1`. Se não souber o caminho de grupo do projeto,
    pergunte ou use a URL completa — não deixe a referência curta.
-6. **Entrega:** sempre dentro de fence de 4 crases (` ```` `) — ou `~~~` se o conteúdo tiver blocos de
+7. **Entrega:** sempre dentro de fence de 4 crases (` ```` `) — ou `~~~` se o conteúdo tiver blocos de
    código internos — pra colar markdown cru no GitLab sem render no terminal. GitLab Flavored
    Markdown (tabelas padrão, emojis unicode).
 
@@ -126,3 +228,12 @@ pra exibir bonito depois, mesmo que o slug normalize a grafia.
   URL completa, apontando pro repo onde o MR/issue de fato está (o card costuma viver em outro projeto).
 - Não gere resumo por suposição: baseie-se nas entradas registradas e/ou na conversa atual; pergunte
   se faltar dado para alguma seção do template.
+- **A Regra do leitor não-técnico é critério de aceitação, não estilo.** Vale em `registrar` **e** em
+  `gerar`, em qualquer modelo. Detalhe técnico **completo e transparente**, sempre precedido de
+  preparação para ser entendido por quem não mexe no código. **Remover detalhe para "simplificar" é
+  tão errado quanto despejar jargão cru** — os dois modos falham do mesmo jeito: a chefia não consegue
+  avaliar o trabalho. Rode o checklist da regra antes de entregar.
+- **Padrão de qualidade é o mesmo para todo modelo.** Este documento é a especificação do resultado
+  esperado, e não muda conforme quem executa: as seções do template, a densidade factual (números,
+  nomes de arquivo, causa raiz) e a camada de contexto são obrigatórias em toda entrega. Na dúvida
+  sobre profundidade, **siga o exemplo ✅ da Regra do leitor não-técnico** — ele é a régua.
