@@ -1,6 +1,7 @@
 # 📊 Relatório de Trabalho Realizado — <B-id> — <título curto>
 
-> Copie para `<reports/>RELATORIO_<bloco>_<AAAA-MM-DD>.md`, preencha e remova este aviso e os
+> Copie para `docs/sessoes/<escopo>/RELATORIO_<bloco>_<AAAA-MM-DD>.md` (a pasta do escopo, ao lado do
+> `PLAN.md` dele), preencha e remova este aviso e os
 > comentários `<!-- -->`. Siga o guia de estilo no fim. O relatório guarda o **detalhe denso** que
 > não cabe no `PLAN.md` — é o que permite a uma sessão futura resgatar uma ação com precisão.
 

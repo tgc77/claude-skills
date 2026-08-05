@@ -19,44 +19,91 @@ detalha em **rolling-wave**: perto em alta resolução, longe em rascunho.
 - Qualquer trabalho de escopo fechado que vai durar várias sessões e você quer continuidade sem
   reprocessar histórico.
 
+## Layout: um repo, vários escopos
+
+Um repositório dura mais que uma frente de trabalho. **O protocolo é permanente; o plano é por
+escopo** — por isso a raiz não cresce a cada feature nova:
+
+```
+<repo>/
+├── CLAUDE.md                      ← índice auto-carregado: aponta o AGENTS.md + lista os escopos
+├── AGENTS.md                      ← protocolo permanente (papéis, ritual, convenções, guardrails gerais)
+└── docs/sessoes/
+    ├── template-relatorio.md      ← gabarito compartilhado (um por repo)
+    └── <escopo-slug>/             ← UM ESCOPO = UMA PASTA
+        ├── PLAN.md                ← fonte única de verdade daquele escopo
+        └── RELATORIO_<bloco>_<AAAA-MM-DD>.md
+```
+
+**Permanente (AGENTS.md)** — papéis, ritual, convenções de commit, repos irmãos, guardrails que valem
+sempre. **Do escopo (PLAN.md)** — escopo/Board, **branch de trabalho**, **ambiente e variáveis**
+(`KUBECONFIG` etc.), **label do card**, guardrails daquela frente. Misturar é o que dá bagunça: o
+escopo seguinte herdaria restrição que não é dele, ou o protocolo viraria N cópias.
+
+**Projeto antigo (PLAN na raiz)** continua funcionando como está; a migração só vale a pena quando você
+for abrir o **segundo escopo** no mesmo repo.
+
 ## Os 4 artefatos (4 papéis, zero sobreposição)
 
 | Artefato | Papel único | Entra no contexto |
 |---|---|---|
-| **`AGENTS.md`** (ou `CLAUDE.md`) | **Como trabalhar**: ritual, papéis, invariantes, guardrails | Sempre (automático) |
-| **`PLAN.md`** | **Fonte única de verdade viva**: Agora + Board + bloco ativo + futuros (rascunho) + decisões + registro | Sempre — só o cabeçalho + bloco ativo |
-| **`reports/RELATORIO_<bloco>_<data>.md`** | **Histórico denso** (problema→causa→solução→evidência), 1 por sessão | Quase nunca — só p/ resgatar detalhe |
+| **`AGENTS.md`** + **`CLAUDE.md`** (raiz) | **Como trabalhar** (protocolo permanente) + **índice de escopos** | Sempre (automático) |
+| **`docs/sessoes/<escopo>/PLAN.md`** | **Fonte única de verdade viva daquele escopo**: Agora + parâmetros + guardrails + Board + bloco ativo + futuros (rascunho) + decisões + registro | Sempre — só o cabeçalho + bloco ativo |
+| **`docs/sessoes/<escopo>/RELATORIO_<bloco>_<data>.md`** | **Histórico denso** (problema→causa→solução→evidência), 1 por sessão | Quase nunca — só p/ resgatar detalhe |
 | **Memória** | **Ponteiros** de alto nível entre sessões | Índice sempre; detalhe sob demanda |
 
 Não existe arquivo de STATUS separado — ele é a primeira seção do `PLAN.md` (`🔎 Agora`).
 
-> **Escoadouro opcional:** se o projeto tem um **label de apontamento** no `AGENTS.md`, o `end` também
-> alimenta o log da skill `resumo-trabalho` (`~/.claude/work-log/<label>.md`) a partir dos relatórios do
-> dia — ver a seção "🔗 Apontamentos automáticos" abaixo. Não é um 5º artefato do modelo: é um consumidor
-> a jusante dos relatórios, fora do repo.
+> **Escoadouro opcional:** se o escopo tem um **label de apontamento** no cabeçalho do seu `PLAN.md`, o
+> `end` também alimenta o log da skill `resumo-trabalho` (`~/.claude/work-log/<label>.md`) a partir dos
+> relatórios do dia — ver a seção "🔗 Apontamentos automáticos" abaixo. Não é um 5º artefato do modelo:
+> é um consumidor a jusante dos relatórios, fora do repo.
 
 ## Os subcomandos
 
 O argumento depois de `/sessao` indica a operação. Sem argumento, o agente pergunta qual é.
 
-### `init` — instalar o sistema num projeto novo
-1. Lê os templates `AGENTS` e `PLAN`.
-2. Levanta os `<PLACEHOLDERS>` **com o usuário** (não inventa): nome, escopo, blocos iniciais (id +
-   título + tipo 🔧/🔬), ambiente/guardrails, política de commit, idioma, pasta de relatórios, **label de
-   apontamento** (card do GitLab p/ o `resumo-trabalho`, se houver).
-3. Cria `AGENTS.md` + `PLAN.md` preenchidos — **detalha só o bloco B1**; os demais ficam em 1 linha
-   marcados `(rascunho)`. Copia o template de relatório.
-4. **Confirma a estrutura ANTES de criar**; depois mostra a árvore.
+### `init` — abrir um escopo (instalando o sistema, se ainda não houver)
+0. **Detecta o estado do repo** e **nunca sobrescreve** o que já existe: repo virgem → instalação
+   completa; repo já instalado → **só** a pasta do escopo novo (`docs/sessoes/<slug>/PLAN.md`) + uma
+   linha no índice do `CLAUDE.md`; layout legado (PLAN na raiz) → avisa e oferece migrar.
+1. Lê os templates necessários (`AGENTS`, `CLAUDE`, `PLAN`).
+2. Levanta os `<PLACEHOLDERS>` **com o usuário** (não inventa). **Por escopo:** título + slug, o que
+   fica fora do escopo, blocos iniciais (id + título + tipo 🔧/🔬), **branch de trabalho**, ambiente e
+   **guardrails específicos**, **label de apontamento** (card do GitLab p/ o `resumo-trabalho`, se
+   houver). **Só na 1ª instalação:** tratamento, idioma, política de commit, repos irmãos, guardrails
+   permanentes. Não pergunta pasta de relatórios — é derivada.
+3. **Confirma a estrutura ANTES de criar.** Depois cria: `AGENTS.md`/`CLAUDE.md` + template de
+   relatório (só na 1ª vez) e o `PLAN.md` do escopo — **detalha só o bloco B1**; os demais ficam em 1
+   linha marcados `(rascunho)`.
+4. **Grava o baton `🎬 Próximo`** (B1 🔬 ou ainda não executor-ready → 🧠 Planejador) e **commita a
+   instalação** — PLAN não-commitado faz a próxima sessão ler estado do working tree. Mostra a árvore.
 
-### `start` — início de sessão
-1. Lê só o cabeçalho `🔎 Agora` + o bloco ativo (não relê relatórios).
+### `start [<texto livre>]` — início de sessão
+0. **Nota de sessão** — se você escrever qualquer coisa depois de `start`, ela é lida e classificada
+   **antes** de qualquer tarefa começar:
+   - **(A) Briefing** ("só carregar o contexto", "onde paramos", "não execute ainda") → o agente carrega
+     só o `🔎 Agora` + bloco ativo e **te devolve o estado e PARA**: onde parou, ponto de entrada, gates
+     🔁 pendentes, decisões em aberto e qual seria a próxima ação. Zero efeito colateral — nem checkbox,
+     nem comando, nem rearmar carga/probe.
+   - **(B) Diretivas** ("só a tarefa T3", "pule o X", "use o cluster Y", "sem commit") → ecoa em 1-3
+     linhas o que entendeu e como isso muda o ponto de entrada, e executa já sob as diretivas. Sua
+     diretiva vence o PLAN no que for operacional.
+   - **Conflito com o contrato do bloco** (mexer em DoD, ordem de blocos, pular gate 🔁) → **para** e
+     devolve a decisão pra você; não improvisa.
+   - Diretivas são **efêmeras**: valem pra sessão, não entram no `PLAN.md` (salvo se você disser que é
+     permanente).
+1. **Identifica o escopo** pela tabela de escopos do `CLAUDE.md` (se houver mais de um ativo e a
+   intenção for ambígua, **pergunta qual**) e lê só o cabeçalho `🔎 Agora` + o bloco ativo do `PLAN.md`
+   **daquele** escopo (não relê relatórios, não lê o PLAN de outro escopo).
 2. **Determina o papel pelo baton `🎬 Próximo`** — não pergunta se ele existe:
    - `🎬 Próximo: ⚙️ Executor` → sessão de Executor: diz em 2-3 linhas onde parou + ponto de entrada e
      **começa a executar** à risca, marcando checkboxes.
    - `🎬 Próximo: 🧠 Planejador` → entra como Planejador (detalhar/replanejar/handoff).
    - Baton ausente/ambíguo → só aí resume o estado e pergunta o papel.
+   O baton define o **papel**; a nota de sessão define **se e como** se executa agora.
 3. Reestabelece os **gates por-sessão** (🔁) do ponto de entrada (reverificar DoR, rearmar
-   carga/probe/shells). Isso é **pré-condição normal, não retrabalho**.
+   carga/probe/shells). Isso é **pré-condição normal, não retrabalho**. Em modo briefing, não roda.
 
 ### `handoff` — preparar a troca de modelo (Planejador → Executor)
 1. Verifica se o bloco está **"executor-ready"** (tarefas atômicas com checagem verificável, decisões
@@ -66,14 +113,18 @@ O argumento depois de `/sessao` indica a operação. Sem argumento, o agente per
 4. **Commit obrigatório** das edições do handoff (senão a próxima sessão lê estado do working tree).
    Reporta o hash.
 
-### `end` — fim de sessão (só quando o usuário pedir)
-1. Gera `RELATORIO_<bloco>_<AAAA-MM-DD>.md` pelo template (detalhe denso: comandos, saídas, números).
-2. Atualiza o `PLAN.md` **in-place** (nunca duplica linhas): Agora, Board, checkboxes; se o bloco
-   fechou, **promove o próximo de rascunho a detalhado e replaneja o resto**; registro de sessões.
+### `end` — fim de sessão (quando o usuário pedir **ou** ao fechar um bloco inteiro)
+1. Gera `docs/sessoes/<escopo>/RELATORIO_<bloco>_<AAAA-MM-DD>.md` na pasta do escopo, pelo template
+   compartilhado (detalhe denso: comandos, saídas, números).
+2. Atualiza o `PLAN.md` do escopo **in-place** (nunca duplica linhas): Agora, Board, checkboxes,
+   registro de sessões. **Se o bloco fechou:** o 🧠 Planejador promove o próximo de rascunho a detalhado
+   e replaneja o resto; o ⚙️ Executor só marca 🟢, grava o baton `🧠 Planejador` com o motivo e **para**.
 3. Grava/atualiza o baton `🎬 Próximo` com o papel da próxima sessão.
-4. Atualiza ponteiros de memória só se algo de alto nível mudou.
-5. **Registra o apontamento do dia no `resumo-trabalho`** se o projeto tem label de apontamento no
-   `AGENTS.md`: varre os `RELATORIO_*_<hoje>.md`, e para cada relatório ainda não registrado (idempotência
+4. Se o **escopo inteiro** fechou, marca 🟢 na tabela do `CLAUDE.md`. Atualiza ponteiros de memória só
+   se algo de alto nível mudou.
+5. **Registra o apontamento do dia no `resumo-trabalho`** se o escopo tem label de apontamento no
+   cabeçalho do `PLAN.md`: varre os `RELATORIO_*_<hoje>.md` da pasta do escopo, e para cada relatório
+   ainda não registrado (idempotência
    pelo basename no log do label) sintetiza uma entrada `registrar` e faz append em
    `~/.claude/work-log/<label>.md` com a linha `**Relatório-fonte:**`. Log global/append-only, fora do commit.
 6. **Commit obrigatório** (relatório + PLAN + mudanças), nas convenções do repo, em cada repo tocado.
@@ -92,20 +143,21 @@ Se você usa a skill **`resumo-trabalho`** (log de trabalho por card do GitLab +
 o `sessao` alimenta esse log **sozinho** — não precisa mais rodar `registrar` à mão a cada bloco, e o
 apontamento do dia nunca sai incompleto por esquecimento.
 
-**1. Ligar (uma vez por projeto) — dar um label ao projeto.** O identificador da sessão é o **label de
-apontamento**: o mesmo `<label>` que você passaria em `/resumo-trabalho gerar <label>`. Ele mora numa
-linha das **Convenções** do `AGENTS.md`:
+**1. Ligar (uma vez por escopo) — dar um label ao escopo.** O identificador é o **label de
+apontamento**: o mesmo `<label>` que você passaria em `/resumo-trabalho gerar <label>`. Ele mora no
+cabeçalho de parâmetros do `PLAN.md` daquele escopo:
 
 ```
-- **Card / label de apontamento (resumo-trabalho):** `meu-card` — ...
+| **Label de apontamento** | `meu-card` (log do `resumo-trabalho`) |
 ```
 
-O `/sessao init` **pergunta esse label** ao montar o projeto. Num projeto que já existe, basta
-adicionar/editar essa linha. Deixe `—` (ou omita) se o projeto não tem card — aí a integração fica
-desligada e o `end` pula esse passo.
+O `/sessao init` **pergunta esse label** ao abrir o escopo. Num escopo que já existe, basta editar essa
+linha. Deixe `—` se não há card — aí a integração fica desligada e o `end` pula esse passo. Como o
+label é **por escopo**, duas frentes no mesmo repo podem apontar para cards diferentes. (Instalações
+legadas guardam o label nas Convenções do `AGENTS.md`; o `end` ainda lê de lá se o PLAN não tiver.)
 
 **2. O que o `end` faz.** Depois de gerar o relatório e atualizar o PLAN, o `end` varre os
-`RELATORIO_*_<hoje>.md` da pasta de relatórios e, para cada relatório **ainda não registrado**, cria uma
+`RELATORIO_*_<hoje>.md` da pasta do escopo e, para cada relatório **ainda não registrado**, cria uma
 entrada no log do card (`~/.claude/work-log/<label>.md`) sintetizada a partir daquele relatório. Cada
 entrada carrega a linha `**Relatório-fonte:** <caminho>` — é ela que garante **idempotência**: rodar o
 `end` de novo, ou fechar **dois blocos no mesmo dia**, nunca duplica (ele pula o relatório que já
@@ -147,18 +199,26 @@ por card, blocos de **repos diferentes** no mesmo dia caem no mesmo apontamento.
 
 ## Regras invioláveis
 
-- **Anti-duplicação:** estado/plano → `PLAN.md`; detalhe denso → relatórios; ganchos → memória. Nunca
-  sobe detalhe de relatório pro PLAN.
+- **Um escopo = uma pasta; o protocolo é um só.** Frente nova = `docs/sessoes/<slug>/PLAN.md` novo,
+  nunca um segundo protocolo. `AGENTS.md` e o template de relatório são reusados, jamais copiados por
+  escopo; nada específico de escopo (branch, ambiente, label, guardrails da frente) entra no
+  `AGENTS.md`. E `init` **nunca sobrescreve** instalação existente.
+- **Anti-duplicação:** regras → `AGENTS.md`; estado/plano → `PLAN.md` do escopo; detalhe denso →
+  relatórios do escopo; ganchos → memória. Nunca sobe detalhe de relatório pro PLAN.
 - **Fronteira de papel = PARADA de sessão:** o Executor **nunca vira Planejador dentro da mesma
   sessão**. Se surgir vontade de (re)planejar (decisão de design, ambiguidade, estado inesperado, DoD
   inalcançável), ele **PARA, grava `🎬 Próximo: 🧠 Planejador` + motivo, e reporta**. Detalhar+executar
-  um bloco na mesma sessão de Executor **é violação de protocolo**.
-- **RELATÓRIO só quando o usuário pedir.** Atualizar o PLAN é contínuo; gerar relatório é ato explícito.
+  um bloco na mesma sessão de Executor **é violação de protocolo** — e isso inclui promover o próximo
+  bloco de rascunho a detalhado no `end`.
+- **RELATÓRIO é ato explícito, com uma exceção só:** quando você pedir **ou** no auto-`end` de
+  fechamento de bloco (toda a DoD satisfeita). Terminar steps no meio de um bloco não gera relatório —
+  aí só atualiza checkboxes e estado. Atualizar o PLAN é contínuo.
 
 ## Ciclo de vida típico de uma POC
 
 ```
-/sessao init        → cria AGENTS.md + PLAN.md (B1 detalhado, resto rascunho)
+/sessao init        → 1ª vez: AGENTS.md + CLAUDE.md + docs/sessoes/<escopo>/PLAN.md (B1 detalhado,
+                      resto rascunho), baton gravado e commit. Escopo novo depois: só a pasta nova.
    │
    ▼  (modelo forte planeja B1)
 /sessao handoff     → deixa B1 executor-ready, grava baton ⚙️ Executor, commita
@@ -170,6 +230,22 @@ por card, blocos de **repos diferentes** no mesmo dia caem no mesmo apontamento.
    ▼  (fronteira: B1 fechou, B2 estava rascunho → baton vira 🧠 Planejador)
 /sessao start       → entra como Planejador, detalha B2, replaneja o resto
    ... repete até fechar o escopo
+```
+
+### `start` com nota de sessão — exemplos
+
+```
+/sessao start só carrega o contexto de onde paramos, não execute nada ainda
+   → briefing: onde parou, ponto de entrada, gates 🔁, decisões abertas, próxima ação. PARA.
+
+/sessao start onde paramos? o cluster tá fora do ar hoje
+   → briefing + aponta quais gates/tarefas dependem do cluster e o que dá pra fazer sem ele.
+
+/sessao start pode seguir, mas só as tarefas de código — nada de rodar no cluster, e sem commit
+   → ecoa as diretivas, ajusta o ponto de entrada e executa sob elas.
+
+/sessao start pula o bloco B7 e vai pro B8
+   → conflito com o contrato (ordem de blocos): PARA e devolve a decisão.
 ```
 
 ## Onde a skill vive
