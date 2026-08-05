@@ -14,11 +14,19 @@ estiver ativo e a intenção não estiver clara, pergunte a <SEU_NOME> qual é.
 |-----------------------|----------|---------------------------------------------------------|
 | <título do escopo>    | 🟡 Ativo | [`docs/sessoes/<slug>/PLAN.md`](docs/sessoes/<slug>/PLAN.md) |
 
+**Trocar de escopo:** o escopo é **argumento**, não estado — `/sessao start <slug> [nota]`,
+`/sessao end <slug>`. Omitindo o slug, vale: único 🟡 ativo → branch atual casando com a "Branch de
+trabalho" do PLAN → pergunta. `/sessao escopos` lista todos com estado, branch e baton, sem alterar
+nada. **Um escopo por vez em cada working tree** (paralelo de verdade só com `git worktree`).
+
 **Escopo novo:** `/sessao init` cria só `docs/sessoes/<novo-slug>/PLAN.md` e acrescenta uma linha nesta
 tabela. `AGENTS.md` e [`docs/sessoes/template-relatorio.md`](docs/sessoes/template-relatorio.md) são
 reusados, nunca copiados. Escopo terminado vira 🟢 Concluído aqui — a pasta permanece como histórico.
 
 **Legenda:** 🟡 Ativo · 🟢 Concluído · 🔴 Bloqueado/pausado.
+
+> ⚠️ `docs/sessoes/**` e este índice são **documentação, não código da feature**: mantenha-os na branch
+> base e mergeie cedo. O PLAN é versionado — em branch errada, a sessão lê estado errado.
 
 ## 📚 Referência técnica
 

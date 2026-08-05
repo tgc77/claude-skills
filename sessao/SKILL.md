@@ -57,9 +57,44 @@ protocolo dentro do próprio `AGENTS.md`/`CLAUDE.md`. **Continue operando neles 
 `handoff` e `end` funcionam igual. Só migre para o layout canônico se o usuário pedir, ou ofereça a
 migração quando ele for abrir um **segundo escopo** no mesmo repo (é aí que o layout antigo quebra).
 
+## 🎯 Resolução de escopo (qual PLAN esta sessão opera)
+
+Sintaxe: **`/sessao <subcomando> [<escopo-slug>] [<texto livre>]`**. O escopo é **argumento, não estado**
+— não existe ponteiro de "escopo ativo" guardado em lugar nenhum (ponteiro fica velho, é global
+enquanto a sessão é local, e não acompanha a troca de branch). Resolva **nesta ordem** e **diga em 1
+linha qual escopo assumiu**:
+
+1. **Slug explícito** logo após o subcomando (`/sessao start benchmark ...`) — vence tudo. Se o slug não
+   existir em `docs/sessoes/`, **pare e liste os que existem**; não crie escopo por engano.
+2. **Único escopo 🟡 Ativo** no índice do `CLAUDE.md` → é ele.
+3. **Branch atual casa com a "Branch de trabalho"** declarada no cabeçalho de algum PLAN → é ele
+   (confirme em 1 linha ao usuário).
+4. **Ambíguo** (vários ativos, nenhuma branch casando) → **pergunte**. Nunca chute, e nunca leia o PLAN
+   de dois escopos na mesma sessão.
+
+**Trabalhe um escopo por vez em cada working tree.** Escopos são isolados por pasta (baton, board,
+checkboxes e relatórios próprios), então alternar entre eles é seguro — o que não é seguro é **duas
+sessões simultâneas no mesmo working tree**, que colidem em arquivos e commits. Para paralelismo real,
+use `git worktree`.
+
+> ⚠️ **Cuidado que o layout multi-escopo introduz: o PLAN é um arquivo versionado.** Quem determina o
+> estado que a sessão enxerga é a **branch**, não o índice. Se o escopo A vive na branch `feature/a` e o
+> B na `feature/b`, ao trabalhar em B o PLAN de A pode estar ausente ou velho — a sessão lê estado
+> errado e *parece* que o trabalho sumiu. Por isso: **os artefatos de sessão (`docs/sessoes/**` +
+> `CLAUDE.md`) devem viver na branch base compartilhada** — mergeie-os cedo e com frequência (são
+> documentação, não código da feature). Se o usuário mantém PLANs em branches separadas, avise do risco
+> antes de operar.
+
 ## Subcomando (deduza do argumento ou pergunte)
 
 O argumento após `/sessao` indica a operação. Sem argumento, pergunte qual é.
+
+### `escopos` — listar os escopos do repo (e onde cada um parou)
+Leia o índice do `CLAUDE.md` e, para cada escopo, só o cabeçalho "🔎 Agora" + o cabeçalho de parâmetros
+do `PLAN.md` dele. Apresente uma tabela: **escopo (slug) · estado · branch · bloco ativo · baton
+🎬 Próximo · última atualização**. Marque qual seria o escopo assumido por padrão pela regra de
+resolução (ex.: o que casa com a branch atual). **Não altera nada** — é o "onde eu estava?" sem
+efeito colateral. Aceite também `/sessao escopos <slug>` para detalhar um só.
 
 ### `help` — mostrar o guia de uso da skill
 Leia `HELP.md` (ao lado deste arquivo) e apresente o guia (subcomandos, papéis, conceitos-chave, ciclo
@@ -129,11 +164,11 @@ existente:
      de PLAN/AGENTS (no `end`, ou por sessão de Planejador) se o usuário disser que é permanente ou se
      alterarem o contrato.
    Sem texto após `start` → siga direto do passo 1, comportamento normal do baton.
-1. **Identifique o escopo e leia só o PLAN dele.** Um repo pode ter vários escopos: consulte a tabela de
-   escopos do `CLAUDE.md` e escolha o **ativo** (ou o que a nota de sessão/o pedido indicar). **Se houver
-   mais de um ativo e a intenção for ambígua, PERGUNTE qual** — nunca chute o escopo, e nunca leia o PLAN
-   de outro. Então leia só o cabeçalho "🔎 Agora" + o bloco ativo daquele `PLAN.md` (não releia
-   relatórios). Layout legado → o PLAN é o da raiz.
+1. **Resolva o escopo** pela regra de "🎯 Resolução de escopo" (slug explícito → único ativo → branch
+   atual → pergunte) e **diga qual assumiu**. Um `/sessao start <slug> <nota>` é o caso comum quando há
+   mais de um escopo: o 1º termo é o slug, o resto é nota de sessão. Então leia só o cabeçalho
+   "🔎 Agora" + o bloco ativo daquele `PLAN.md` (não releia relatórios, e nunca leia o PLAN de outro
+   escopo). Layout legado → o PLAN é o da raiz.
 2. **Determine o papel pelo baton `🎬 Próximo` do cabeçalho Agora — NÃO pergunte se o baton existe.**
    (O baton define o **papel**; a nota de sessão do passo 0 define **se e como** se executa agora — em
    modo briefing o papel continua sendo o do baton, mas a sessão para no briefing.)
@@ -201,7 +236,9 @@ Duas portas de entrada para este ritual:
      passo 6. Confirme em 1 linha quais relatórios viraram entrada (ou "nada novo a registrar").
 6. **Commit obrigatório do que foi feito** (sobrepõe qualquer hábito de "sem commit"): commite o
    relatório novo, o `PLAN.md` e as demais mudanças da sessão, seguindo as convenções de commit do
-   repo (mensagem no padrão do projeto). Se a sessão tocou **mais de um repo** (ex.: repos irmãos
+   repo (mensagem no padrão do projeto). **Commite só o que é deste escopo + o que a sessão tocou** —
+   num repo multi-escopo, `git add -A` cego varre trabalho de outra frente para dentro do seu commit.
+   Se houver arquivos modificados alheios à sessão, **liste-os ao usuário e deixe de fora**. Se a sessão tocou **mais de um repo** (ex.: repos irmãos
    operator/clusters), commite em **cada** um. Se estiver na branch default, crie/*use* a **branch de
    trabalho declarada no PLAN do escopo**. **Exceção que sobrepõe o "sem push": commit destinado a
    deploy leva `push` no mesmo turno, sem esperar pedido** (ver "Entrega destinada a deploy" nas Regras
@@ -210,6 +247,10 @@ Duas portas de entrada para este ritual:
 
 ## Regras invioláveis (valem em qualquer subcomando)
 
+- **Escopo é argumento, não estado; um por vez por working tree.** `/sessao <sub> [<slug>] [nota]`,
+  resolvido por slug → único ativo → branch → pergunta (ver "🎯 Resolução de escopo"). Nunca guarde
+  ponteiro de escopo ativo, nunca opere dois PLANs na mesma sessão, e **mantenha `docs/sessoes/**` +
+  `CLAUDE.md` na branch base** — o PLAN é versionado, então branch errada = estado errado.
 - **Um escopo = uma pasta; o protocolo é um só.** Frente de trabalho nova = `docs/sessoes/<slug>/PLAN.md`
   novo, **nunca** um segundo protocolo. `AGENTS.md` e `template-relatorio.md` são **reusados, jamais
   copiados por escopo**; o `CLAUDE.md` é só índice. Nada específico de escopo (branch, ambiente,

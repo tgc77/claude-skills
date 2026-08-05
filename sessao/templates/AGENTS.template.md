@@ -18,8 +18,9 @@ listados em [`CLAUDE.md`](CLAUDE.md).
 
 **Cada sessão começa com o contexto zerado** — a continuidade vive nos arquivos, não na conversa.
 
-1. **Identifique o escopo** da sessão pela lista em [`CLAUDE.md`](CLAUDE.md). Se mais de um escopo
-   estiver ativo e a intenção de <SEU_NOME> for ambígua, **pergunte qual** antes de agir.
+1. **Identifique o escopo** da sessão e **diga qual assumiu**, nesta ordem: slug passado no comando →
+   único 🟡 ativo na lista de [`CLAUDE.md`](CLAUDE.md) → escopo cuja "Branch de trabalho" é a branch
+   atual → **pergunte** a <SEU_NOME>. Nunca chute, e **nunca opere dois escopos na mesma sessão**.
 2. **LEIA o cabeçalho ("🔎 Agora") + o bloco ativo** do `PLAN.md` **daquele escopo** — a **fonte única
    de verdade** dele. Não precisa ler o PLAN inteiro, e não leia o PLAN de outro escopo.
 3. Resuma para <SEU_NOME> **onde paramos + o próximo passo**, sem reler relatórios antigos. Relatórios

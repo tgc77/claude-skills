@@ -59,9 +59,41 @@ Não existe arquivo de STATUS separado — ele é a primeira seção do `PLAN.md
 > relatórios do dia — ver a seção "🔗 Apontamentos automáticos" abaixo. Não é um 5º artefato do modelo:
 > é um consumidor a jusante dos relatórios, fora do repo.
 
+## Alternar entre escopos (um repo, várias frentes)
+
+Sintaxe: **`/sessao <subcomando> [<escopo-slug>] [<texto livre>]`**. **O escopo é argumento, não
+estado** — não existe "escopo ativo" guardado, porque ponteiro fica velho, é global enquanto a sessão é
+local, e não acompanha a troca de branch. Quando você omite o slug, o agente resolve nesta ordem e diz
+qual assumiu:
+
+```
+1. slug explícito     /sessao start benchmark só carrega o contexto
+2. único 🟡 ativo     (não há o que confundir)
+3. branch atual       casa com a "Branch de trabalho" declarada no PLAN
+4. ambíguo            pergunta — nunca chuta
+```
+
+`/sessao escopos` lista tudo (escopo · estado · branch · bloco ativo · baton · última atualização) sem
+alterar nada — é o "onde eu estava?".
+
+**É seguro ter vários escopos ativos**, desde que **um por vez em cada working tree**: cada escopo tem
+baton, board, checkboxes e relatórios próprios, então eles não se atropelam. O que colide é rodar
+**duas sessões ao mesmo tempo no mesmo working tree** (arquivos e commits misturados) — para isso,
+`git worktree`.
+
+> ⚠️ **O PLAN é um arquivo versionado.** Quem determina o estado que você enxerga é a **branch**, não o
+> índice. Se cada escopo vive na sua branch, ao entrar em um deles o PLAN do outro pode estar ausente
+> ou velho, e vai parecer que o trabalho sumiu. Mantenha `docs/sessoes/**` e o `CLAUDE.md` na **branch
+> base** — são documentação, não código da feature; mergeie cedo e com frequência.
+
 ## Os subcomandos
 
 O argumento depois de `/sessao` indica a operação. Sem argumento, o agente pergunta qual é.
+
+### `escopos` — listar os escopos do repo
+Mostra, para cada escopo: slug, estado, branch de trabalho, bloco ativo, baton `🎬 Próximo` e última
+atualização — e qual seria assumido por padrão na branch atual. Não altera nada. `/sessao escopos
+<slug>` detalha um só.
 
 ### `init` — abrir um escopo (instalando o sistema, se ainda não houver)
 0. **Detecta o estado do repo** e **nunca sobrescreve** o que já existe: repo virgem → instalação
@@ -246,6 +278,9 @@ por card, blocos de **repos diferentes** no mesmo dia caem no mesmo apontamento.
 
 /sessao start pula o bloco B7 e vai pro B8
    → conflito com o contrato (ordem de blocos): PARA e devolve a decisão.
+
+/sessao start benchmark onde paramos?
+   → 1º termo = slug do escopo, resto = nota. Entra no PLAN do benchmark e dá o briefing.
 ```
 
 ## Onde a skill vive
