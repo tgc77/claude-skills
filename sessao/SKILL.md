@@ -45,7 +45,7 @@ cada frente nova:
 | Convenções de commit, idioma, tratamento do usuário | **Branch de trabalho** daquele escopo |
 | Repos irmãos que uma sessão pode tocar | **Ambiente/`KUBECONFIG`/namespaces** daquele escopo |
 | Guardrails **permanentes** (segredos, prod, destrutivo) | Guardrails **específicos** daquele escopo |
-| — | **Label de apontamento** (card) daquele escopo |
+| — | **Slug + descrição** daquele escopo (o slug já é o label do apontamento) |
 
 **`CLAUDE.md` × `AGENTS.md` (por que os dois):** o Claude Code carrega automaticamente o `CLAUDE.md`;
 `AGENTS.md` é a convenção neutra de fornecedor, e não é auto-carregado por estar numa subpasta. Então
@@ -57,6 +57,37 @@ protocolo dentro do próprio `AGENTS.md`/`CLAUDE.md`. **Continue operando neles 
 `handoff` e `end` funcionam igual. Só migre para o layout canônico se o usuário pedir, ou ofereça a
 migração quando ele for abrir um **segundo escopo** no mesmo repo (é aí que o layout antigo quebra).
 
+## 🔑 Escopo × slug (vocabulário — não confunda os dois)
+
+| | O que é | Onde vive |
+|---|---|---|
+| **slug** | O **identificador único** do escopo. Chave primária: tudo o mais é derivado dele. | Coluna `Slug` do índice, linha `Slug` do PLAN, nome da pasta, nome do log de apontamento |
+| **escopo** | A **descrição legível** daquele slug — o que aquela frente de trabalho é. | Coluna `Escopo` do índice, seção `**Escopo:**` do PLAN |
+
+**Invariantes do slug (valem em qualquer repo):**
+
+1. **Um escopo, um nome. NÃO existem apelidos.** Nada de "o mesmo escopo também atende por X" — duas
+   grafias para a mesma coisa é conflito de nome esperando acontecer. Se o nome precisa mudar, isso é
+   **rename** (procedimento abaixo), não um segundo nome.
+2. **Único globalmente**, não só dentro do repo — porque o log de apontamento é global
+   (`~/.claude/work-log/<slug>.md`). Prefira nomes distintivos (`aca-amortizacao`, `poc-benchmark`) a
+   genéricos (`amortizacao`, `benchmark`), que colidem com outro projeto no dia seguinte.
+3. **`slug` == nome da pasta** (`docs/sessoes/<slug>/`) e **`slug` == label do `resumo-trabalho`**
+   (`~/.claude/work-log/<slug>.md`). Uma string só, sem campo separado para label.
+4. **kebab-case**, sem espaço nem acento — ele é nome de pasta e nome de arquivo.
+
+> ⚠️ **Enquanto um escopo antigo tiver pasta ≠ slug** (migração ainda não feita), o caminho do PLAN
+> **vem da coluna PLAN do índice**, não da derivação. Isso **não** é apelido: o nome continua sendo um
+> só; só o caminho não é calculável. Escopo novo sempre nasce com `slug` == pasta.
+
+### Renomear o slug de um escopo (ato explícito, nunca automático)
+
+Sem apelidos, o nome velho deixa de resolver — de propósito. Renomear é: `git mv` da pasta para o slug
+novo · atualizar a linha `Slug` do PLAN e a coluna `Slug` do índice · reescrever os caminhos que citam
+a pasta antiga · **decidir o log de apontamento** (`~/.claude/work-log/<slug-velho>.md`): renomeá-lo
+junto ou manter o antigo como histórico e o slug seguir o log — **o que preserva histórico vence**.
+Diga ao usuário o que aconteceu com o log; nunca deixe apontamento órfão em silêncio.
+
 ## 🎯 Resolução de escopo (qual PLAN esta sessão opera)
 
 Sintaxe: **`/sessao <subcomando> [<escopo-slug>] [<texto livre>]`**. O escopo é **argumento, não estado**
@@ -64,8 +95,12 @@ Sintaxe: **`/sessao <subcomando> [<escopo-slug>] [<texto livre>]`**. O escopo é
 enquanto a sessão é local, e não acompanha a troca de branch). Resolva **nesta ordem** e **diga em 1
 linha qual escopo assumiu**:
 
-1. **Slug explícito** logo após o subcomando (`/sessao start benchmark ...`) — vence tudo. Se o slug não
-   existir em `docs/sessoes/`, **pare e liste os que existem**; não crie escopo por engano.
+1. **Slug explícito** logo após o subcomando (`/sessao start poc-benchmark ...`) — vence tudo. Procure-o
+   na **coluna `Slug` do índice do `CLAUDE.md`**, que é quem sabe o caminho do PLAN daquele escopo
+   (`docs/sessoes/<slug>/` é o padrão, mas escopo ainda não migrado mora onde a coluna PLAN disser).
+   **Match exato, sem apelido e sem adivinhação:** se o usuário digitou um nome que não está na coluna
+   `Slug`, **pare e liste os slugs que existem** — não "aproxime" para o parecido, não crie escopo por
+   engano, e não invente um segundo nome para um escopo que já tem o seu.
 2. **Único escopo 🟡 Ativo** no índice do `CLAUDE.md` → é ele.
 3. **Branch atual casa com a "Branch de trabalho"** declarada no cabeçalho de algum PLAN → é ele
    (confirme em 1 linha ao usuário).
@@ -90,11 +125,26 @@ use `git worktree`.
 O argumento após `/sessao` indica a operação. Sem argumento, pergunte qual é.
 
 ### `escopos` — listar os escopos do repo (e onde cada um parou)
-Leia o índice do `CLAUDE.md` e, para cada escopo, só o cabeçalho "🔎 Agora" + o cabeçalho de parâmetros
-do `PLAN.md` dele. Apresente uma tabela: **escopo (slug) · estado · branch · bloco ativo · baton
-🎬 Próximo · última atualização**. Marque qual seria o escopo assumido por padrão pela regra de
-resolução (ex.: o que casa com a branch atual). **Não altera nada** — é o "onde eu estava?" sem
-efeito colateral. Aceite também `/sessao escopos <slug>` para detalhar um só.
+
+Responde a "quais escopos existem aqui?" / "quais slugs esse projeto tem?". Leia o índice do
+`CLAUDE.md` e, para cada escopo, **só** o cabeçalho "🔎 Agora" + o cabeçalho de parâmetros do `PLAN.md`
+dele (nunca o PLAN inteiro, nunca relatório).
+
+Apresente **nesta ordem de colunas** — o slug primeiro, porque é o identificador que se digita; o
+escopo é a descrição:
+
+| Slug | Escopo | Estado | Branch | Bloco ativo | 🎬 Próximo | Última atualização |
+|---|---|---|---|---|---|---|
+| `<slug>` | <descrição curta> | 🟡/🟢/🔴 | `<branch>` | `<bloco>` | ⚙️/🧠 + ponto de entrada | <data> |
+
+Depois da tabela, em 1 linha: **qual escopo seria assumido por padrão** pela regra de resolução (ex.:
+o que casa com a branch atual) e o comando para entrar nele (`/sessao start <slug>`). Sinalize também
+**inconsistências de identidade** que encontrar — slug ≠ nome da pasta, ou log de apontamento
+(`~/.claude/work-log/<slug>.md`) inexistente para um escopo com sessões fechadas — em uma linha cada,
+como aviso, sem corrigir nada.
+
+**Não altera nada** — é o "onde eu estava?" sem efeito colateral. Aceite também
+`/sessao escopos <slug>` para detalhar um só.
 
 ### `help` — mostrar o guia de uso da skill
 Leia `HELP.md` (ao lado deste arquivo) e apresente o guia (subcomandos, papéis, conceitos-chave, ciclo
@@ -104,9 +154,10 @@ de vida). Não altera nada no projeto. Use também quando o usuário pedir "help
 
 **0. Detecte o estado do repo ANTES de qualquer coisa** — `init` **nunca** sobrescreve instalação
 existente:
-- **Repo virgem** (sem `AGENTS.md`/`CLAUDE.md` de controle e sem `docs/sessoes/`) → instalação completa
-  (passos 1–5).
-- **Repo já instalado** (existe o protocolo + `docs/sessoes/`) → é **escopo novo**: crie **apenas**
+- **Repo virgem** (sem `AGENTS.md`/`CLAUDE.md` de controle e sem nenhum escopo no índice) → instalação
+  completa (passos 1–5).
+- **Repo já instalado** (existe o protocolo + índice com escopos — mesmo que nenhum deles esteja em
+  `docs/sessoes/`) → é **escopo novo**: crie **apenas**
   `docs/sessoes/<novo-slug>/PLAN.md` e acrescente a linha do escopo na tabela do `CLAUDE.md`.
   **Não recrie nem reescreva** `AGENTS.md`, `CLAUDE.md` (fora a linha nova) ou o template de relatório.
 - **Layout legado** (PLAN na raiz) → diga isso ao usuário e ofereça migrar para o layout canônico antes
@@ -115,14 +166,22 @@ existente:
 1. Leia `templates/AGENTS.template.md`, `templates/CLAUDE.template.md` e `templates/PLAN.template.md`
    (só os que forem necessários ao caso detectado).
 2. Levante os `<PLACEHOLDERS>` com o usuário (**não invente**):
-   - **Sempre (por escopo):** título do escopo + **slug da pasta**; o que é o escopo e o que fica **fora**
-     dele; lista inicial de blocos (id + título + tipo 🔧 mecânico / 🔬 descoberta); **branch de
-     trabalho**; **ambiente** (cluster/`KUBECONFIG`/namespaces/dados) e **guardrails específicos**;
-     **label de apontamento** (card do GitLab p/ o `resumo-trabalho` — é o que liga o `end` deste escopo
-     ao apontamento do card; opcional, pode ficar em branco).
+   - **Sempre (por escopo):** o **slug** (identificador único — vira pasta, label e nome do log) + o
+     **escopo** (descrição legível de 1 linha: o que é essa frente); o que fica **fora** dele; lista
+     inicial de blocos (id + título + tipo 🔧 mecânico / 🔬 descoberta); **branch de trabalho**;
+     **ambiente** (cluster/`KUBECONFIG`/namespaces/dados) e **guardrails específicos**.
+   - **Valide o slug antes de aceitá-lo** (é chave primária, corrigir depois custa rename): kebab-case;
+     **não** existe ainda na coluna `Slug` do índice deste repo; **e não colide globalmente** — confira
+     `ls ~/.claude/work-log/` e, se já houver um `<slug>.md` de outro trabalho, proponha um nome mais
+     distintivo (`aca-amortizacao`, não `amortizacao`). Um slug bom é reconhecível fora do repo.
+   - **Não pergunte o label de apontamento** — ele **é** o slug (`~/.claude/work-log/<slug>.md`). Se o
+     usuário quiser apontar num card já existente com outro nome, isso é escolher o slug igual ao card,
+     não criar um segundo campo.
    - **Só na 1ª instalação (por repo):** como tratar o usuário; idioma; política de commit; repos irmãos
      que uma sessão pode tocar; guardrails permanentes.
-   - **Não pergunte a pasta de relatórios** — ela é derivada (`docs/sessoes/<escopo-slug>/`).
+   - **Não pergunte a pasta de relatórios** — para escopo novo ela é derivada
+     (`docs/sessoes/<escopo-slug>/`). Escopo migrado pode ter outra convenção: nesse caso ela está
+     **declarada no cabeçalho de parâmetros do PLAN**, e é a declaração que vale.
 3. **Confirme o plano da estrutura ANTES de criar** (árvore + Board + guardrails, em texto). Só crie
    depois do OK.
 4. Crie os arquivos:
@@ -130,7 +189,7 @@ existente:
    - `docs/sessoes/template-relatorio.md` — **só na 1ª instalação** (copie de `templates/`).
    - `docs/sessoes/<escopo-slug>/PLAN.md` — sempre. Detalhe **só o bloco B1**; deixe os demais em uma
      linha, marcados `(rascunho)`. Preencha o cabeçalho de parâmetros do escopo (branch, ambiente,
-     namespaces, **label de apontamento**, pasta de relatórios) e a seção "🚧 Guardrails deste escopo".
+     namespaces, pasta de relatórios) e a seção "🚧 Guardrails deste escopo".
    - Acrescente a linha do escopo na tabela de escopos do `CLAUDE.md` (estado 🟡 Ativo).
 5. **Grave o baton `🎬 Próximo`** no cabeçalho "🔎 Agora" do PLAN novo — o `init` **não** pode deixar o
    baton em branco (sem ele o `start` fica adivinhando o papel). Regra: **B1 🔬 descoberta ou ainda não
@@ -192,7 +251,9 @@ existente:
    (a 1ª tarefa não-concluída), listando quais **gates por-sessão** reestabelecer antes (DoR + setup vivo).
    É esse baton que faz o `start` da próxima sessão entrar como Executor **sem perguntar**.
 4. **Commit obrigatório** das edições do handoff (mesma regra do `end` — não deixe o PLAN pronto porém
-   não-commitado, senão a próxima sessão lê estado do working tree). Reporte o hash.
+   não-commitado, senão a próxima sessão lê estado do working tree). Reporte o hash. **Exceção: se
+   houver questionamento aberto do usuário, não commite — pergunte antes** (ver "QUESTIONAMENTO ABERTO
+   = REGISTRO CONGELADO" nas Regras invioláveis).
 
 ### `end` — fim de sessão
 Duas portas de entrada para este ritual:
@@ -201,8 +262,11 @@ Duas portas de entrada para este ritual:
 - **Fechamento de bloco inteiro** (toda a DoD do bloco satisfeita) → o **Executor auto-dispara este
   ritual por si, sem o usuário pedir**, *antes* de passar o baton (ver "Papéis" nas Regras invioláveis).
 
-1. Gere `docs/sessoes/<escopo>/RELATORIO_<bloco>_<AAAA-MM-DD>.md` — na **pasta do escopo**, pelo template
-   compartilhado `docs/sessoes/template-relatorio.md` (detalhe denso: comandos, saídas, números).
+1. Gere o relatório **na pasta e no padrão de nome que a linha `Relatórios` do cabeçalho do PLAN
+   declara** — default `docs/sessoes/<slug>/RELATORIO_<bloco>_<AAAA-MM-DD>.md`, pelo template
+   compartilhado `docs/sessoes/template-relatorio.md`. Se aquele escopo declarar outro padrão (acontece
+   em escopo migrado, que já tem relatórios gravados), **respeite o declarado — não renomeie a
+   convenção dele no meio do caminho** (detalhe denso: comandos, saídas, números).
 2. Atualize o `PLAN.md` **do escopo**, **in-place** (nunca duplique linhas): cabeçalho "Agora"; Board;
    checkboxes do bloco ativo; registro de sessões (1 linha + link).
    **Se o bloco fechou, o que fazer depende de quem está na sessão:**
@@ -215,26 +279,29 @@ Duas portas de entrada para este ritual:
    (re)planejamento (bloco fechou e o próximo está em rascunho, ou surgiu decisão de design em aberto).
 4. Se o **escopo inteiro** fechou, marque-o 🟢 Concluído na tabela de escopos do `CLAUDE.md` (a pasta
    fica, é histórico). Atualize ponteiros de memória só se algo de alto nível mudou.
-5. **Registre o apontamento do dia no `resumo-trabalho` (se o escopo tiver label).** É o elo que mantém
-   os apontamentos do card sincronizados sem depender de `registrar` manual — o `gerar <card>` do dia
-   sai completo porque todo relatório do dia vira entrada no log automaticamente:
-   - Leia o **label de apontamento** no cabeçalho de parâmetros do `PLAN.md` do escopo (em instalações
-     legadas, na linha "Card / label de apontamento" das Convenções do `AGENTS.md`). Sem label
-     configurado → **pule este passo** (escopo sem card associado).
+5. **Registre o apontamento do dia no `resumo-trabalho` — sempre; o label É o slug.** É o elo que mantém
+   os apontamentos sincronizados sem depender de `registrar` manual — o `gerar <slug>` do dia sai
+   completo porque todo relatório do dia vira entrada no log automaticamente:
+   - O log do escopo é `~/.claude/work-log/<slug>.md`. **Não procure campo "label" no PLAN** — não
+     existe mais campo separado; se um PLAN antigo ainda declarar um label diferente do slug, isso é
+     inconsistência de identidade: **avise o usuário e pergunte** qual dos dois nomes vale (o que tem
+     histórico no log costuma vencer), em vez de escrever nos dois.
    - Colete os relatórios do **dia de hoje** na pasta do escopo (`RELATORIO_*_<AAAA-MM-DD>.md` com a
      data de hoje — inclui o que você acabou de gerar **e** quaisquer outros blocos fechados hoje em
      sessões anteriores que ainda não foram registrados).
    - Para cada relatório, cheque idempotência: procure o basename do relatório
-     (`RELATORIO_<bloco>_<data>.md`) no `~/.claude/work-log/<label-slug>.md`. **Se já aparece, pule** (já
+     (`RELATORIO_<bloco>_<data>.md`) no `~/.claude/work-log/<slug>.md`. **Se já aparece, pule** (já
      registrado). Senão, sintetize uma entrada `registrar` densa e factual a partir do relatório
      (formato e regras do `resumo-trabalho`: seções O que foi feito / Problemas-Correções / Validações /
-     Pendências, denso e factual, sem inventar nada fora do relatório) e faça **append** no log do label.
+     Pendências, denso e factual, sem inventar nada fora do relatório) e faça **append** no log do escopo.
      Logo abaixo do cabeçalho `## [data hora] <projeto>`, inclua a linha
      `**Relatório-fonte:** <caminho/RELATORIO_<bloco>_<data>.md>` — é ela que torna o passo idempotente.
      Uma entrada por relatório.
    - Log é **append-only e global** (`~/.claude/work-log/`), fora do repo — **não** entra no commit do
      passo 6. Confirme em 1 linha quais relatórios viraram entrada (ou "nada novo a registrar").
-6. **Commit obrigatório do que foi feito** (sobrepõe qualquer hábito de "sem commit"): commite o
+6. **Commit obrigatório do que foi feito** (sobrepõe qualquer hábito de "sem commit") — **exceto se
+   houver questionamento aberto do usuário: aí o `end` PARA e pergunta antes de commitar** (ver
+   "QUESTIONAMENTO ABERTO = REGISTRO CONGELADO" nas Regras invioláveis; ela vence este passo). Commite o
    relatório novo, o `PLAN.md` e as demais mudanças da sessão, seguindo as convenções de commit do
    repo (mensagem no padrão do projeto). **Commite só o que é deste escopo + o que a sessão tocou** —
    num repo multi-escopo, `git add -A` cego varre trabalho de outra frente para dentro do seu commit.
@@ -247,6 +314,28 @@ Duas portas de entrada para este ritual:
 
 ## Regras invioláveis (valem em qualquer subcomando)
 
+- **QUESTIONAMENTO ABERTO = REGISTRO CONGELADO.** No instante em que o usuário questiona, discorda ou
+  pede para validar algo, **para de escrever**: nada entra em `PLAN.md`, `AGENTS.md`, relatório,
+  memória ou commit até ele dizer que concorda — **com tudo**, não com a parte que pareceu resolvida.
+  Concordar com um ponto não libera os outros; silêncio não é aval; "faz sentido" no meio da conversa
+  não é aval. O aval é explícito e vem **depois** de ele ver a evidência.
+  **Por quê:** registrar é o ato que transforma hipótese minha em verdade oficial do projeto — o PLAN é
+  lido por sessões futuras como fato estabelecido, e commit por cima de análise não validada propaga o
+  erro e custa caro de desfazer. Enquanto há questionamento aberto, a análise **ainda não é** conclusão:
+  é proposta.
+  **O que fazer no lugar:** apresentar a **evidência crua** (diff, saída de comando, trecho de arquivo)
+  + a conclusão que tiro dela + as opções, e **perguntar**. Manter as mudanças no working tree, sem
+  commit. Só depois do "ok" registrar.
+  **Não vale como desculpa:** "era só documentar", "é reversível", "ia commitar mesmo", "o ritual de
+  `end` manda commitar". O ritual **não** sobrepõe esta regra — se há questionamento aberto no fim da
+  sessão, o `end` **para** e pergunta antes de commitar.
+  **Se eu já registrei antes do aval:** dizer isso explicitamente na primeira frase, oferecer o
+  `git reset --soft` (ou reverter a edição) e **esperar** — nunca deixar passar como se tivesse sido
+  combinado, nunca "aproveitar que já está lá".
+  **Exceção única:** trabalho **mecânico já contratado** dentro de um bloco executor-ready — marcar
+  checkbox de tarefa concluída, gerar relatório de bloco fechado no ritual acordado. Conclusão nova,
+  reenquadramento de causa raiz, mudança de contrato, criação/cancelamento de bloco e reordenação de
+  Board **nunca** são mecânicos.
 - **Escopo é argumento, não estado; um por vez por working tree.** `/sessao <sub> [<slug>] [nota]`,
   resolvido por slug → único ativo → branch → pergunta (ver "🎯 Resolução de escopo"). Nunca guarde
   ponteiro de escopo ativo, nunca opere dois PLANs na mesma sessão, e **mantenha `docs/sessoes/**` +
@@ -254,7 +343,7 @@ Duas portas de entrada para este ritual:
 - **Um escopo = uma pasta; o protocolo é um só.** Frente de trabalho nova = `docs/sessoes/<slug>/PLAN.md`
   novo, **nunca** um segundo protocolo. `AGENTS.md` e `template-relatorio.md` são **reusados, jamais
   copiados por escopo**; o `CLAUDE.md` é só índice. Nada específico de escopo (branch, ambiente,
-  `KUBECONFIG`, label do card, guardrails da frente) entra no `AGENTS.md` — isso mora no PLAN do escopo,
+  `KUBECONFIG`, guardrails da frente) entra no `AGENTS.md` — isso mora no PLAN do escopo,
   senão o próximo escopo herda restrição que não é dele. E `init` **nunca sobrescreve** instalação
   existente (ver passo 0 do `init`).
 - **Entrega destinada a deploy = `push` no mesmo turno, e o pipeline tem mais elos que o commit.**
@@ -315,12 +404,13 @@ Duas portas de entrada para este ritual:
   contexto do ponto onde parou, sem ler tudo, e parar) e pode **condicionar** a execução (diretivas
   operacionais), mas **não redefine o papel** — quem define papel é o baton — nem altera o contrato do
   bloco por conta própria (isso é PARADA + decisão do usuário). Diretivas valem só para a sessão.
-- **Sincronia com `resumo-trabalho` (label = identificador do escopo):** se o escopo declara um **label de
-  apontamento** no cabeçalho do seu `PLAN.md`, o `end` alimenta o `resumo-trabalho` a partir dos
-  **relatórios do dia** (uma entrada `registrar` por relatório novo, marcada com `**Relatório-fonte:**`
-  p/ idempotência). Assim o `gerar <card>` do dia sempre reflete tudo que fechou — sem depender de
-  `registrar` manual. Escopos diferentes podem apontar para cards diferentes no mesmo repo. Os
-  relatórios são a matéria-prima; nada é inventado fora deles. O log continua append-only e global.
+- **Sincronia com `resumo-trabalho`: o label É o slug.** O `end` alimenta `~/.claude/work-log/<slug>.md`
+  a partir dos **relatórios do dia** (uma entrada `registrar` por relatório novo, marcada com
+  `**Relatório-fonte:**` p/ idempotência), sempre — não há escopo "sem label". Assim o
+  `gerar <slug>` do dia reflete tudo que fechou, sem depender de `registrar` manual. Os relatórios são a
+  matéria-prima; nada é inventado fora deles. O log é append-only, global e **fora do repo** — nunca
+  entra no commit. Como o log é global, **o slug precisa ser único entre projetos**, não só dentro do
+  repo (ver "🔑 Escopo × slug").
 - **Gate por-sessão × marco (não confundir):** um **marco** é um resultado que persiste (medição/entrega →
   checkbox `[x]` + relatório). Um **gate por-sessão** é pré-condição/processo vivo que **não** sobrevive
   entre sessões (DoR = "está saudável agora?"; armar carga/probe/shells) e **é reestabelecido toda sessão

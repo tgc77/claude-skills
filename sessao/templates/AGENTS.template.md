@@ -2,7 +2,7 @@
 
 Instruções do agente para este repositório — **como trabalhar**. Este arquivo é **permanente e
 agnóstico de escopo**: vale para qualquer feature, correção ou investigação conduzida pelo sistema de
-controle de sessões. O **quê** (escopo, board, branch, ambiente, guardrails específicos, label do card)
+controle de sessões. O **quê** (slug, descrição, board, branch, ambiente, guardrails específicos)
 vive no `PLAN.md` de cada escopo, em `docs/sessoes/<escopo>/PLAN.md`. Escopos ativos e arquivados estão
 listados em [`CLAUDE.md`](CLAUDE.md).
 
@@ -94,11 +94,10 @@ meio de um bloco não gera relatório.
    resto; **Executor** só marca 🟢, grava o baton `🧠 Planejador` com o motivo e para.
 3. Se o **escopo inteiro** fechou, marque-o 🟢 na tabela de escopos do [`CLAUDE.md`](CLAUDE.md) — a pasta
    fica como histórico. Atualize ponteiros de memória só se algo de alto nível mudou.
-4. **Registre o apontamento do dia no `resumo-trabalho`**, se o escopo declarar um **label de
-   apontamento** no cabeçalho do seu `PLAN.md`: para cada `RELATORIO_*_<hoje>.md` ainda não registrado
-   (idempotência pelo basename no log do label), sintetize uma entrada `registrar` a partir do relatório
-   e faça append em `~/.claude/work-log/<label>.md` com a linha `**Relatório-fonte:**`. Log
-   global/append-only — não entra no commit. Escopo sem label → pule este passo.
+4. **Registre o apontamento do dia no `resumo-trabalho`** — o label **é o slug** do escopo: para cada
+   `RELATORIO_*_<hoje>.md` ainda não registrado (idempotência pelo basename no log), sintetize uma
+   entrada `registrar` a partir do relatório e faça append em `~/.claude/work-log/<slug>.md` com a
+   linha `**Relatório-fonte:**`. Log global/append-only — não entra no commit.
 5. **Commit** do relatório + PLAN + demais mudanças, em **cada** repo tocado, na branch de trabalho
    declarada no PLAN do escopo.
 
@@ -120,6 +119,21 @@ meio de um bloco não gera relatório.
 
 ## 🚧 Guardrails permanentes (independem de escopo)
 
+- **🛑 QUESTIONAMENTO ABERTO = REGISTRO CONGELADO (inviolável, não editar/remover).** Quando o usuário
+  questiona, discorda ou pede para validar algo, **para de escrever imediatamente**: nada entra em
+  `PLAN.md`, `AGENTS.md`, relatório, memória ou commit até ele **concordar com tudo** — não com a parte
+  que pareceu resolvida. Concordar com um ponto não libera os outros; silêncio não é aval.
+  **Por quê:** registrar é o que transforma hipótese em verdade oficial do projeto; o PLAN é lido por
+  sessões futuras como fato estabelecido. Enquanto há questionamento aberto, a análise **ainda não é**
+  conclusão: é proposta.
+  **No lugar:** apresentar a **evidência crua** (diff, saída de comando, trecho de arquivo) + a
+  conclusão + as opções, e **perguntar**. Mudanças ficam no working tree, sem commit.
+  **Não vale como desculpa:** "era só documentar", "é reversível", "o ritual de `end` manda commitar" —
+  o ritual não sobrepõe esta regra. **Se já registrou antes do aval:** dizer na primeira frase, oferecer
+  o `git reset --soft` e esperar.
+  **Exceção única:** trabalho mecânico já contratado num bloco executor-ready (marcar checkbox, gerar
+  relatório de bloco fechado). Conclusão nova, reenquadramento de causa raiz, mudança de contrato,
+  criação/cancelamento de bloco e reordenação de Board **nunca** são mecânicos.
 - <regras de segurança que valem sempre — ex.: segredos referenciados por chave, nunca por valor;
   produção não é laboratório; config entra pelo git, não por edição viva; ações destrutivas exigem
   ordem explícita>.

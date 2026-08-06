@@ -26,9 +26,9 @@ protocolo é permanente enquanto o plano é POR ESCOPO, porque este repo vai ter
    papel; ritual de fim de turno; convenções de commit; guardrails PERMANENTES. Nada específico de
    escopo aqui.
 2. CLAUDE.md na raiz — índice curto: aponta o AGENTS.md e lista os escopos numa tabela
-   (escopo | estado | link do PLAN). Sem duplicar o protocolo.
+   (slug | escopo/descrição | estado | link do PLAN). Sem duplicar o protocolo.
 3. docs/sessoes/<escopo-slug>/PLAN.md — FONTE ÚNICA daquele escopo: cabeçalho de parâmetros (branch,
-   ambiente/variáveis, namespaces, label de apontamento); guardrails DO ESCOPO; "🔎 Agora" com o baton
+   slug, ambiente/variáveis, namespaces); guardrails DO ESCOPO; "🔎 Agora" com o baton
    🎬 Próximo; Board único (bloco | tipo | estim. | estado); bloco ativo DETALHADO com Contrato de
    execução (DoR, DoD verificável, decisões resolvidas, escalonamento, evidência) + checklist; blocos
    futuros em UMA LINHA cada, marcados (rascunho); decisões/gotchas; registro de sessões.

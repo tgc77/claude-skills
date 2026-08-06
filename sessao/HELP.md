@@ -37,7 +37,7 @@ escopo** — por isso a raiz não cresce a cada feature nova:
 
 **Permanente (AGENTS.md)** — papéis, ritual, convenções de commit, repos irmãos, guardrails que valem
 sempre. **Do escopo (PLAN.md)** — escopo/Board, **branch de trabalho**, **ambiente e variáveis**
-(`KUBECONFIG` etc.), **label do card**, guardrails daquela frente. Misturar é o que dá bagunça: o
+(`KUBECONFIG` etc.), **slug + descrição**, guardrails daquela frente. Misturar é o que dá bagunça: o
 escopo seguinte herdaria restrição que não é dele, ou o protocolo viraria N cópias.
 
 **Projeto antigo (PLAN na raiz)** continua funcionando como está; a migração só vale a pena quando você
@@ -54,8 +54,8 @@ for abrir o **segundo escopo** no mesmo repo.
 
 Não existe arquivo de STATUS separado — ele é a primeira seção do `PLAN.md` (`🔎 Agora`).
 
-> **Escoadouro opcional:** se o escopo tem um **label de apontamento** no cabeçalho do seu `PLAN.md`, o
-> `end` também alimenta o log da skill `resumo-trabalho` (`~/.claude/work-log/<label>.md`) a partir dos
+> **Escoadouro automático:** o `end` também alimenta o log da skill `resumo-trabalho`
+> (`~/.claude/work-log/<slug>.md` — o label **é** o slug do escopo) a partir dos
 > relatórios do dia — ver a seção "🔗 Apontamentos automáticos" abaixo. Não é um 5º artefato do modelo:
 > é um consumidor a jusante dos relatórios, fora do repo.
 
@@ -67,14 +67,15 @@ local, e não acompanha a troca de branch. Quando você omite o slug, o agente r
 qual assumiu:
 
 ```
-1. slug explícito     /sessao start benchmark só carrega o contexto
+1. slug explícito     /sessao start poc-benchmark só carrega o contexto
 2. único 🟡 ativo     (não há o que confundir)
 3. branch atual       casa com a "Branch de trabalho" declarada no PLAN
 4. ambíguo            pergunta — nunca chuta
 ```
 
-`/sessao escopos` lista tudo (escopo · estado · branch · bloco ativo · baton · última atualização) sem
-alterar nada — é o "onde eu estava?".
+`/sessao escopos` lista tudo — **slug** (o identificador que se digita) · **escopo** (a descrição) ·
+estado · branch · bloco ativo · baton · última atualização — sem alterar nada. É o "onde eu estava?" e
+o "quais slugs existem aqui?".
 
 **É seguro ter vários escopos ativos**, desde que **um por vez em cada working tree**: cada escopo tem
 baton, board, checkboxes e relatórios próprios, então eles não se atropelam. O que colide é rodar
@@ -91,20 +92,21 @@ baton, board, checkboxes e relatórios próprios, então eles não se atropelam.
 O argumento depois de `/sessao` indica a operação. Sem argumento, o agente pergunta qual é.
 
 ### `escopos` — listar os escopos do repo
-Mostra, para cada escopo: slug, estado, branch de trabalho, bloco ativo, baton `🎬 Próximo` e última
-atualização — e qual seria assumido por padrão na branch atual. Não altera nada. `/sessao escopos
-<slug>` detalha um só.
+Tabela com **slug** (identificador) · **escopo** (descrição curta) · estado · branch de trabalho ·
+bloco ativo · baton `🎬 Próximo` · última atualização — e, em 1 linha, qual seria assumido por padrão
+na branch atual, com o comando para entrar nele. Avisa também inconsistências de identidade (slug ≠
+nome da pasta, log de apontamento faltando). Não altera nada. `/sessao escopos <slug>` detalha um só.
 
 ### `init` — abrir um escopo (instalando o sistema, se ainda não houver)
 0. **Detecta o estado do repo** e **nunca sobrescreve** o que já existe: repo virgem → instalação
    completa; repo já instalado → **só** a pasta do escopo novo (`docs/sessoes/<slug>/PLAN.md`) + uma
    linha no índice do `CLAUDE.md`; layout legado (PLAN na raiz) → avisa e oferece migrar.
 1. Lê os templates necessários (`AGENTS`, `CLAUDE`, `PLAN`).
-2. Levanta os `<PLACEHOLDERS>` **com o usuário** (não inventa). **Por escopo:** título + slug, o que
-   fica fora do escopo, blocos iniciais (id + título + tipo 🔧/🔬), **branch de trabalho**, ambiente e
-   **guardrails específicos**, **label de apontamento** (card do GitLab p/ o `resumo-trabalho`, se
-   houver). **Só na 1ª instalação:** tratamento, idioma, política de commit, repos irmãos, guardrails
-   permanentes. Não pergunta pasta de relatórios — é derivada.
+2. Levanta os `<PLACEHOLDERS>` **com o usuário** (não inventa). **Por escopo:** **slug** (validado:
+   kebab-case, inédito no repo e sem colidir em `~/.claude/work-log/`) + **descrição**, o que fica fora
+   do escopo, blocos iniciais (id + título + tipo 🔧/🔬), **branch de trabalho**, ambiente e
+   **guardrails específicos**. **Só na 1ª instalação:** tratamento, idioma, política de commit, repos
+   irmãos, guardrails permanentes. Não pergunta pasta de relatórios nem label — ambos derivam do slug.
 3. **Confirma a estrutura ANTES de criar.** Depois cria: `AGENTS.md`/`CLAUDE.md` + template de
    relatório (só na 1ª vez) e o `PLAN.md` do escopo — **detalha só o bloco B1**; os demais ficam em 1
    linha marcados `(rascunho)`.
@@ -154,11 +156,10 @@ atualização — e qual seria assumido por padrão na branch atual. Não altera
 3. Grava/atualiza o baton `🎬 Próximo` com o papel da próxima sessão.
 4. Se o **escopo inteiro** fechou, marca 🟢 na tabela do `CLAUDE.md`. Atualiza ponteiros de memória só
    se algo de alto nível mudou.
-5. **Registra o apontamento do dia no `resumo-trabalho`** se o escopo tem label de apontamento no
-   cabeçalho do `PLAN.md`: varre os `RELATORIO_*_<hoje>.md` da pasta do escopo, e para cada relatório
-   ainda não registrado (idempotência
-   pelo basename no log do label) sintetiza uma entrada `registrar` e faz append em
-   `~/.claude/work-log/<label>.md` com a linha `**Relatório-fonte:**`. Log global/append-only, fora do commit.
+5. **Registra o apontamento do dia no `resumo-trabalho`** (sempre — o label é o slug): varre os
+   `RELATORIO_*_<hoje>.md` da pasta do escopo, e para cada relatório ainda não registrado (idempotência
+   pelo basename no log) sintetiza uma entrada `registrar` e faz append em
+   `~/.claude/work-log/<slug>.md` com a linha `**Relatório-fonte:**`. Log global/append-only, fora do commit.
 6. **Commit obrigatório** (relatório + PLAN + mudanças), nas convenções do repo, em cada repo tocado.
    Reporta o(s) hash(es). **Se o commit é destinado a deploy, o `push` sai no mesmo turno** (o CI builda
    do remoto) — e o push **não** é o último elo: bump → commit+push → **job de build** → job de deploy
@@ -175,34 +176,33 @@ Se você usa a skill **`resumo-trabalho`** (log de trabalho por card do GitLab +
 o `sessao` alimenta esse log **sozinho** — não precisa mais rodar `registrar` à mão a cada bloco, e o
 apontamento do dia nunca sai incompleto por esquecimento.
 
-**1. Ligar (uma vez por escopo) — dar um label ao escopo.** O identificador é o **label de
-apontamento**: o mesmo `<label>` que você passaria em `/resumo-trabalho gerar <label>`. Ele mora no
-cabeçalho de parâmetros do `PLAN.md` daquele escopo:
+**1. Não há o que ligar — o label É o slug.** O identificador do apontamento é o próprio slug do
+escopo: o log dele é `~/.claude/work-log/<slug>.md` e o resumo sai com `/resumo-trabalho gerar <slug>`.
+Não existe campo separado, nem escopo "sem label", nem apelido — **um escopo, um nome**, do comando ao
+apontamento.
 
-```
-| **Label de apontamento** | `meu-card` (log do `resumo-trabalho`) |
-```
-
-O `/sessao init` **pergunta esse label** ao abrir o escopo. Num escopo que já existe, basta editar essa
-linha. Deixe `—` se não há card — aí a integração fica desligada e o `end` pula esse passo. Como o
-label é **por escopo**, duas frentes no mesmo repo podem apontar para cards diferentes. (Instalações
-legadas guardam o label nas Convenções do `AGENTS.md`; o `end` ainda lê de lá se o PLAN não tiver.)
+Isso tem uma consequência prática na hora de batizar o escopo: como o log é **global** (vive fora de
+qualquer repo), o slug precisa ser único **entre projetos**, não só dentro do repo. Prefira
+`aca-amortizacao` a `amortizacao`, `poc-benchmark` a `benchmark` — genérico colide com outro projeto
+seu no mês que vem, e aí dois trabalhos diferentes passam a escrever no mesmo apontamento. O
+`/sessao init` confere isso (`~/.claude/work-log/`) antes de aceitar o nome.
 
 **2. O que o `end` faz.** Depois de gerar o relatório e atualizar o PLAN, o `end` varre os
 `RELATORIO_*_<hoje>.md` da pasta do escopo e, para cada relatório **ainda não registrado**, cria uma
-entrada no log do card (`~/.claude/work-log/<label>.md`) sintetizada a partir daquele relatório. Cada
+entrada no log do escopo (`~/.claude/work-log/<slug>.md`) sintetizada a partir daquele relatório. Cada
 entrada carrega a linha `**Relatório-fonte:** <caminho>` — é ela que garante **idempotência**: rodar o
 `end` de novo, ou fechar **dois blocos no mesmo dia**, nunca duplica (ele pula o relatório que já
 aparece no log). Vale tanto no auto-`end` de fechamento de bloco quanto no `end` que você pede.
 
-**3. Pegar o apontamento do dia.** `/resumo-trabalho gerar <label>` (padrão já filtra só hoje) → o
-resumo sai **completo**, porque todo relatório fechado no dia já virou entrada. Como o log é global e
-por card, blocos de **repos diferentes** no mesmo dia caem no mesmo apontamento.
+**3. Pegar o apontamento do dia.** `/resumo-trabalho gerar <slug>` (padrão já filtra só hoje) → o
+resumo sai **completo**, porque todo relatório fechado no dia já virou entrada. Como o log é global,
+dois repos que usem **o mesmo slug** caem no mesmo apontamento — é feature quando é a mesma frente em
+dois repos, e é bug quando são trabalhos diferentes com nome genérico. Daí a regra do slug distintivo.
 
 **Bom saber (limites do automático):**
 - É **movido a relatório**: só o que virou `RELATORIO_*` do dia entra. Um `end` no meio de um bloco (que
   não gera relatório) não registra nada por si — para anotar algo avulso, use `/resumo-trabalho
-  registrar <label> ...` à mão.
+  registrar <slug> ...` à mão.
 - **Não inventa** nada fora do relatório (ele é a matéria-prima) e o log é **append-only**.
 - O log é **global** (`~/.claude/work-log/`), fora do repo — **não** entra no commit do `end`.
 
@@ -233,7 +233,7 @@ por card, blocos de **repos diferentes** no mesmo dia caem no mesmo apontamento.
 
 - **Um escopo = uma pasta; o protocolo é um só.** Frente nova = `docs/sessoes/<slug>/PLAN.md` novo,
   nunca um segundo protocolo. `AGENTS.md` e o template de relatório são reusados, jamais copiados por
-  escopo; nada específico de escopo (branch, ambiente, label, guardrails da frente) entra no
+  escopo; nada específico de escopo (branch, ambiente, slug, guardrails da frente) entra no
   `AGENTS.md`. E `init` **nunca sobrescreve** instalação existente.
 - **Anti-duplicação:** regras → `AGENTS.md`; estado/plano → `PLAN.md` do escopo; detalhe denso →
   relatórios do escopo; ganchos → memória. Nunca sobe detalhe de relatório pro PLAN.

@@ -9,13 +9,13 @@
 **Escopo:** <2-3 linhas: qual é o problema/entrega, por que importa, e o que prova que acabou.>
 **Fora de escopo:** <o que explicitamente NÃO se toca nesta frente>.
 
-| Parâmetro do escopo      | Valor                                                     |
-|--------------------------|-----------------------------------------------------------|
-| **Branch de trabalho**   | `<branch>`                                                |
-| **Ambiente**             | <ambiente/cluster + variáveis obrigatórias (ex.: KUBECONFIG=...)> |
-| **Namespaces / alvos**   | <onde se mexe>                                            |
-| **Label de apontamento** | `<label ou —>` (log do `resumo-trabalho`)                 |
-| **Relatórios**           | `docs/sessoes/<slug>/RELATORIO_<bloco>_<data>.md`         |
+| Parâmetro do escopo    | Valor                                                     |
+|------------------------|-----------------------------------------------------------|
+| **Slug**               | `<slug>` — identificador único: nome desta pasta, argumento do comando (`/sessao start <slug>`) e label do apontamento (`~/.claude/work-log/<slug>.md`). **Um escopo, um nome: sem apelidos.** |
+| **Branch de trabalho** | `<branch>`                                                |
+| **Ambiente**           | <ambiente/cluster + variáveis obrigatórias (ex.: KUBECONFIG=...)> |
+| **Namespaces / alvos** | <onde se mexe>                                            |
+| **Relatórios**         | `docs/sessoes/<slug>/RELATORIO_<bloco>_<data>.md`         |
 
 ## 🚧 Guardrails deste escopo
 

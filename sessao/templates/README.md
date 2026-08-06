@@ -33,10 +33,10 @@ Mapa mental: **regras** (AGENTS) · **índice** (CLAUDE) · **estado+plano** (PL
 **detalhe** (relatórios) · **ganchos** (memória). Não existe arquivo de STATUS separado — ele é a
 primeira seção do `PLAN.md`.
 
-**Escoadouro opcional — apontamentos por card:** se o escopo declara um **label de apontamento** no
-cabeçalho do seu `PLAN.md` (o card do GitLab), o `end` alimenta o log da skill `resumo-trabalho`
-(`~/.claude/work-log/<label>.md`) a partir dos `RELATORIO_*_<hoje>.md` — uma entrada por relatório novo,
-marcada com `**Relatório-fonte:**` (idempotente). Assim `/resumo-trabalho gerar <label>` dá o
+**Escoadouro automático — apontamentos por escopo:** o `end` alimenta o log da skill `resumo-trabalho`
+(`~/.claude/work-log/<slug>.md` — **o label é o slug**, não há campo separado) a partir dos
+`RELATORIO_*_<hoje>.md` — uma entrada por relatório novo,
+marcada com `**Relatório-fonte:**` (idempotente). Assim `/resumo-trabalho gerar <slug>` dá o
 apontamento do dia completo sem `registrar` manual. É consumidor a jusante dos relatórios, fora do repo
 — não é um 5º artefato do modelo.
 
@@ -59,8 +59,8 @@ Um repositório vive mais que uma frente de trabalho. **O protocolo é permanent
 ```
 
 **O que é permanente × o que é do escopo:** papéis, ritual, convenções de commit, repos irmãos e
-guardrails que valem sempre → `AGENTS.md`. Escopo, Board, **branch de trabalho**, **ambiente/variáveis**,
-**label do card** e guardrails daquela frente → `PLAN.md` do escopo. Misturar os dois é o que produz
+guardrails que valem sempre → `AGENTS.md`. Slug + descrição, Board, **branch de trabalho**,
+**ambiente/variáveis** e guardrails daquela frente → `PLAN.md` do escopo. Misturar os dois é o que produz
 bagunça: guardrail de um escopo herdado pelo seguinte, ou protocolo duplicado em N arquivos.
 
 ---

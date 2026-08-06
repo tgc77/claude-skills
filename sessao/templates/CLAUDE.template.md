@@ -10,9 +10,13 @@ Cada frente de trabalho tem seu próprio `PLAN.md` (fonte única de verdade daqu
 relatórios, em `docs/sessoes/<escopo>/`. **Leia o PLAN do escopo da sessão — só dele.** Se mais de um
 estiver ativo e a intenção não estiver clara, pergunte a <SEU_NOME> qual é.
 
-| Escopo                | Estado   | PLAN                                                    |
-|-----------------------|----------|---------------------------------------------------------|
-| <título do escopo>    | 🟡 Ativo | [`docs/sessoes/<slug>/PLAN.md`](docs/sessoes/<slug>/PLAN.md) |
+| Slug        | Escopo (o que é)                | Estado   | PLAN                                                    |
+|-------------|---------------------------------|----------|---------------------------------------------------------|
+| `<slug>`    | <descrição curta da frente>     | 🟡 Ativo | [`docs/sessoes/<slug>/PLAN.md`](docs/sessoes/<slug>/PLAN.md) |
+
+> **Slug é o identificador; escopo é a descrição.** Um escopo tem **um** nome — sem apelidos. O slug é
+> o nome da pasta, o argumento do comando e o label do apontamento
+> (`~/.claude/work-log/<slug>.md`), então precisa ser único **entre projetos**, não só aqui.
 
 **Trocar de escopo:** o escopo é **argumento**, não estado — `/sessao start <slug> [nota]`,
 `/sessao end <slug>`. Omitindo o slug, vale: único 🟡 ativo → branch atual casando com a "Branch de
