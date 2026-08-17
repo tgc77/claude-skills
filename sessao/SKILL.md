@@ -236,6 +236,12 @@ existente:
      checkboxes. **NÃO pare para perguntar "sou planejador ou executor?"** — o baton já respondeu.
    - **`🎬 Próximo: 🧠 Planejador`** → entre como Planejador (detalhar/replanejar/handoff do próximo bloco).
    - **Baton ausente/ambíguo** (só aí) → resuma o estado e pergunte o papel.
+   - ⚠️ **Baton incoerente = PARADA (defesa do lado do leitor).** Antes de agir, **confira a linha `🎬`
+     contra o Board e os checkboxes** do bloco que ela cita — são 5 segundos. Se ela manda executar
+     tarefa já `[x]`, ou aponta bloco 🟢/inexistente, **o baton está podre**: **não execute**, não
+     "adivinhe qual seria a próxima tarefa" e não replaneje por conta própria. Mostre ao usuário o que
+     a linha diz × o que o Board diz e **pergunte**. É o sintoma clássico de sessão anterior que gravou
+     a troca de papel só na prosa — e é o que faz uma sessão refazer um bloco já entregue.
 3. **Gates de sessão ≠ retrabalho** (só quando se vai executar — em briefing, pule). Antes de executar, o Executor **reestabelece os gates por-sessão** do
    ponto de entrada — reverificar o **DoR** e **rearmar setup vivo** (carga/probe/shells, `export
    KUBECONFIG`, processos que NÃO sobrevivem entre sessões). Isso é **pré-condição normal, não estado
@@ -246,11 +252,21 @@ existente:
 1. Verifique se o bloco ativo está **"executor-ready"** (DoD do planejamento): tarefas atômicas com
    checagem verificável; decisões resolvidas; comandos/paths/valores preenchidos; DoR satisfeito;
    escalonamento definido.
-2. Ajuste o que faltar no `PLAN.md` **do escopo** e confirme que um executor consegue tocar à risca.
-3. **Grave o baton no cabeçalho "🔎 Agora":** `🎬 Próximo: ⚙️ Executor · Ponto de entrada: <tarefa>`
+2. **MEÇA cada critério de aceite no estado atual antes de fixá-lo como alvo — nenhum é deduzido.**
+   Rode o comando do critério **no commit do handoff** e escreva o valor observado ao lado do alvo. Se
+   o baseline já reprova o critério, há duas saídas honestas: **mudar o alvo**, ou tornar a correção
+   **tarefa explícita do bloco**. Critério escrito por raciocínio ("o código novo será vetorizado, logo
+   o grep dará 0") **nasce falso**: é inatingível dentro do contrato, e quem paga é o Executor, que
+   trava numa medição que nunca poderia bater. Vale para grep, contagem de teste, diff, tempo — toda
+   medida. Cuidado clássico: **grep de código mede a chamada** (`\.foo(`), não a palavra solta, senão
+   um comentário correto reprova um código correto.
+3. Ajuste o que faltar no `PLAN.md` **do escopo** e confirme que um executor consegue tocar à risca.
+4. **Grave o baton no cabeçalho "🔎 Agora":** `🎬 Próximo: ⚙️ Executor · Ponto de entrada: <tarefa>`
    (a 1ª tarefa não-concluída), listando quais **gates por-sessão** reestabelecer antes (DoR + setup vivo).
    É esse baton que faz o `start` da próxima sessão entrar como Executor **sem perguntar**.
-4. **Commit obrigatório** das edições do handoff (mesma regra do `end` — não deixe o PLAN pronto porém
+5. **Rode a ✅ Conferência de saída** (seção acima) — ela vale para o `handoff` também: baton coerente
+   com o Board, resumos batendo com a linha `🎬`, sem 2ª cópia de campo.
+6. **Commit obrigatório** das edições do handoff (mesma regra do `end` — não deixe o PLAN pronto porém
    não-commitado, senão a próxima sessão lê estado do working tree). Reporte o hash. **Exceção: se
    houver questionamento aberto do usuário, não commite — pergunte antes** (ver "QUESTIONAMENTO ABERTO
    = REGISTRO CONGELADO" nas Regras invioláveis).
@@ -269,6 +285,12 @@ Duas portas de entrada para este ritual:
    convenção dele no meio do caminho** (detalhe denso: comandos, saídas, números).
 2. Atualize o `PLAN.md` **do escopo**, **in-place** (nunca duplique linhas): cabeçalho "Agora"; Board;
    checkboxes do bloco ativo; registro de sessões (1 linha + link).
+   ⚠️ **"O bloco fechou" só é verdade se TODOS os critérios de aceite foram medidos e bateram.** Um
+   critério que mede diferente do alvo — mesmo que você julgue que a intenção dele foi cumprida —
+   **impede o 🟢**: o bloco continua aberto, você registra a medição crua, grava o baton
+   `🎬 Próximo: 🧠 Planejador` com o motivo e **PARA**. Decidir se um critério errado ainda serve é do
+   🧠 (é o caso "DoD inalcançável" da Fronteira de papel), e relatar a divergência com honestidade
+   **não** substitui a parada — fechar 🟢 "com ressalva" é tomar a decisão do 🧠 com aviso prévio.
    **Se o bloco fechou, o que fazer depende de quem está na sessão:**
    - **🧠 Planejador** → promova o próximo bloco de rascunho a detalhado e replaneje o resto (é o ritual
      de fronteira dele).
@@ -311,6 +333,40 @@ Duas portas de entrada para este ritual:
    deploy leva `push` no mesmo turno, sem esperar pedido** (ver "Entrega destinada a deploy" nas Regras
    invioláveis). Fora desse caso, faça `push` só se o usuário pedir ou se for a prática já estabelecida
    do projeto. Ao fim, reporte o(s) hash(es) de commit.
+
+## ✅ Conferência de saída (obrigatória antes de QUALQUER commit de `end`/`handoff`)
+
+O sistema falha por **inconsistência de registro**, não por falta de boa intenção: o agente escreve a
+verdade em 3 lugares, esquece o 4º, e a sessão seguinte lê o 4º. Por isso o fechamento não depende de
+cuidado — depende **desta conferência**, que é mecânica e se responde com o arquivo aberto e um
+comando. Rode todos os itens e **não commite com nenhum vermelho**: vermelho é **PARADA**, não
+ressalva no relatório.
+
+1. **Critérios de aceite — cada um MEDIDO** (comando + saída crua), e o resultado bate o alvo. **Um só
+   que não bata ⇒ o bloco NÃO fecha:** nada de 🟢, nada de "fechado com ressalva", nada de reinterpretar
+   o critério pela intenção que você lê nele. Registre o que mediu, grave o baton `🧠 Planejador` com o
+   motivo e pare.
+2. **Baton `🎬 Próximo` — a *linha*, não a prosa.** Ela precisa dizer o papel e o ponto de entrada
+   corretos **para depois desta sessão**. Confira contra o Board: se o bloco que ela cita está 🟢, ou a
+   tarefa citada está `[x]`, a linha está **podre** — corrija ANTES do commit. Escrever "baton → 🧠" só
+   no resumo, no relatório ou na mensagem de commit **não** troca o baton.
+3. **Um estado, um lugar.** Papel e ponto de entrada moram na linha `🎬`; cabeçalho, Board, registro de
+   sessões e mensagem de commit são **resumos**. Os resumos batem com a linha `🎬`? Divergiu, **a linha
+   `🎬` vence** e os resumos se ajustam a ela.
+4. **Board × checkboxes.** Todo bloco 🟢 tem todas as tarefas `[x]`; nenhum bloco com tarefa aberta
+   está 🟢.
+5. **Número e append vêm do arquivo, não da memória.** O identificador da linha nova do registro de
+   sessões sai do **último valor da própria tabela + 1** — nunca do número do relatório, que tem série
+   própria e quase nunca coincide. Mesma regra para o nome do relatório: use o padrão declarado no
+   cabeçalho do PLAN, conferindo o último gravado na pasta.
+6. **In-place, sem 2ª cópia.** O que você escreveu atualizou o campo existente, em vez de criar uma
+   segunda cópia dele em outro ponto do arquivo.
+7. **`git status` limpo de estranhos** — só o que é deste escopo e desta sessão entra no commit.
+
+> **Por que checklist e não "seja cuidadoso":** os 4 defeitos que motivaram esta seção saíram de uma
+> única sessão de Executor que **relatou tudo com honestidade** — o baton velho, o critério que não
+> bateu, o número copiado da série errada. Transparência no relatório não impede que a próxima sessão
+> leia o campo errado; só a conferência impede.
 
 ## Regras invioláveis (valem em qualquer subcomando)
 
@@ -375,6 +431,19 @@ Duas portas de entrada para este ritual:
 - **Papéis:** Planejador (modelo forte) deixa o bloco executor-ready e NÃO implementa, especificando
   decisões e restrições — não keystrokes. Executor (modelo barato) executa à risca, e ao divergir do
   plano PARA e escala de volta — não improvisa decisão de design. Auto-verifica contra a DoD.
+- **Critério de aceite não batido = PARADA — mesmo que a intenção pareça cumprida.** Vale nos dois
+  lados: **🧠 mede** todo critério no estado atual antes de fixá-lo como alvo (critério deduzido nasce
+  falso e trava o Executor numa medição inatingível); **⚙️ não fecha** bloco cujo critério mediu
+  diferente do alvo, e **nunca** relê o critério pela intenção que enxerga nele ("o alvo era 0 para
+  garantir X, e o meu código faz X, então vale") — quem julga se um critério errado ainda serve é o 🧠.
+  Registrar o achado com transparência **não** substitui a parada.
+- **O baton é a LINHA `🎬 Próximo:`, não a prosa em volta dela.** Escrever "baton → 🧠" no resumo da
+  sessão, no relatório ou na mensagem de commit e deixar a linha `🎬` com o papel e o ponto de entrada
+  antigos entrega à sessão seguinte um bloco já fechado como se fosse tarefa aberta — ela entra no papel
+  errado e refaz o que está pronto. Quem escreve atualiza **aquela linha**, in-place, antes do commit;
+  quem lê **confere a linha contra o Board** e para se as duas discordarem (`start`, passo 2).
+- **Fechamento passa pela ✅ Conferência de saída** (seção própria acima) — `end` e `handoff`, sempre,
+  antes do commit. Nenhum item vermelho vira "ressalva no relatório": vermelho é PARADA.
 - **Executor fecha o próprio bloco (auto-`end` na fronteira):** ao concluir um **bloco inteiro** (toda a
   DoD satisfeita), o Executor **dispara o ritual `end` por si — commit + relatório + atualização in-place
   do PLAN — sem o usuário pedir**, e só então grava o baton `🎬 Próximo`. É o mesmo `end`, auto-disparado

@@ -34,8 +34,11 @@ hábito geral:
 - **Última atualização:** <data> (<resumo 1 linha da sessão atual> | <anterior> | ...)
 - **Bloco ativo:** 🎯 **<B-id — título>** (<🔧 mecânico | 🔬 descoberta>).
 - **🎬 Próximo:** <⚙️ Executor | 🧠 Planejador> · **Ponto de entrada:** <1ª tarefa não-concluída>
-  (<gates 🔁 a reestabelecer antes: DoR, armar carga/probe...>). ← o `start` lê ESTA linha p/ decidir o
-  papel sem perguntar; `init`/`handoff`/`end` a mantêm atual.
+  (<gates 🔁 a reestabelecer antes: DoR, armar carga/probe...>). ← **ESTA LINHA é a fonte de verdade do
+  papel** — o `start` decide por ela sem perguntar; `init`/`handoff`/`end` a mantêm atual, **in-place**.
+  ⚠️ Trocar o baton **só** na prosa (resumo, relatório, mensagem de commit) e deixar esta linha velha faz
+  a sessão seguinte entrar no papel errado e **refazer bloco já entregue**. Quem lê também confere: se
+  ela cita bloco 🟢 ou tarefa já `[x]`, o baton está podre → **PARE e pergunte**, não execute.
 - **Próximo passo:** <passo concreto e imediato>.
 - **Blockers:** <nenhum | descrição + dono + próxima ação>.
 
@@ -64,6 +67,10 @@ serão detalhados/replanejados ao chegar a vez — a ordem pode mudar.
 
 - **DoR (pré-condições):** <o que precisa estar verdadeiro/disponível para começar>.
 - **DoD (pronto quando, verificável):** <de preferência um comando/checagem, não prosa>.
+- **Critérios de aceite — MEDIDOS no handoff, não deduzidos:** <um por linha, no formato `comando` →
+  **baseline observado hoje** → **alvo**>. O Planejador roda cada comando no commit do handoff e anota o
+  que viu; se o baseline já reprova o critério, ou o alvo muda ou a correção vira **tarefa deste bloco**
+  — critério deduzido nasce falso e trava o Executor. Um critério que não bate **impede o 🟢**.
 - **Decisões já resolvidas (não reabrir):** <decisões de design tomadas pelo Planejador>.
 - **Escalonamento (PARE e devolva ao Planejador se):** <condições que exigem decisão de design>.
 - **Evidência a capturar no relatório:** <saídas/números/artefatos a registrar>.

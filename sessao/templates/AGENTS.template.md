@@ -54,9 +54,18 @@ entre as sessões. Saiba qual papel você exerce.
   conhecidos, regras de escalonamento, evidência a capturar).
 - Calibra o detalhe ao executor: **decisões e restrições, não keystrokes.** **Não implementa.**
 
+- **Todo critério de aceite é MEDIDO no estado atual antes de virar alvo — nenhum é deduzido.** Rode o
+  comando do critério **no commit do handoff** e escreva o valor observado ao lado do alvo. Se o
+  baseline já reprova o critério, há duas saídas honestas: **mudar o alvo**, ou tornar a correção
+  **tarefa explícita do bloco**. Alvo escrito por raciocínio ("o código novo será vetorizado, logo o
+  grep dará 0") **nasce falso**: é inatingível dentro do contrato, e quem paga é o Executor, que trava
+  numa medição que nunca poderia bater. Vale para grep, contagem de teste, diff, tempo — qualquer
+  medida. E **grep de código mede a chamada** (`\.foo(`), não a palavra solta: senão comentário correto
+  reprova código correto.
+
 > ✅ **DoD do planejamento ("executor-ready"):** tarefas atômicas e ordenadas; cada uma com checagem
-> de pronto verificável; comandos/paths/valores conhecidos preenchidos; decisões resolvidas (ou
-> marcadas como ponto de escalonamento); DoR satisfeito; risco/segurança anotados.
+> de pronto verificável; comandos/paths/valores conhecidos preenchidos **e medidos**; decisões
+> resolvidas (ou marcadas como ponto de escalonamento); DoR satisfeito; risco/segurança anotados.
 
 ### ⚙️ Executor (modelo barato) — atua **dentro do bloco**
 
@@ -65,8 +74,19 @@ entre as sessões. Saiba qual papel você exerce.
 - **NÃO toma decisão de design.** Se a realidade divergir do plano (DoD inalcançável, estado
   inesperado, ambiguidade) → **PARA, registra em Blockers/Decisões do PLAN e escala ao Planejador.**
 - **Auto-verifica contra a DoD** antes de declarar o bloco concluído.
+- **Critério de aceite que não bateu = PARADA — mesmo que a intenção pareça cumprida.** Se qualquer
+  critério mede diferente do alvo, o bloco **não fecha 🟢**: registre o que mediu (comando + saída
+  crua), grave o baton `🧠 Planejador` com o motivo e **pare**. Nunca ajuste o alvo, e **nunca releia o
+  critério pela intenção que você enxerga nele** ("o alvo era 0 para garantir código vetorizado, e o
+  meu é vetorizado, então vale") — julgar se um critério errado ainda serve é do 🧠. **Registrar o
+  achado com transparência não substitui a parada.**
 - **Fecha o próprio bloco:** ao satisfazer toda a DoD, dispara o ritual de fim de turno por si
   (relatório + PLAN + commit) — sem esperar pedido — e só então passa o baton.
+- **O baton é a linha `🎬 Próximo:` do cabeçalho 🔎 Agora — não é a prosa em volta dela.** Escrever
+  "baton → 🧠 Planejador" no resumo da sessão, no relatório ou na mensagem de commit e **deixar a linha
+  `🎬` com o papel e o ponto de entrada antigos** entrega à sessão seguinte um bloco já fechado como se
+  fosse tarefa aberta — ela entra como Executor e refaz o que já está feito. Atualize **aquela linha**,
+  in-place, antes do commit de fechamento; o resto do cabeçalho é resumo, ela é a fonte de verdade.
 - **Fronteira de papel = PARADA de sessão:** nunca vira Planejador na mesma sessão. Ao fechar o bloco,
   ou ao topar com algo que exija (re)planejar, grava `🎬 Próximo: 🧠 Planejador` junto do motivo e para.
   **Não** promove o próximo bloco de rascunho a detalhado, **não** escreve contrato novo.
@@ -98,7 +118,18 @@ meio de um bloco não gera relatório.
    `RELATORIO_*_<hoje>.md` ainda não registrado (idempotência pelo basename no log), sintetize uma
    entrada `registrar` a partir do relatório e faça append em `~/.claude/work-log/<slug>.md` com a
    linha `**Relatório-fonte:**`. Log global/append-only — não entra no commit.
-5. **Commit** do relatório + PLAN + demais mudanças, em **cada** repo tocado, na branch de trabalho
+5. **✅ Conferência de saída — antes do commit, sempre.** Mecânica, não subjetiva; qualquer item
+   vermelho é **PARADA**, nunca "ressalva no relatório":
+   ① todo critério de aceite **medido** (comando + saída) e batendo — um só que não bata impede o 🟢;
+   ② a **linha** `🎬 Próximo` diz o papel e o ponto de entrada certos **para depois desta sessão**, e
+   não contradiz o Board (bloco 🟢 ou tarefa `[x]` citada como ponto de entrada = baton podre);
+   ③ cabeçalho, Board, registro de sessões e mensagem de commit **batem com a linha `🎬`** — ela vence;
+   ④ todo bloco 🟢 tem todas as tarefas `[x]`;
+   ⑤ o identificador da linha nova do registro de sessões vem do **último valor da própria tabela + 1**,
+   não do número do relatório (série própria, quase nunca coincide);
+   ⑥ tudo escrito **in-place**, sem 2ª cópia de campo que já existia;
+   ⑦ `git status` sem arquivos alheios ao escopo/sessão.
+6. **Commit** do relatório + PLAN + demais mudanças, em **cada** repo tocado, na branch de trabalho
    declarada no PLAN do escopo.
 
 ---

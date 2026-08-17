@@ -142,10 +142,12 @@ nome da pasta, log de apontamento faltando). Não altera nada. `/sessao escopos 
 ### `handoff` — preparar a troca de modelo (Planejador → Executor)
 1. Verifica se o bloco está **"executor-ready"** (tarefas atômicas com checagem verificável, decisões
    resolvidas, comandos/paths/valores preenchidos, DoR ok, escalonamento definido).
-2. Ajusta o que faltar no `PLAN.md`.
-3. **Grava o baton** no cabeçalho: `🎬 Próximo: ⚙️ Executor · Ponto de entrada: <tarefa>`.
-4. **Commit obrigatório** das edições do handoff (senão a próxima sessão lê estado do working tree).
-   Reporta o hash.
+2. **Mede cada critério de aceite** no commit do handoff e anota o valor observado ao lado do alvo —
+   critério deduzido ("o código novo será X, logo o grep dará 0") **nasce falso** e trava o Executor.
+3. Ajusta o que faltar no `PLAN.md`.
+4. **Grava o baton** no cabeçalho: `🎬 Próximo: ⚙️ Executor · Ponto de entrada: <tarefa>`.
+5. **Roda a ✅ Conferência de saída** e **commita** as edições do handoff (senão a próxima sessão lê
+   estado do working tree). Reporta o hash.
 
 ### `end` — fim de sessão (quando o usuário pedir **ou** ao fechar um bloco inteiro)
 1. Gera `docs/sessoes/<escopo>/RELATORIO_<bloco>_<AAAA-MM-DD>.md` na pasta do escopo, pelo template
@@ -153,6 +155,8 @@ nome da pasta, log de apontamento faltando). Não altera nada. `/sessao escopos 
 2. Atualiza o `PLAN.md` do escopo **in-place** (nunca duplica linhas): Agora, Board, checkboxes,
    registro de sessões. **Se o bloco fechou:** o 🧠 Planejador promove o próximo de rascunho a detalhado
    e replaneja o resto; o ⚙️ Executor só marca 🟢, grava o baton `🧠 Planejador` com o motivo e **para**.
+   ⚠️ **"Fechou" exige TODOS os critérios de aceite medidos e batendo** — um só que não bate mantém o
+   bloco aberto e vira PARADA + escalonamento, nunca 🟢 "com ressalva".
 3. Grava/atualiza o baton `🎬 Próximo` com o papel da próxima sessão.
 4. Se o **escopo inteiro** fechou, marca 🟢 na tabela do `CLAUDE.md`. Atualiza ponteiros de memória só
    se algo de alto nível mudou.
@@ -160,7 +164,12 @@ nome da pasta, log de apontamento faltando). Não altera nada. `/sessao escopos 
    `RELATORIO_*_<hoje>.md` da pasta do escopo, e para cada relatório ainda não registrado (idempotência
    pelo basename no log) sintetiza uma entrada `registrar` e faz append em
    `~/.claude/work-log/<slug>.md` com a linha `**Relatório-fonte:**`. Log global/append-only, fora do commit.
-6. **Commit obrigatório** (relatório + PLAN + mudanças), nas convenções do repo, em cada repo tocado.
+6. **✅ Conferência de saída** (mecânica, antes do commit; item vermelho = PARADA, não ressalva):
+   critérios medidos e batendo · a **linha** `🎬 Próximo` coerente com o Board (bloco 🟢 ou tarefa `[x]`
+   citada como ponto de entrada = baton podre) · resumos batendo com a linha `🎬` · bloco 🟢 com todas as
+   tarefas `[x]` · número do registro de sessões vindo da **própria tabela + 1** (não do nº do
+   relatório) · tudo in-place · `git status` sem arquivo alheio.
+7. **Commit obrigatório** (relatório + PLAN + mudanças), nas convenções do repo, em cada repo tocado.
    Reporta o(s) hash(es). **Se o commit é destinado a deploy, o `push` sai no mesmo turno** (o CI builda
    do remoto) — e o push **não** é o último elo: bump → commit+push → **job de build** → job de deploy
    *selecionando a versão nova*. Qualquer elo faltando dá o mesmo sintoma silencioso: "deploya e não
