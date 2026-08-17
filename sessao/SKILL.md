@@ -266,7 +266,15 @@ existente:
    É esse baton que faz o `start` da próxima sessão entrar como Executor **sem perguntar**.
 5. **Rode a ✅ Conferência de saída** (seção acima) — ela vale para o `handoff` também: baton coerente
    com o Board, resumos batendo com a linha `🎬`, sem 2ª cópia de campo.
-6. **Commit obrigatório** das edições do handoff (mesma regra do `end` — não deixe o PLAN pronto porém
+6. **Registre o apontamento desta sessão** — **exatamente o passo 5 do `end`**, sem exceção por ser
+   handoff. Um `handoff` É uma sessão inteira de trabalho (mediu baselines, resolveu desenho, corrigiu
+   contrato) e **precisa aparecer no apontamento do dia como qualquer outra**.
+   ⚠️ **Este passo nasceu de um buraco real:** por muito tempo só o `end` alimentava o log, então toda
+   sessão que terminava em `handoff` **sumia do apontamento** — o usuário pedia o resumo do dia e
+   faltava metade do trabalho, sem nenhum sinal de erro. Handoff não gera relatório (não fechou bloco),
+   e o passo do `end` era indexado por relatório: sem relatório, nada era gravado. Ver o invariante
+   **uma sessão = uma entrada** no passo 5 do `end`.
+7. **Commit obrigatório** das edições do handoff (mesma regra do `end` — não deixe o PLAN pronto porém
    não-commitado, senão a próxima sessão lê estado do working tree). Reporte o hash. **Exceção: se
    houver questionamento aberto do usuário, não commite — pergunte antes** (ver "QUESTIONAMENTO ABERTO
    = REGISTRO CONGELADO" nas Regras invioláveis).
@@ -301,26 +309,43 @@ Duas portas de entrada para este ritual:
    (re)planejamento (bloco fechou e o próximo está em rascunho, ou surgiu decisão de design em aberto).
 4. Se o **escopo inteiro** fechou, marque-o 🟢 Concluído na tabela de escopos do `CLAUDE.md` (a pasta
    fica, é histórico). Atualize ponteiros de memória só se algo de alto nível mudou.
-5. **Registre o apontamento do dia no `resumo-trabalho` — sempre; o label É o slug.** É o elo que mantém
-   os apontamentos sincronizados sem depender de `registrar` manual — o `gerar <slug>` do dia sai
-   completo porque todo relatório do dia vira entrada no log automaticamente:
+5. **Registre o apontamento no `resumo-trabalho` — sempre; o label É o slug.** É o elo que mantém os
+   apontamentos sincronizados sem depender de `registrar` manual, para o `gerar <slug>` do dia sair
+   completo.
+
+   > 🔑 **INVARIANTE: uma sessão que termina = UMA entrada no log. O índice é a SESSÃO, não o
+   > relatório.** Toda sessão que chega a `end` **ou** a `handoff` grava sua entrada — executor que
+   > fechou bloco, executor que parou no meio, planejador que fez handoff, sessão de validação que não
+   > tocou em código. **Relatório é matéria-prima quando existe, não é a condição para registrar.**
+   > *Por que este invariante existe:* enquanto o passo era indexado por **relatório**, toda sessão sem
+   > relatório (todo handoff, toda validação) **sumia do apontamento** — o usuário pedia o resumo do dia
+   > e faltava metade do trabalho, **sem nenhum sinal de erro**, porque o passo "rodou com sucesso" e
+   > não tinha nada para coletar. Falha silenciosa: só se descobre quando alguém compara o dia com a
+   > memória. Num dia de 4 sessões, 2 ficaram fora por esse motivo.
+
    - O log do escopo é `~/.claude/work-log/<slug>.md`. **Não procure campo "label" no PLAN** — não
      existe mais campo separado; se um PLAN antigo ainda declarar um label diferente do slug, isso é
      inconsistência de identidade: **avise o usuário e pergunte** qual dos dois nomes vale (o que tem
      histórico no log costuma vencer), em vez de escrever nos dois.
-   - Colete os relatórios do **dia de hoje** na pasta do escopo (`RELATORIO_*_<AAAA-MM-DD>.md` com a
-     data de hoje — inclui o que você acabou de gerar **e** quaisquer outros blocos fechados hoje em
-     sessões anteriores que ainda não foram registrados).
-   - Para cada relatório, cheque idempotência: procure o basename do relatório
-     (`RELATORIO_<bloco>_<data>.md`) no `~/.claude/work-log/<slug>.md`. **Se já aparece, pule** (já
-     registrado). Senão, sintetize uma entrada `registrar` densa e factual a partir do relatório
-     (formato e regras do `resumo-trabalho`: seções O que foi feito / Problemas-Correções / Validações /
-     Pendências, denso e factual, sem inventar nada fora do relatório) e faça **append** no log do escopo.
-     Logo abaixo do cabeçalho `## [data hora] <projeto>`, inclua a linha
-     `**Relatório-fonte:** <caminho/RELATORIO_<bloco>_<data>.md>` — é ela que torna o passo idempotente.
-     Uma entrada por relatório.
+   - **Levante as sessões de HOJE que ainda não estão no log** — não só a sua. Cruze o **registro de
+     sessões (§8) do PLAN** com as entradas de hoje no log: linha do §8 com a data de hoje e sem
+     entrada correspondente é buraco a preencher, inclusive de sessão anterior que não registrou.
+   - **Fonte de cada entrada, nesta ordem:** (1) o **relatório** da sessão, se existir; (2) senão, a
+     **linha do §8 + a entrada do §7** que aquela sessão gravou + os **commits** dela. Nunca invente
+     nada fora dessas fontes. Se uma sessão antiga não deixou rastro suficiente, **diga isso ao usuário
+     em 1 linha** em vez de preencher com suposição.
+   - **Idempotência:** procure no log a chave da sessão — o basename do relatório
+     (`RELATORIO_<bloco>_<data>.md`) quando houver, ou a linha `**Sessão:** <N>`. **Se já aparece,
+     pule.** Senão, faça **append** de uma entrada densa e factual (formato do `resumo-trabalho`:
+     O que foi feito / Problemas-Correções / Validações / Pendências). Logo abaixo do cabeçalho
+     `## [data hora] <projeto>`, grave as duas linhas de rastreio:
+     `**Relatório-fonte:** <caminho>` — ou `— sessão sem relatório. Fonte: <§8/§7/commits>` — e
+     `**Sessão:** <N>`. São elas que tornam o passo idempotente.
+   - **Horário do cabeçalho = quando a sessão realmente aconteceu**, não a hora em que você está
+     escrevendo. Para sessão anterior, tire dos commits dela (`git log --date=format:'%Y-%m-%d %H:%M'`)
+     e marque a entrada como *registrada retroativamente*.
    - Log é **append-only e global** (`~/.claude/work-log/`), fora do repo — **não** entra no commit do
-     passo 6. Confirme em 1 linha quais relatórios viraram entrada (ou "nada novo a registrar").
+     passo 6. Confirme em 1 linha quais sessões viraram entrada (ou "nada novo a registrar").
 6. **Commit obrigatório do que foi feito** (sobrepõe qualquer hábito de "sem commit") — **exceto se
    houver questionamento aberto do usuário: aí o `end` PARA e pergunta antes de commitar** (ver
    "QUESTIONAMENTO ABERTO = REGISTRO CONGELADO" nas Regras invioláveis; ela vence este passo). Commite o
@@ -473,13 +498,28 @@ ressalva no relatório.
   contexto do ponto onde parou, sem ler tudo, e parar) e pode **condicionar** a execução (diretivas
   operacionais), mas **não redefine o papel** — quem define papel é o baton — nem altera o contrato do
   bloco por conta própria (isso é PARADA + decisão do usuário). Diretivas valem só para a sessão.
-- **Sincronia com `resumo-trabalho`: o label É o slug.** O `end` alimenta `~/.claude/work-log/<slug>.md`
-  a partir dos **relatórios do dia** (uma entrada `registrar` por relatório novo, marcada com
-  `**Relatório-fonte:**` p/ idempotência), sempre — não há escopo "sem label". Assim o
-  `gerar <slug>` do dia reflete tudo que fechou, sem depender de `registrar` manual. Os relatórios são a
-  matéria-prima; nada é inventado fora deles. O log é append-only, global e **fora do repo** — nunca
-  entra no commit. Como o log é global, **o slug precisa ser único entre projetos**, não só dentro do
-  repo (ver "🔑 Escopo × slug").
+- **Sincronia com `resumo-trabalho`: UMA SESSÃO = UMA ENTRADA, e o label É o slug.** `end` **e**
+  `handoff` alimentam `~/.claude/work-log/<slug>.md` — **o índice é a sessão, não o relatório**. Toda
+  sessão que termina grava a sua entrada: fechou bloco, parou no meio, fez handoff ou só validou.
+  **Relatório é matéria-prima quando existe**; quando não existe (handoff e validação nunca geram um),
+  a fonte é a **linha do §8 + a entrada do §7 + os commits** daquela sessão. Nada é inventado fora
+  dessas fontes; se o rastro não bastar, diga ao usuário em vez de supor. Idempotência pela linha
+  `**Relatório-fonte:**` ou `**Sessão:** <N>`; horário do cabeçalho = quando a sessão **aconteceu**.
+  **Indexar por relatório foi um bug caro:** toda sessão sem relatório sumia do apontamento **sem
+  sinal de erro nenhum** — o passo "rodava com sucesso" porque não havia o que coletar, e o usuário só
+  descobria ao ler o resumo do dia e sentir falta do próprio trabalho. O log é append-only, global e
+  **fora do repo** — nunca entra no commit. Como o log é global, **o slug precisa ser único entre
+  projetos**, não só dentro do repo (ver "🔑 Escopo × slug").
+- **Pedido de resumo/apontamento dentro de um escopo é DAQUELE escopo — nunca agregado do dia.** Quando
+  o usuário pede "registre e gere os apontamentos de tudo que foi feito hoje" no contexto de um escopo
+  (durante a sessão ou logo após o `end`/`handoff`), o alvo é `gerar <slug>` — **um** arquivo,
+  `~/.claude/work-log/<slug>.md`. **Não varra `~/.claude/work-log/*.md`** e não use `gerar dia`: "hoje" é
+  filtro de **data dentro do escopo**, não o universo de busca. **Por quê:** o apontamento é colado num
+  card específico do GitLab, então misturar labels entrega à chefia trabalho de outra frente, em outro
+  repo. **Caso real (17/08/2026):** logo após o `end` do escopo `airflow-es-remote-logging`, a varredura
+  global trouxe `aca-amortizacao` para dentro do resumo. `gerar dia` **só** com pedido explícito de
+  agregar todos os cards. E depois de um `end`/`handoff` que já registrou, **não registre de novo** —
+  confirme a idempotência (`**Relatório-fonte:**` / `**Sessão:** <N>`) e só gere.
 - **Gate por-sessão × marco (não confundir):** um **marco** é um resultado que persiste (medição/entrega →
   checkbox `[x]` + relatório). Um **gate por-sessão** é pré-condição/processo vivo que **não** sobrevive
   entre sessões (DoR = "está saudável agora?"; armar carga/probe/shells) e **é reestabelecido toda sessão
