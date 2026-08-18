@@ -3,11 +3,14 @@ name: resumo-trabalho
 description: >-
   Registra o que foi feito em cada sessão de trabalho, organizado por label/card do GitLab (uma
   atividade pode envolver mais de um projeto), e gera o resumo no modelo "Apontamentos" padrão do
-  usuário (markdown GitLab, pt-BR, copiável) — por card ou agregado do dia. Use quando o usuário
-  definir um label/card ("/resumo-trabalho label X", "vou trabalhar no card X"), pedir para
-  registrar/anotar o que foi feito, ou pedir um resumo ("/resumo-trabalho gerar X", "resumo do card
-  X", "resumo do dia", "apontamentos"). Funciona entre projetos diferentes: o log é global (não fica
-  dentro de um repo), então sessões em repos distintos no mesmo dia/card alimentam o mesmo resumo.
+  usuário (markdown GitLab, pt-BR, copiável) — por card e, só sob pedido explícito, agregado do dia.
+  Use quando o usuário definir um label/card ("/resumo-trabalho label X", "vou trabalhar no card X"),
+  pedir para registrar/anotar o que foi feito, ou pedir um resumo ("/resumo-trabalho gerar X", "resumo
+  do card X", "resumo do dia", "apontamentos"). Pedido sem card NÃO é agregado do dia: resolve para o
+  label/escopo ativo da conversa (o slug do escopo da skill `sessao` é o label) — "hoje" filtra data
+  dentro daquele alvo, nunca o universo de busca. Funciona entre projetos diferentes: o log é global
+  (não fica dentro de um repo), então sessões em repos distintos no mesmo dia/card alimentam o mesmo
+  resumo.
 ---
 
 # Skill: resumo-trabalho — Registro por card e resumo no modelo "Apontamentos"
@@ -21,12 +24,18 @@ mais de um dia.
   projeto — é assim que agrega sessões de repos diferentes para o mesmo card.
 - **Modelo do resumo final:** `templates/template-apontamentos.md`, ao lado deste arquivo. Fonte
   única — se o usuário pedir pra mudar o formato, editar esse arquivo, não duplicar em outro lugar.
-- **Integração com a skill `sessao`:** se um projeto usa o Controle de Sessões (`sessao`) e tem um
-  **label de apontamento** no seu `AGENTS.md`, o `sessao end` **alimenta este log automaticamente** — cada
-  `RELATORIO_*_<dia>.md` fechado no dia vira uma entrada `registrar` (marcada com a linha
-  `**Relatório-fonte:** <caminho>` p/ idempotência: o `end` não re-registra um relatório já presente).
-  Essas entradas são iguais às manuais — `gerar` as trata do mesmo jeito. Se um dia sair incompleto,
-  cheque se os relatórios daquele dia foram registrados (o `end` pode não ter rodado numa sessão).
+- **Integração com a skill `sessao`: o label É o slug do escopo.** Num projeto que usa o Controle de
+  Sessões, cada escopo tem um slug (`docs/sessoes/<slug>/`) que **é** o label deste log — não existe
+  campo separado, e o arquivo é `~/.claude/work-log/<slug>.md`. O `end` **e** o `handoff` alimentam esse
+  arquivo automaticamente: **uma sessão encerrada = uma entrada**, indexada pela **sessão** e não pelo
+  relatório (sessão de handoff ou de validação não gera relatório e ainda assim registra). A
+  idempotência vem das linhas de rastreio logo abaixo do cabeçalho — `**Relatório-fonte:** <caminho>`
+  quando há relatório, e/ou `**Sessão:** <N>`. Essas entradas são iguais às manuais — `gerar` as trata do
+  mesmo jeito.
+  **Consequência para o `gerar`:** num repo com escopo ativo, o alvo do resumo **já está determinado** —
+  é o slug. Não pergunte o card e não varra o diretório: leia o arquivo daquele slug. Se um dia sair
+  incompleto, a causa provável é sessão que não chegou a `end`/`handoff` (nada foi registrado) — cheque
+  isso em vez de compensar agregando outros labels.
 
 ## Sintaxe (args após `/resumo-trabalho`; primeiro token = subcomando)
 
@@ -37,14 +46,30 @@ mais de um dia.
 | `gerar <card-id>` | Resumo daquele card com as entradas de **hoje** (padrão — é o apontamento diário do card). |
 | `gerar <card-id> <AAAA-MM-DD>` | Resumo daquele card com as entradas de uma data específica (retroativo: esqueceu de fechar ontem, por exemplo). |
 | `gerar <card-id> completo` | Resumo com TODO o histórico daquele card (todas as datas registradas). |
-| `gerar dia` | Resumo agregado: todos os cards com entrada **hoje**, uma subseção por card. |
-| `gerar dia <AAAA-MM-DD>` | Mesma agregação, mas para uma data específica em vez de hoje. |
+| `gerar dia` | Resumo agregado: todos os cards com entrada **hoje**, uma subseção por card. ⚠️ **Só sob pedido explícito de agregação** — nunca o default de "resumo do dia" (ver o aviso abaixo da tabela). |
+| `gerar dia <AAAA-MM-DD>` | Mesma agregação, mas para uma data específica em vez de hoje. Mesma ressalva. |
 | `listar` | Lista os labels existentes (arquivo, contagem de entradas, datas com registro). |
 
 Também aceite linguagem natural equivalente ("vou trabalhar no card X" = `label X`; "anota isso no
 card X" = `registrar X ...`; "resumo do card X" = `gerar X`; "resumo de ontem do card X" = `gerar X
-<data de ontem>`; "resumo do dia"/"apontamentos" sem card = `gerar dia`). Sem argumento e sem
-conseguir deduzir → pergunte.
+<data de ontem>`). Sem argumento e sem conseguir deduzir → pergunte.
+
+> ⛔ **"resumo do dia"/"apontamentos" SEM card NÃO é `gerar dia` por padrão — resolva o alvo antes.**
+> Pedido sem card resolve **nesta ordem**, e só o último caso é agregado:
+> 1. **Label/escopo ativo nesta conversa** (definido por `label X`, por um `registrar` anterior, ou pelo
+>    escopo da skill `sessao` que esta sessão operou — o slug do escopo **é** o label) → `gerar <esse label>`.
+> 2. **Sem label ativo, mas o repo atual tem escopo do Controle de Sessões** → é o slug daquele escopo
+>    (leia o índice do `CLAUDE.md`; se houver mais de um 🟡 ativo, **pergunte** qual).
+> 3. **Só então**, e apenas se o usuário pedir **explicitamente** o agregado de **todos** os cards
+>    ("resumo de tudo que fiz hoje, todos os cards", "agregado do dia") → `gerar dia`.
+>
+> **Por que esta ordem:** "hoje" é filtro de **data dentro do alvo**, nunca o universo de busca.
+> Ler "tudo que foi feito hoje" como `gerar dia` faz o resumo de um card trazer trabalho de **outro
+> card, em outro repo** — e o apontamento é colado num card específico do GitLab, então isso entrega à
+> chefia trabalho que não pertence àquele card. **Caso real (17/08/2026):** logo após o `/sessao end` do
+> escopo `airflow-es-remote-logging`, o pedido "apontamentos de tudo que foi feito hoje" foi lido como
+> `gerar dia`; a varredura de `~/.claude/work-log/*.md` trouxe `aca-amortizacao`, frente sem relação
+> nenhuma com a sessão. **Havendo escopo ativo, ele vence — sempre.**
 
 **Trabalho diário num card que dura vários dias:** o fluxo normal é `registrar` ao longo de cada dia
 que você mexe no card (quantas vezes quiser) e, no fim daquele dia, `gerar <card-id>` — que por
@@ -188,12 +213,17 @@ equivalente.
 
 ## `gerar` — passo a passo
 
-1. Resolva o(s) label(s) e a data alvo:
+1. Resolva o(s) label(s) e a data alvo. **Resolver o alvo é o passo 1 de verdade — não comece lendo
+   arquivo.** Se o pedido veio sem card, aplique a ordem de resolução do aviso da seção "Sintaxe"
+   (label ativo → escopo do repo → só então agregado) e **diga em 1 linha qual alvo assumiu**:
    - `gerar <card-id>` → leia `~/.claude/work-log/<label-slug>.md`. Sem argumento extra, filtre só as
      entradas com data de **hoje**. Com `completo`, use todas as datas. Com uma data explícita
      (`AAAA-MM-DD`), filtre só as entradas daquele dia.
    - `gerar dia [<AAAA-MM-DD>]` → varra `~/.claude/work-log/*.md`, colete entradas datadas do dia alvo
-     (hoje, se omitido) em qualquer arquivo, agrupe por label.
+     (hoje, se omitido) em qualquer arquivo, agrupe por label. ⛔ **Só entre aqui com pedido explícito de
+     agregação de todos os cards.** Um `ls`/glob em `~/.claude/work-log/` para descobrir "o que teve
+     hoje" **não** é passo de reconhecimento inocente: é o que faz o card errado entrar no resumo.
+     Havendo label ou escopo ativo, leia **um** arquivo — o dele.
 2. Se o arquivo do label não existir ou não houver entradas no escopo pedido: avise e ofereça gerar a
    partir só da conversa atual (perguntando o card, se ainda não souber) em vez de inventar dados.
 3. Leia `templates/template-apontamentos.md` e sintetize as entradas no modelo exato — você decide
@@ -223,6 +253,10 @@ equivalente.
 - Log **append-only**, **global** (fora de projetos), **um arquivo por label**, nunca por dia.
 - Label é **obrigatório** em todo `registrar`. Sem label ativo nem informado, pergunte — nunca crie um
   label genérico ou adivinhe o card por conta própria.
+- **`gerar` também exige alvo resolvido, e "hoje" nunca é o alvo.** Pedido de resumo sem card resolve
+  por **label ativo → escopo do repo → pergunta**; `gerar dia` (varredura de `~/.claude/work-log/*.md`)
+  **só** com pedido explícito de agregar **todos** os cards. Havendo escopo ativo, ele **vence sempre** —
+  misturar labels entrega ao card do GitLab trabalho que não é dele. Ver o aviso da seção "Sintaxe".
 - O modelo do resumo vive só em `templates/template-apontamentos.md` desta skill.
 - **Nunca** referencie MR/issue por número curto (`!1`, `#4`) no resumo — sempre `grupo/projeto!N` ou
   URL completa, apontando pro repo onde o MR/issue de fato está (o card costuma viver em outro projeto).
