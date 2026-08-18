@@ -105,6 +105,11 @@ entre as sessões. Saiba qual papel você exerce.
 quando um **bloco inteiro fecha** (aí o Executor dispara sozinho, ver acima). Terminar alguns steps no
 meio de um bloco não gera relatório.
 
+> ⚠️ **O apontamento (passo 4) não é exclusivo do `end` e não depende de relatório.** Toda sessão que
+> termina grava a sua entrada — inclusive `handoff` e sessão de validação, que **nunca** geram
+> relatório porque não fecham bloco. Um `handoff` é uma sessão inteira de trabalho (mediu baselines,
+> resolveu desenho, corrigiu contrato) e precisa aparecer no apontamento do dia como qualquer outra.
+
 1. **Gere** `docs/sessoes/<escopo>/RELATORIO_<bloco>_<AAAA-MM-DD>.md` pelo template
    [`docs/sessoes/template-relatorio.md`](docs/sessoes/template-relatorio.md) — guarda o detalhe
    (comandos, saídas, números) que permite resgatar uma ação de sessões anteriores com precisão.
@@ -114,10 +119,21 @@ meio de um bloco não gera relatório.
    resto; **Executor** só marca 🟢, grava o baton `🧠 Planejador` com o motivo e para.
 3. Se o **escopo inteiro** fechou, marque-o 🟢 na tabela de escopos do [`CLAUDE.md`](CLAUDE.md) — a pasta
    fica como histórico. Atualize ponteiros de memória só se algo de alto nível mudou.
-4. **Registre o apontamento do dia no `resumo-trabalho`** — o label **é o slug** do escopo: para cada
-   `RELATORIO_*_<hoje>.md` ainda não registrado (idempotência pelo basename no log), sintetize uma
-   entrada `registrar` a partir do relatório e faça append em `~/.claude/work-log/<slug>.md` com a
-   linha `**Relatório-fonte:**`. Log global/append-only — não entra no commit.
+4. **Registre o apontamento no `resumo-trabalho`** — o label **é o slug** do escopo, e o log é
+   `~/.claude/work-log/<slug>.md` (global, append-only — **não** entra no commit).
+   **🔑 INVARIANTE: uma sessão que termina = UMA entrada. O índice é a SESSÃO, não o relatório.** Toda
+   sessão que chega a `end` **ou** a `handoff` grava a sua: fechou bloco, parou no meio, fez handoff ou
+   só validou. **Relatório é matéria-prima quando existe, não é a condição para registrar** — quando não
+   existe, a fonte é a **linha do §8 + a entrada do §7 + os commits** daquela sessão. Idempotência pelas
+   linhas de rastreio sob o cabeçalho: `**Relatório-fonte:** <caminho>` e/ou `**Sessão:** <N>`. Horário
+   do cabeçalho = quando a sessão **aconteceu**, não quando você escreve.
+   *Por que este invariante existe:* enquanto o passo era indexado por **relatório**, toda sessão sem
+   relatório **sumia do apontamento** — pedia-se o resumo do dia e faltava metade do trabalho, **sem
+   nenhum sinal de erro**, porque o passo "rodava com sucesso" por não ter o que coletar.
+   ⚠️ **Pedido de resumo dentro de um escopo é DAQUELE escopo:** "gere os apontamentos de hoje" resolve
+   para `gerar <slug>` — **um** arquivo. Nunca varra `~/.claude/work-log/*.md` nem use `gerar dia`: "hoje"
+   é filtro de **data dentro do escopo**, não o universo de busca, e misturar labels entrega ao card do
+   GitLab trabalho de outra frente.
 5. **✅ Conferência de saída — antes do commit, sempre.** Mecânica, não subjetiva; qualquer item
    vermelho é **PARADA**, nunca "ressalva no relatório":
    ① todo critério de aceite **medido** (comando + saída) e batendo — um só que não bata impede o 🟢;
