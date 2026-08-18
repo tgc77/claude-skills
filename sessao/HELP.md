@@ -168,7 +168,10 @@ nome da pasta, log de apontamento faltando). Não altera nada. `/sessao escopos 
    critérios medidos e batendo · a **linha** `🎬 Próximo` coerente com o Board (bloco 🟢 ou tarefa `[x]`
    citada como ponto de entrada = baton podre) · resumos batendo com a linha `🎬` · bloco 🟢 com todas as
    tarefas `[x]` · número do registro de sessões vindo da **própria tabela + 1** (não do nº do
-   relatório) · tudo in-place · `git status` sem arquivo alheio.
+   relatório) · tudo in-place · `git status` sem arquivo alheio · **documento de interface atualizado**
+   (se a sessão mudou comportamento que um documento voltado a terceiro descreve — chefe/negócio, DBA,
+   README do escopo — ele foi revisado agora ou a pendência tem dono; é o único item cuja falha nenhum
+   teste e nenhum grep denunciam).
 7. **Commit obrigatório** (relatório + PLAN + mudanças), nas convenções do repo, em cada repo tocado.
    Reporta o(s) hash(es). **Se o commit é destinado a deploy, o `push` sai no mesmo turno** (o CI builda
    do remoto) — e o push **não** é o último elo: bump → commit+push → **job de build** → job de deploy

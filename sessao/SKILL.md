@@ -251,7 +251,11 @@ existente:
 ### `handoff` — preparar a troca de modelo (Planejador → Executor)
 1. Verifique se o bloco ativo está **"executor-ready"** (DoD do planejamento): tarefas atômicas com
    checagem verificável; decisões resolvidas; comandos/paths/valores preenchidos; DoR satisfeito;
-   escalonamento definido.
+   escalonamento definido. **E se o bloco muda comportamento descrito em documento de interface
+   (chefe/negócio, DBA, README do escopo), a atualização daquele documento entra como tarefa do bloco,
+   com o arquivo nomeado** — não como lembrete no fim. Documento de interface não emite erro ao
+   envelhecer; se ninguém contratar a atualização, ela não acontece (é o item 8 da Conferência,
+   pegando no fechamento o que esta cláusula previne na origem).
 2. **MEÇA cada critério de aceite no estado atual antes de fixá-lo como alvo — nenhum é deduzido.**
    Rode o comando do critério **no commit do handoff** e escreva o valor observado ao lado do alvo. Se
    o baseline já reprova o critério, há duas saídas honestas: **mudar o alvo**, ou tornar a correção
@@ -387,6 +391,14 @@ ressalva no relatório.
 6. **In-place, sem 2ª cópia.** O que você escreveu atualizou o campo existente, em vez de criar uma
    segunda cópia dele em outro ponto do arquivo.
 7. **`git status` limpo de estranhos** — só o que é deste escopo e desta sessão entra no commit.
+8. **Documento de interface não envelheceu.** Se a sessão mudou comportamento que algum **documento
+   voltado a terceiro** descreve — o que vai ao chefe/negócio, ao DBA, o README do escopo, um contrato
+   publicado — ele foi **atualizado nesta sessão**, ou a pendência está escrita com dono. É o único
+   item desta lista cuja falha **ninguém descobre lendo código nem rodando teste**: nenhum teste
+   quebra e nenhum grep acusa, então o arquivo segue afirmando a um terceiro o que já não é verdade
+   até alguém repassá-lo. *(Caso real: dois blocos mudaram cascata de regras e persistência; o
+   documento do chefe continuou anunciando a ele duas estratégias trocáveis por flag que haviam sido
+   removidas — só apareceu numa auditoria pedida por desconfiança, dois meses depois.)*
 
 > **Por que checklist e não "seja cuidadoso":** os 4 defeitos que motivaram esta seção saíram de uma
 > única sessão de Executor que **relatou tudo com honestidade** — o baton velho, o critério que não

@@ -63,9 +63,16 @@ entre as sessões. Saiba qual papel você exerce.
   medida. E **grep de código mede a chamada** (`\.foo(`), não a palavra solta: senão comentário correto
   reprova código correto.
 
+- **Bloco que muda comportamento descrito em documento de INTERFACE carrega a atualização dele como
+  tarefa nomeada.** Documento de interface é o que **sai da equipe**: o que vai ao chefe/negócio, ao
+  DBA, o README do escopo, um contrato publicado. Ele **não emite erro ao envelhecer** — nenhum teste
+  quebra, nenhum grep acusa — e a próxima pessoa entrega a um terceiro um arquivo que afirma o que já
+  não é verdade. Por isso não é lembrete no fim: é **tarefa do bloco, com o arquivo nomeado**.
+
 > ✅ **DoD do planejamento ("executor-ready"):** tarefas atômicas e ordenadas; cada uma com checagem
 > de pronto verificável; comandos/paths/valores conhecidos preenchidos **e medidos**; decisões
-> resolvidas (ou marcadas como ponto de escalonamento); DoR satisfeito; risco/segurança anotados.
+> resolvidas (ou marcadas como ponto de escalonamento); DoR satisfeito; risco/segurança anotados;
+> **documento de interface afetado listado como tarefa**.
 
 ### ⚙️ Executor (modelo barato) — atua **dentro do bloco**
 
@@ -144,7 +151,11 @@ meio de um bloco não gera relatório.
    ⑤ o identificador da linha nova do registro de sessões vem do **último valor da própria tabela + 1**,
    não do número do relatório (série própria, quase nunca coincide);
    ⑥ tudo escrito **in-place**, sem 2ª cópia de campo que já existia;
-   ⑦ `git status` sem arquivos alheios ao escopo/sessão.
+   ⑦ `git status` sem arquivos alheios ao escopo/sessão;
+   ⑧ **documento de interface não envelheceu** — se a sessão mudou comportamento que algum documento
+   voltado a terceiro descreve (chefe/negócio, DBA, README do escopo), ele foi **atualizado nesta
+   sessão** ou a pendência está escrita com dono. É o único item desta lista cuja falha **ninguém
+   descobre lendo código nem rodando teste**.
 6. **Commit** do relatório + PLAN + demais mudanças, em **cada** repo tocado, na branch de trabalho
    declarada no PLAN do escopo.
 
