@@ -160,12 +160,16 @@ nome da pasta, log de apontamento faltando). Não altera nada. `/sessao escopos 
 3. Grava/atualiza o baton `🎬 Próximo` com o papel da próxima sessão.
 4. Se o **escopo inteiro** fechou, marca 🟢 na tabela do `CLAUDE.md`. Atualiza ponteiros de memória só
    se algo de alto nível mudou.
-5. **Registra o apontamento do dia no `resumo-trabalho`** (sempre — o label é o slug): varre os
-   `RELATORIO_*_<hoje>.md` da pasta do escopo, e para cada relatório ainda não registrado (idempotência
-   pelo basename no log) sintetiza uma entrada `registrar` e faz append em
-   `~/.claude/work-log/<slug>.md` com a linha `**Relatório-fonte:**`. Log global/append-only, fora do commit.
+5. **Registra o apontamento desta sessão no `resumo-trabalho`** (sempre — o label é o slug, e **o
+   índice é a SESSÃO, não o relatório**): toda sessão que termina grava a sua entrada em
+   `~/.claude/work-log/<slug>.md` — fechou bloco, parou no meio, fez `handoff` ou só validou. Relatório
+   é matéria-prima **quando existe**; quando não existe (handoff e validação nunca geram um), a fonte é
+   a linha do registro de sessões + a entrada de decisões + os commits daquela sessão. Idempotência
+   pela linha `**Relatório-fonte:**` ou `**Sessão:** <N>`. Log global/append-only, fora do commit.
 6. **✅ Conferência de saída** (mecânica, antes do commit; item vermelho = PARADA, não ressalva):
-   critérios medidos e batendo · a **linha** `🎬 Próximo` coerente com o Board (bloco 🟢 ou tarefa `[x]`
+   **⓪ o portão executável `scripts/conferencia_saida.sh <slug> <commit do início da sessão>`, com a
+   saída crua colada no resumo** (reprova em linha `🎬` intacta, ponto de entrada já `[x]`, registro de
+   sessões sem linha nova, apontamento faltando) · critérios medidos e batendo · a **linha** `🎬 Próximo` coerente com o Board (bloco 🟢 ou tarefa `[x]`
    citada como ponto de entrada = baton podre) · resumos batendo com a linha `🎬` · bloco 🟢 com todas as
    tarefas `[x]` · número do registro de sessões vindo da **própria tabela + 1** (não do nº do
    relatório) · tudo in-place · `git status` sem arquivo alheio · **documento de interface atualizado**
@@ -199,12 +203,16 @@ qualquer repo), o slug precisa ser único **entre projetos**, não só dentro do
 seu no mês que vem, e aí dois trabalhos diferentes passam a escrever no mesmo apontamento. O
 `/sessao init` confere isso (`~/.claude/work-log/`) antes de aceitar o nome.
 
-**2. O que o `end` faz.** Depois de gerar o relatório e atualizar o PLAN, o `end` varre os
-`RELATORIO_*_<hoje>.md` da pasta do escopo e, para cada relatório **ainda não registrado**, cria uma
-entrada no log do escopo (`~/.claude/work-log/<slug>.md`) sintetizada a partir daquele relatório. Cada
-entrada carrega a linha `**Relatório-fonte:** <caminho>` — é ela que garante **idempotência**: rodar o
-`end` de novo, ou fechar **dois blocos no mesmo dia**, nunca duplica (ele pula o relatório que já
-aparece no log). Vale tanto no auto-`end` de fechamento de bloco quanto no `end` que você pede.
+**2. O que o `end` faz.** Depois de atualizar o PLAN (e gerar o relatório, quando houver), o `end`
+grava **uma entrada por sessão** no log do escopo (`~/.claude/work-log/<slug>.md`) — **o índice é a
+sessão, não o relatório**. Quando a sessão gerou relatório, ele é a matéria-prima; quando não gerou
+(todo `handoff`, toda validação, toda sessão que para no meio de um bloco), a fonte é a linha do
+registro de sessões + a entrada de decisões + os commits daquela sessão. Cada entrada carrega
+`**Relatório-fonte:** <caminho>` (ou `— sessão sem relatório. Fonte: <...>`) e `**Sessão:** <N>` — são
+elas que garantem **idempotência**: rodar o `end` de novo, ou fechar **dois blocos no mesmo dia**,
+nunca duplica. Vale tanto no auto-`end` de fechamento de bloco quanto no `end` que você pede.
+*Indexar por relatório foi um bug caro:* toda sessão sem relatório sumia do apontamento **sem erro
+nenhum**, porque o passo "rodava com sucesso" sem ter o que coletar.
 
 **3. Pegar o apontamento do dia.** `/resumo-trabalho gerar <slug>` (padrão já filtra só hoje) → o
 resumo sai **completo**, porque todo relatório fechado no dia já virou entrada. Como o log é global,

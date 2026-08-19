@@ -30,6 +30,8 @@ cada frente nova:
 ├── CLAUDE.md                      ← índice auto-carregado: aponta o AGENTS.md + lista os escopos
 ├── AGENTS.md                      ← PROTOCOLO permanente, agnóstico de escopo (papéis, ritual,
 │                                    convenções de commit, guardrails permanentes)
+├── scripts/
+│   └── conferencia_saida.sh       ← PORTÃO executável da Conferência de saída (instalado pelo `init`)
 └── docs/sessoes/
     ├── template-relatorio.md      ← gabarito compartilhado (um por repo, nunca copiado por escopo)
     └── <escopo-slug>/             ← UM ESCOPO = UMA PASTA
@@ -187,6 +189,8 @@ existente:
 4. Crie os arquivos:
    - `AGENTS.md` (protocolo permanente) e `CLAUDE.md` (índice) — **só na 1ª instalação**.
    - `docs/sessoes/template-relatorio.md` — **só na 1ª instalação** (copie de `templates/`).
+   - `scripts/conferencia_saida.sh` — **só na 1ª instalação** (copie de `templates/`, `chmod +x`). É o
+     portão executável da Conferência de saída; sem ele a conferência volta a ser auto-atestada.
    - `docs/sessoes/<escopo-slug>/PLAN.md` — sempre. Detalhe **só o bloco B1**; deixe os demais em uma
      linha, marcados `(rascunho)`. Preencha o cabeçalho de parâmetros do escopo (branch, ambiente,
      namespaces, pasta de relatórios) e a seção "🚧 Guardrails deste escopo".
@@ -237,7 +241,9 @@ existente:
    - **`🎬 Próximo: 🧠 Planejador`** → entre como Planejador (detalhar/replanejar/handoff do próximo bloco).
    - **Baton ausente/ambíguo** (só aí) → resuma o estado e pergunte o papel.
    - ⚠️ **Baton incoerente = PARADA (defesa do lado do leitor).** Antes de agir, **confira a linha `🎬`
-     contra o Board e os checkboxes** do bloco que ela cita — são 5 segundos. Se ela manda executar
+     contra o Board e os checkboxes** do bloco que ela cita — **um comando:**
+     `scripts/conferencia_saida.sh <slug> --inicio` (onde o repo tiver o portão instalado; onde não
+     tiver, na mão — são 5 segundos). Se ela manda executar
      tarefa já `[x]`, ou aponta bloco 🟢/inexistente, **o baton está podre**: **não execute**, não
      "adivinhe qual seria a próxima tarefa" e não replaneje por conta própria. Mostre ao usuário o que
      a linha diz × o que o Board diz e **pergunte**. É o sintoma clássico de sessão anterior que gravou
@@ -371,6 +377,16 @@ cuidado — depende **desta conferência**, que é mecânica e se responde com o
 comando. Rode todos os itens e **não commite com nenhum vermelho**: vermelho é **PARADA**, não
 ressalva no relatório.
 
+**0. RODE O PORTÃO E COLE A SAÍDA CRUA no resumo da sessão — obrigatório, não é opcional:**
+`scripts/conferencia_saida.sh <slug> <commit em que esta sessão começou>` (o commit sai de
+`git rev-parse HEAD` no início; se esqueceu, é o último commit da sessão anterior). Ele sai com
+**exit 1** se a linha `🎬` continua **intacta** desde o início da sessão, se o ponto de entrada citado
+já está `[x]`, se o registro de sessões não ganhou linha nova, ou se falta o apontamento da sessão no
+log. **Declarar que conferiu não substitui rodar** — os itens 2, 3 e 5 abaixo já estavam escritos, com
+todas as letras, nas duas vezes em que o defeito passou. Repo sem o portão instalado (instalação
+anterior a ele): copie `templates/conferencia_saida.sh` para `scripts/` — é a mesma correção.
+Os itens 1–8 abaixo seguem **na mão**; o portão cobre só os quatro decidíveis por comando.
+
 1. **Critérios de aceite — cada um MEDIDO** (comando + saída crua), e o resultado bate o alvo. **Um só
    que não bata ⇒ o bloco NÃO fecha:** nada de 🟢, nada de "fechado com ressalva", nada de reinterpretar
    o critério pela intenção que você lê nele. Registre o que mediu, grave o baton `🧠 Planejador` com o
@@ -479,6 +495,11 @@ ressalva no relatório.
   antigos entrega à sessão seguinte um bloco já fechado como se fosse tarefa aberta — ela entra no papel
   errado e refaz o que está pronto. Quem escreve atualiza **aquela linha**, in-place, antes do commit;
   quem lê **confere a linha contra o Board** e para se as duas discordarem (`start`, passo 2).
+  ⚠️ **Esta regra já falhou duas vezes estando escrita** (2026-08-17 e 2026-08-19, no mesmo repo): nas
+  duas, a sessão anunciou a troca de papel no resumo, no relatório **e** na mensagem de commit e deixou
+  a linha `🎬` com o ponto de entrada antigo. **Conferência auto-atestada mede a intenção de quem
+  executa, não o arquivo** — por isso ela virou o **portão** `scripts/conferencia_saida.sh`, que
+  reprova o commit quando a linha `🎬` não foi reescrita na sessão (item 0 da Conferência de saída).
 - **Fechamento passa pela ✅ Conferência de saída** (seção própria acima) — `end` e `handoff`, sempre,
   antes do commit. Nenhum item vermelho vira "ressalva no relatório": vermelho é PARADA.
 - **Executor fecha o próprio bloco (auto-`end` na fronteira):** ao concluir um **bloco inteiro** (toda a

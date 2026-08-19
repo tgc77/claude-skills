@@ -28,6 +28,12 @@ listados em [`CLAUDE.md`](CLAUDE.md).
 4. **Seu papel vem do baton `🎬 Próximo` do cabeçalho Agora — não pergunte se ele existe.** Se diz
    **⚙️ Executor**, esta é sessão de Executor: **comece a executar** do ponto de entrada à risca (não
    pare pra perguntar o papel). Se diz **🧠 Planejador**, entre planejando. Só pergunte se o baton faltar.
+   ⚠️ **Antes de obedecer, confira se ele não está podre — um comando:**
+   `scripts/conferencia_saida.sh <slug> --inicio`. Se o baton manda executar tarefa já `[x]` (ou cita
+   bloco 🟢/inexistente), **não execute, não adivinhe a próxima tarefa e não replaneje por conta
+   própria**: mostre o que a linha `🎬` diz × o que o Board diz e **pergunte**. É o sintoma clássico de
+   sessão anterior que gravou a troca de papel só na prosa — e é o que faz uma sessão refazer trabalho
+   pronto.
 5. **Gates (🔁) não são retrabalho.** O Executor reestabelece os gates por-sessão do ponto de entrada
    (reverificar DoR, rearmar carga/probe/shells, exportar variáveis de ambiente) — processos vivos não
    sobrevivem entre sessões; os *resultados* já feitos estão persistidos (`[x]` + relatório).
@@ -94,6 +100,10 @@ entre as sessões. Saiba qual papel você exerce.
   `🎬` com o papel e o ponto de entrada antigos** entrega à sessão seguinte um bloco já fechado como se
   fosse tarefa aberta — ela entra como Executor e refaz o que já está feito. Atualize **aquela linha**,
   in-place, antes do commit de fechamento; o resto do cabeçalho é resumo, ela é a fonte de verdade.
+  ⚠️ **Regra que se auto-atesta mede a intenção de quem executa, não o arquivo** — esta aqui já falhou
+  duas vezes estando escrita, em sessões que relataram tudo com honestidade. Por isso ela virou o
+  portão `scripts/conferencia_saida.sh`, que **reprova o commit** se a linha `🎬` não tiver sido
+  reescrita nesta sessão (item ⓪ do ritual de fim de turno).
 - **Fronteira de papel = PARADA de sessão:** nunca vira Planejador na mesma sessão. Ao fechar o bloco,
   ou ao topar com algo que exija (re)planejar, grava `🎬 Próximo: 🧠 Planejador` junto do motivo e para.
   **Não** promove o próximo bloco de rascunho a detalhado, **não** escreve contrato novo.
@@ -143,6 +153,14 @@ meio de um bloco não gera relatório.
    GitLab trabalho de outra frente.
 5. **✅ Conferência de saída — antes do commit, sempre.** Mecânica, não subjetiva; qualquer item
    vermelho é **PARADA**, nunca "ressalva no relatório":
+   ⓪ **RODE O PORTÃO E COLE A SAÍDA CRUA no resumo da sessão — obrigatório, não é opcional:**
+   `scripts/conferencia_saida.sh <slug> <commit em que esta sessão começou>` (o commit sai de
+   `git rev-parse HEAD` no início; se esqueceu, é o último commit da sessão anterior). Ele reprova com
+   **exit 1** se a linha `🎬` continua **intacta** desde o início da sessão, se o ponto de entrada
+   citado já está `[x]`, se o registro de sessões não ganhou linha nova, ou se falta o apontamento da
+   sessão no log. **Declarar que conferiu não substitui rodar:** os itens ② e ⑤ abaixo já estavam
+   escritos quando o defeito passou — duas vezes, em sessões que relataram tudo com honestidade.
+   Os itens ①-⑧ seguem **na mão**; o portão cobre só os quatro decidíveis por comando.
    ① todo critério de aceite **medido** (comando + saída) e batendo — um só que não bata impede o 🟢;
    ② a **linha** `🎬 Próximo` diz o papel e o ponto de entrada certos **para depois desta sessão**, e
    não contradiz o Board (bloco 🟢 ou tarefa `[x]` citada como ponto de entrada = baton podre);
