@@ -16,6 +16,15 @@ Sistema para tocar um projeto de escopo definido com agentes de I.A. mantendo ca
 contexto e zero perda de continuidade. **Princípio único:** cada fato mora em UM arquivo; o resto
 aponta (link), nunca copia. O plano se detalha em rolling-wave (perto detalhado, longe em rascunho).
 
+> 🔤 **Invocação, em qualquer ferramenta.** Neste documento os subcomandos aparecem como
+> `/sessao <sub>`, que é a forma do **Claude Code**. No **Codex** a mesma invocação é `$sessao <sub>`
+> ou `@sessao <sub>` (e ele também pode acioná-la sozinho pelo `description`). Onde se lê `/sessao`,
+> entenda "invoque esta skill" — o protocolo é idêntico nas duas.
+>
+> 📁 **Onde a skill é descoberta:** Claude Code em `~/.claude/skills/`; Codex em `~/.codex/skills/`
+> (default do `CODEX_HOME`) e em `.agents/skills/` (convenção mais nova, também reconhecida). Um
+> symlink por caminho resolve, sem cópia — **a skill mora num lugar só**.
+
 Os templates ficam em `templates/` ao lado deste arquivo. O panorama completo do modelo está em
 `templates/README.md` — leia-o se precisar de contexto antes de agir.
 
@@ -27,11 +36,12 @@ cada frente nova:
 
 ```
 <repo>/
-├── CLAUDE.md                      ← índice auto-carregado: aponta o AGENTS.md + lista os escopos
-├── AGENTS.md                      ← PROTOCOLO permanente, agnóstico de escopo (papéis, ritual,
-│                                    convenções de commit, guardrails permanentes)
+├── CLAUDE.md                      ← 1 linha: `@AGENTS.md` (o Claude Code não lê AGENTS.md)
+├── AGENTS.md                      ← FONTE ÚNICA: protocolo permanente + ÍNDICE DE ESCOPOS
+│                                    (lido nativamente pelo Codex; pelo Claude via @import)
 ├── scripts/
 │   └── conferencia_saida.sh       ← PORTÃO executável da Conferência de saída (instalado pelo `init`)
+│                                    (na skill ele mora em `scripts/`, junto do autoteste)
 └── docs/sessoes/
     ├── template-relatorio.md      ← gabarito compartilhado (um por repo, nunca copiado por escopo)
     └── <escopo-slug>/             ← UM ESCOPO = UMA PASTA
@@ -41,18 +51,43 @@ cada frente nova:
 
 **Divisão de conteúdo (não misture — é o que evita a bagunça):**
 
-| Vai no `AGENTS.md` (permanente) | Vai no `PLAN.md` do escopo (efêmero) |
+| Vai no `AGENTS.md` (permanente + índice) | Vai no `PLAN.md` do escopo (efêmero) |
 |---|---|
 | Papéis 🧠/⚙️, DoD de planejamento, ritual de fim de turno | Escopo, objetivo, Board, blocos, contrato de execução |
+| **Índice de escopos** (tabela slug → PLAN, com estado) | **Slug + descrição** daquele escopo |
 | Convenções de commit, idioma, tratamento do usuário | **Branch de trabalho** daquele escopo |
 | Repos irmãos que uma sessão pode tocar | **Ambiente/`KUBECONFIG`/namespaces** daquele escopo |
 | Guardrails **permanentes** (segredos, prod, destrutivo) | Guardrails **específicos** daquele escopo |
 | — | **Slug + descrição** daquele escopo (o slug já é o label do apontamento) |
 
-**`CLAUDE.md` × `AGENTS.md` (por que os dois):** o Claude Code carrega automaticamente o `CLAUDE.md`;
-`AGENTS.md` é a convenção neutra de fornecedor, e não é auto-carregado por estar numa subpasta. Então
-`CLAUDE.md` fica curto — ponteiro para o protocolo + **índice de escopos** (tabela com estado e link
-do PLAN) — e o conteúdo mora no `AGENTS.md`. **Nunca duplique o protocolo nos dois.**
+**`CLAUDE.md` × `AGENTS.md` (por que os dois, e por que o conteúdo fica todo num só):** as ferramentas
+leem arquivos diferentes — o **Claude Code lê `CLAUDE.md` e não lê `AGENTS.md`**; o **Codex (e a
+convenção `AGENTS.md` em geral) lê `AGENTS.md` e não lê `CLAUDE.md`**. Para os dois enxergarem a mesma
+coisa sem cópia, **tudo mora no `AGENTS.md` — protocolo permanente E índice de escopos** — e o
+`CLAUDE.md` é um arquivo de uma linha:
+
+```markdown
+@AGENTS.md
+
+## Claude Code
+<instruções específicas do Claude Code, se houver>
+```
+
+É o padrão que a própria documentação da Anthropic recomenda para repositório que já usa `AGENTS.md`.
+**Nunca duplique conteúdo nos dois** — se o índice ficasse só no `CLAUDE.md`, o Codex não o enxergaria
+sozinho, e é o índice que diz qual PLAN a sessão deve abrir.
+
+> ⛔ **Não use `AGENTS.override.md`.** No Codex ele **substitui** o `AGENTS.md` do mesmo nível em vez
+> de somar — a doc é explícita: *"uses only the first non-empty file at this level"*. Num repo com
+> este protocolo isso apagaria papéis, ritual e guardrails do contexto de uma vez. E dar arquivos
+> diferentes a ferramentas diferentes **fabrica** o problema que se queria evitar: dois agentes
+> rodando protocolos divergentes sobre o mesmo `PLAN.md`. O override existe para override **temporário
+> e global**, não para endereçar conteúdo permanente de projeto.
+>
+> **O conflito real entre ferramentas não é de arquivo, é de working tree.** `AGENTS.md` é leitura;
+> dois agentes lendo o mesmo arquivo é o objetivo. O que colide é **duas sessões mexendo na mesma
+> árvore ao mesmo tempo** — e a regra para isso já existe: um escopo por vez por working tree,
+> paralelo de verdade só com `git worktree`. Vale igual entre Claude Code e Codex.
 
 **Layout legado (compatibilidade):** projetos instalados antes deste modelo têm `PLAN.md` na raiz e o
 protocolo dentro do próprio `AGENTS.md`/`CLAUDE.md`. **Continue operando neles como estão** — `start`,
@@ -72,10 +107,10 @@ migração quando ele for abrir um **segundo escopo** no mesmo repo (é aí que 
    grafias para a mesma coisa é conflito de nome esperando acontecer. Se o nome precisa mudar, isso é
    **rename** (procedimento abaixo), não um segundo nome.
 2. **Único globalmente**, não só dentro do repo — porque o log de apontamento é global
-   (`~/.claude/work-log/<slug>.md`). Prefira nomes distintivos (`aca-amortizacao`, `poc-benchmark`) a
+   (`<work-log>/<slug>.md`, ver `SESSAO_WORKLOG_DIR`). Prefira nomes distintivos (`aca-amortizacao`, `poc-benchmark`) a
    genéricos (`amortizacao`, `benchmark`), que colidem com outro projeto no dia seguinte.
 3. **`slug` == nome da pasta** (`docs/sessoes/<slug>/`) e **`slug` == label do `resumo-trabalho`**
-   (`~/.claude/work-log/<slug>.md`). Uma string só, sem campo separado para label.
+   (`<work-log>/<slug>.md`, ver `SESSAO_WORKLOG_DIR`). Uma string só, sem campo separado para label.
 4. **kebab-case**, sem espaço nem acento — ele é nome de pasta e nome de arquivo.
 
 > ⚠️ **Enquanto um escopo antigo tiver pasta ≠ slug** (migração ainda não feita), o caminho do PLAN
@@ -98,12 +133,13 @@ enquanto a sessão é local, e não acompanha a troca de branch). Resolva **nest
 linha qual escopo assumiu**:
 
 1. **Slug explícito** logo após o subcomando (`/sessao start poc-benchmark ...`) — vence tudo. Procure-o
-   na **coluna `Slug` do índice do `CLAUDE.md`**, que é quem sabe o caminho do PLAN daquele escopo
+   na **coluna `Slug` do índice** — que mora no **`AGENTS.md`** (ou, em projeto instalado antes da
+   unificação, no `CLAUDE.md`) e é quem sabe o caminho do PLAN daquele escopo
    (`docs/sessoes/<slug>/` é o padrão, mas escopo ainda não migrado mora onde a coluna PLAN disser).
    **Match exato, sem apelido e sem adivinhação:** se o usuário digitou um nome que não está na coluna
    `Slug`, **pare e liste os slugs que existem** — não "aproxime" para o parecido, não crie escopo por
    engano, e não invente um segundo nome para um escopo que já tem o seu.
-2. **Único escopo 🟡 Ativo** no índice do `CLAUDE.md` → é ele.
+2. **Único escopo 🟡 Ativo** no índice (`AGENTS.md`, ou `CLAUDE.md` em projeto legado) → é ele.
 3. **Branch atual casa com a "Branch de trabalho"** declarada no cabeçalho de algum PLAN → é ele
    (confirme em 1 linha ao usuário).
 4. **Ambíguo** (vários ativos, nenhuma branch casando) → **pergunte**. Nunca chute, e nunca leia o PLAN
@@ -129,7 +165,7 @@ O argumento após `/sessao` indica a operação. Sem argumento, pergunte qual é
 ### `escopos` — listar os escopos do repo (e onde cada um parou)
 
 Responde a "quais escopos existem aqui?" / "quais slugs esse projeto tem?". Leia o índice do
-`CLAUDE.md` e, para cada escopo, **só** o cabeçalho "🔎 Agora" + o cabeçalho de parâmetros do `PLAN.md`
+`AGENTS.md` (ou `CLAUDE.md`, em projeto legado) e, para cada escopo, **só** o cabeçalho "🔎 Agora" + o cabeçalho de parâmetros do `PLAN.md`
 dele (nunca o PLAN inteiro, nunca relatório).
 
 Apresente **nesta ordem de colunas** — o slug primeiro, porque é o identificador que se digita; o
@@ -142,7 +178,7 @@ escopo é a descrição:
 Depois da tabela, em 1 linha: **qual escopo seria assumido por padrão** pela regra de resolução (ex.:
 o que casa com a branch atual) e o comando para entrar nele (`/sessao start <slug>`). Sinalize também
 **inconsistências de identidade** que encontrar — slug ≠ nome da pasta, ou log de apontamento
-(`~/.claude/work-log/<slug>.md`) inexistente para um escopo com sessões fechadas — em uma linha cada,
+(`<work-log>/<slug>.md`, ver `SESSAO_WORKLOG_DIR`) inexistente para um escopo com sessões fechadas — em uma linha cada,
 como aviso, sem corrigir nada.
 
 **Não altera nada** — é o "onde eu estava?" sem efeito colateral. Aceite também
@@ -176,7 +212,7 @@ existente:
      **não** existe ainda na coluna `Slug` do índice deste repo; **e não colide globalmente** — confira
      `ls ~/.claude/work-log/` e, se já houver um `<slug>.md` de outro trabalho, proponha um nome mais
      distintivo (`aca-amortizacao`, não `amortizacao`). Um slug bom é reconhecível fora do repo.
-   - **Não pergunte o label de apontamento** — ele **é** o slug (`~/.claude/work-log/<slug>.md`). Se o
+   - **Não pergunte o label de apontamento** — ele **é** o slug (`<work-log>/<slug>.md`, ver `SESSAO_WORKLOG_DIR`). Se o
      usuário quiser apontar num card já existente com outro nome, isso é escolher o slug igual ao card,
      não criar um segundo campo.
    - **Só na 1ª instalação (por repo):** como tratar o usuário; idioma; política de commit; repos irmãos
@@ -187,19 +223,24 @@ existente:
 3. **Confirme o plano da estrutura ANTES de criar** (árvore + Board + guardrails, em texto). Só crie
    depois do OK.
 4. Crie os arquivos:
-   - `AGENTS.md` (protocolo permanente) e `CLAUDE.md` (índice) — **só na 1ª instalação**.
+   - `AGENTS.md` (**protocolo permanente + índice de escopos**) e `CLAUDE.md` (**só o import
+     `@AGENTS.md`** + eventual seção específica do Claude Code) — **só na 1ª instalação**. Os dois
+     saem de `templates/`. ⛔ **Nada de `AGENTS.override.md`** (ver a seção de layout).
    - `docs/sessoes/template-relatorio.md` — **só na 1ª instalação** (copie de `templates/`).
-   - `scripts/conferencia_saida.sh` — **só na 1ª instalação** (copie de `templates/`, `chmod +x`). É o
-     portão executável da Conferência de saída; sem ele a conferência volta a ser auto-atestada.
+   - `scripts/conferencia_saida.sh` — **só na 1ª instalação** (copie de `scripts/` da skill,
+     `chmod +x`). É o portão executável da Conferência de saída; sem ele a conferência volta a ser
+     auto-atestada.
    - `docs/sessoes/<escopo-slug>/PLAN.md` — sempre. Detalhe **só o bloco B1**; deixe os demais em uma
      linha, marcados `(rascunho)`. Preencha o cabeçalho de parâmetros do escopo (branch, ambiente,
      namespaces, pasta de relatórios) e a seção "🚧 Guardrails deste escopo".
-   - Acrescente a linha do escopo na tabela de escopos do `CLAUDE.md` (estado 🟡 Ativo).
+   - Acrescente a linha do escopo na tabela **🎯 Escopos de trabalho do `AGENTS.md`** (estado 🟡
+     Ativo). Em projeto legado, cuja tabela ainda está no `CLAUDE.md`, acrescente lá — e ofereça a
+     unificação.
 5. **Grave o baton `🎬 Próximo`** no cabeçalho "🔎 Agora" do PLAN novo — o `init` **não** pode deixar o
    baton em branco (sem ele o `start` fica adivinhando o papel). Regra: **B1 🔬 descoberta ou ainda não
    executor-ready → `🧠 Planejador`**; B1 🔧 mecânico e já executor-ready → `⚙️ Executor`.
-6. **Commite a instalação** (mesma razão do `handoff`: PLAN não-commitado faz a próxima sessão ler
-   estado do working tree). Se estiver na branch default, use a branch de trabalho declarada no PLAN.
+6. **Commite a instalação — com validação do usuário** (mesma razão do `handoff`: PLAN não-commitado
+   faz a próxima sessão ler estado do working tree; mas commit é ato que o usuário autoriza). Se estiver na branch default, use a branch de trabalho declarada no PLAN.
    Reporte o hash e mostre a árvore criada.
 
 ### `start [<texto livre>]` — início de sessão
@@ -276,16 +317,21 @@ existente:
    É esse baton que faz o `start` da próxima sessão entrar como Executor **sem perguntar**.
 5. **Rode a ✅ Conferência de saída** (seção acima) — ela vale para o `handoff` também: baton coerente
    com o Board, resumos batendo com a linha `🎬`, sem 2ª cópia de campo.
-6. **Registre o apontamento desta sessão** — **exatamente o passo 5 do `end`**, sem exceção por ser
-   handoff. Um `handoff` É uma sessão inteira de trabalho (mediu baselines, resolveu desenho, corrigiu
+6. **Registre o apontamento desta sessão** — **exatamente o passo 5 do `end`** (portanto **só depois
+   de o usuário validar o commit**), sem exceção por ser handoff. Um `handoff` É uma sessão inteira de trabalho (mediu baselines, resolveu desenho, corrigiu
    contrato) e **precisa aparecer no apontamento do dia como qualquer outra**.
    ⚠️ **Este passo nasceu de um buraco real:** por muito tempo só o `end` alimentava o log, então toda
    sessão que terminava em `handoff` **sumia do apontamento** — o usuário pedia o resumo do dia e
    faltava metade do trabalho, sem nenhum sinal de erro. Handoff não gera relatório (não fechou bloco),
    e o passo do `end` era indexado por relatório: sem relatório, nada era gravado. Ver o invariante
    **uma sessão = uma entrada** no passo 5 do `end`.
-7. **Commit obrigatório** das edições do handoff (mesma regra do `end` — não deixe o PLAN pronto porém
-   não-commitado, senão a próxima sessão lê estado do working tree). Reporte o hash. **Exceção: se
+7. **Commit das edições do handoff — SOMENTE com validação explícita do usuário** (mesma regra do
+   `end`, passo 6). Não deixe o PLAN pronto porém não-commitado **depois do aval**, senão a próxima
+   sessão lê estado do working tree; mas **sem** o aval nada é commitado. Reporte o hash.
+   ⛔ **PRÉ-CONDIÇÃO — o handoff é exatamente o momento em que a regra falha:** este passo só se
+   executa depois de o plano ter sido **mostrado ao usuário e aceito**, com `**Aceite:** <quem>,
+   <AAAA-MM-DD>` no bloco. Um handoff é, por definição, contrato novo indo para o Executor — se ele
+   não passou pelo aceite, **não commite**. **Exceção: se
    houver questionamento aberto do usuário, não commite — pergunte antes** (ver "QUESTIONAMENTO ABERTO
    = REGISTRO CONGELADO" nas Regras invioláveis).
 
@@ -317,11 +363,17 @@ Duas portas de entrada para este ritual:
 3. **Grave/atualize o baton `🎬 Próximo`** no cabeçalho Agora com o papel da próxima sessão + ponto de
    entrada: `⚙️ Executor` se o bloco segue executor-ready; `🧠 Planejador` se a fronteira exige
    (re)planejamento (bloco fechou e o próximo está em rascunho, ou surgiu decisão de design em aberto).
-4. Se o **escopo inteiro** fechou, marque-o 🟢 Concluído na tabela de escopos do `CLAUDE.md` (a pasta
-   fica, é histórico). Atualize ponteiros de memória só se algo de alto nível mudou.
-5. **Registre o apontamento no `resumo-trabalho` — sempre; o label É o slug.** É o elo que mantém os
-   apontamentos sincronizados sem depender de `registrar` manual, para o `gerar <slug>` do dia sair
-   completo.
+4. Se o **escopo inteiro** fechou, marque-o 🟢 Concluído na tabela de escopos do `AGENTS.md` (a pasta
+   fica, é histórico). **Opcional** (só onde a ferramenta tiver memória automática, como o Claude
+   Code): atualize ponteiros de memória se algo de alto nível mudou. No Codex não há equivalente —
+   pule sem cerimônia.
+5. **Registre o apontamento no `resumo-trabalho` — DEPOIS de o usuário validar o commit; o label É o
+   slug.** É o elo que mantém os apontamentos sincronizados sem depender de `registrar` manual, para o
+   `gerar <slug>` do dia sair completo.
+   ⛔ **Não escreva o log antes do aval.** O log é o registro do que ficou valendo; se o usuário
+   discordar do que foi feito — e isso acontece — um apontamento já gravado vira histórico falso num
+   arquivo **append-only e fora do repo**, que nenhum `git reset` desfaz. Validou o commit ⇒ o
+   apontamento é escrito automaticamente, sem novo pedido. Não validou ⇒ **nada é escrito**.
 
    > 🔑 **INVARIANTE: uma sessão que termina = UMA entrada no log. O índice é a SESSÃO, não o
    > relatório.** Toda sessão que chega a `end` **ou** a `handoff` grava sua entrada — executor que
@@ -333,7 +385,9 @@ Duas portas de entrada para este ritual:
    > não tinha nada para coletar. Falha silenciosa: só se descobre quando alguém compara o dia com a
    > memória. Num dia de 4 sessões, 2 ficaram fora por esse motivo.
 
-   - O log do escopo é `~/.claude/work-log/<slug>.md`. **Não procure campo "label" no PLAN** — não
+   - O log do escopo é `<work-log>/<slug>.md`, onde `<work-log>` é `$SESSAO_WORKLOG_DIR` se
+     definido, senão `~/.claude/work-log` (default histórico, usado por qualquer ferramenta — o
+     caminho é só o endereço do arquivo, não uma dependência do Claude Code). **Não procure campo "label" no PLAN** — não
      existe mais campo separado; se um PLAN antigo ainda declarar um label diferente do slug, isso é
      inconsistência de identidade: **avise o usuário e pergunte** qual dos dois nomes vale (o que tem
      histórico no log costuma vencer), em vez de escrever nos dois.
@@ -356,18 +410,21 @@ Duas portas de entrada para este ritual:
      e marque a entrada como *registrada retroativamente*.
    - Log é **append-only e global** (`~/.claude/work-log/`), fora do repo — **não** entra no commit do
      passo 6. Confirme em 1 linha quais sessões viraram entrada (ou "nada novo a registrar").
-6. **Commit obrigatório do que foi feito** (sobrepõe qualquer hábito de "sem commit") — **exceto se
-   houver questionamento aberto do usuário: aí o `end` PARA e pergunta antes de commitar** (ver
-   "QUESTIONAMENTO ABERTO = REGISTRO CONGELADO" nas Regras invioláveis; ela vence este passo). Commite o
+6. **Commit SOMENTE com validação explícita do usuário.** Apresente o que foi feito e **pergunte se
+   pode commitar**; sem o "ok", as mudanças ficam no working tree. Isto **substitui** o antigo "commit
+   obrigatório", que commitava por conta própria: o usuário frequentemente discorda do resultado ao
+   fim da sessão, e desfazer commit é mais caro do que esperar uma frase. Continua valendo a
+   "QUESTIONAMENTO ABERTO = REGISTRO CONGELADO" (Regras invioláveis). Commite o
    relatório novo, o `PLAN.md` e as demais mudanças da sessão, seguindo as convenções de commit do
    repo (mensagem no padrão do projeto). **Commite só o que é deste escopo + o que a sessão tocou** —
    num repo multi-escopo, `git add -A` cego varre trabalho de outra frente para dentro do seu commit.
    Se houver arquivos modificados alheios à sessão, **liste-os ao usuário e deixe de fora**. Se a sessão tocou **mais de um repo** (ex.: repos irmãos
    operator/clusters), commite em **cada** um. Se estiver na branch default, crie/*use* a **branch de
-   trabalho declarada no PLAN do escopo**. **Exceção que sobrepõe o "sem push": commit destinado a
-   deploy leva `push` no mesmo turno, sem esperar pedido** (ver "Entrega destinada a deploy" nas Regras
-   invioláveis). Fora desse caso, faça `push` só se o usuário pedir ou se for a prática já estabelecida
-   do projeto. Ao fim, reporte o(s) hash(es) de commit.
+   trabalho declarada no PLAN do escopo**. **`push` também exige validação explícita — inclusive
+   commit destinado a deploy**, que antes era exceção e deixou de ser: `push` publica para fora e não
+   se desfaz sem estrago, então ele é pedido em separado do commit, mesmo quando a entrega é para
+   deploy (ver "Entrega destinada a deploy" nas Regras invioláveis, que continua descrevendo a cadeia
+   de elos — só não autoriza mais o push sozinho). Ao fim, reporte o(s) hash(es) de commit.
 
 ## ✅ Conferência de saída (obrigatória antes de QUALQUER commit de `end`/`handoff`)
 
@@ -377,15 +434,38 @@ cuidado — depende **desta conferência**, que é mecânica e se responde com o
 comando. Rode todos os itens e **não commite com nenhum vermelho**: vermelho é **PARADA**, não
 ressalva no relatório.
 
+> ### 🔒 Ordem canônica do fechamento (a validação do usuário é o eixo)
+>
+> 1. Preparar tudo **no working tree**: `PLAN.md` in-place (cabeçalho, Board, checkboxes, **linha 🎬**)
+>    e o relatório, se houver.
+> 2. **Apresentar ao usuário** o que foi feito e **pedir validação para commitar**.
+> 3. **Sem o "ok": PARA.** Nada de commit, nada de push, **nada de escrever no `work-log`**.
+> 4. Com o "ok": **escrever o apontamento** em `~/.claude/work-log/<slug>.md` (automático a partir daqui
+>    — não peça duas vezes).
+> 5. **Rodar o portão** (abaixo) — é aqui que ele roda, com o apontamento já no lugar, senão o item ⑤
+>    reprova por um motivo falso.
+> 6. **Commitar.** 7. **`push` só com validação própria**, pedida em separado.
+>
+> Por que o log vem depois do aval: ele é **append-only e fora do repo**, então um apontamento gravado
+> sobre trabalho que o usuário rejeitou vira histórico falso que nenhum `git reset` desfaz.
+
 **0. RODE O PORTÃO E COLE A SAÍDA CRUA no resumo da sessão — obrigatório, não é opcional:**
 `scripts/conferencia_saida.sh <slug> <commit em que esta sessão começou>` (o commit sai de
 `git rev-parse HEAD` no início; se esqueceu, é o último commit da sessão anterior). Ele sai com
 **exit 1** se a linha `🎬` continua **intacta** desde o início da sessão, se o ponto de entrada citado
-já está `[x]`, se o registro de sessões não ganhou linha nova, ou se falta o apontamento da sessão no
-log. **Declarar que conferiu não substitui rodar** — os itens 2, 3 e 5 abaixo já estavam escritos, com
+já está `[x]`, se o registro de sessões não ganhou linha nova, se falta o apontamento da sessão no
+log, ou se **esta sessão escreveu contrato de bloco e passou o baton para ⚙️ sem a linha
+`**Aceite:** <quem>, <AAAA-MM-DD>` no PLAN** (item ⑥). **Declarar que conferiu não substitui rodar** — os itens 2, 3 e 5 abaixo já estavam escritos, com
 todas as letras, nas duas vezes em que o defeito passou. Repo sem o portão instalado (instalação
-anterior a ele): copie `templates/conferencia_saida.sh` para `scripts/` — é a mesma correção.
-Os itens 1–8 abaixo seguem **na mão**; o portão cobre só os quatro decidíveis por comando.
+anterior a ele): copie `scripts/conferencia_saida.sh` da skill para `scripts/` do projeto — é a
+mesma correção.
+Os itens 1–9 abaixo seguem **na mão**; o portão cobre os **seis** decidíveis por comando (①-⑥).
+⚠️ **Se mexer no portão ou nos templates, rode `scripts/autoteste_portao.sh` da skill.** Ele monta um
+repo descartável a partir dos templates e afirma que cada item dispara. Existe porque em 24/08/2026 uma
+auditoria achou o portão fazendo valer **2 dos 6 itens** em qualquer projeto novo: ele fora escrito
+contra o dialeto de UM repo (`### 📋 Tarefas`, critérios em tabela, sessões numeradas) enquanto o
+`PLAN.template.md` gera outro (`### Tarefas`, critérios em lista, sessões por data). Os itens ③④⑤ saíam
+`⚠️` e o ⑥ não saía, com **exit 0** — "aprovado" sem ter conferido quase nada.
 
 1. **Critérios de aceite — cada um MEDIDO** (comando + saída crua), e o resultado bate o alvo. **Um só
    que não bata ⇒ o bloco NÃO fecha:** nada de 🟢, nada de "fechado com ressalva", nada de reinterpretar
@@ -402,7 +482,10 @@ Os itens 1–8 abaixo seguem **na mão**; o portão cobre só os quatro decidív
    está 🟢.
 5. **Número e append vêm do arquivo, não da memória.** O identificador da linha nova do registro de
    sessões sai do **último valor da própria tabela + 1** — nunca do número do relatório, que tem série
-   própria e quase nunca coincide. Mesma regra para o nome do relatório: use o padrão declarado no
+   própria e quase nunca coincide. ⚠️ **Se a tabela daquele PLAN não tem coluna de número** (é o caso
+   do `PLAN.template.md`, cuja tabela é `| Data | Bloco(s) | Resumo | Relatório |`), então **não invente
+   um**: a chave da sessão passa a ser a **data**, e o apontamento é indexado pelo cabeçalho
+   `## [AAAA-MM-DD ...]` do log — que é o que o item ⑤ do portão confere. Mesma regra para o nome do relatório: use o padrão declarado no
    cabeçalho do PLAN, conferindo o último gravado na pasta.
 6. **In-place, sem 2ª cópia.** O que você escreveu atualizou o campo existente, em vez de criar uma
    segunda cópia dele em outro ponto do arquivo.
@@ -415,6 +498,12 @@ Os itens 1–8 abaixo seguem **na mão**; o portão cobre só os quatro decidív
    até alguém repassá-lo. *(Caso real: dois blocos mudaram cascata de regras e persistência; o
    documento do chefe continuou anunciando a ele duas estratégias trocáveis por flag que haviam sido
    removidas — só apareceu numa auditoria pedida por desconfiança, dois meses depois.)*
+
+9. **Nenhuma decisão pendente foi selada por fora.** Se durante a sessão você levantou uma decisão que
+   é do usuário e ela **não** foi respondida, ela **não** pode virar premissa do contrato, nem
+   "recomendação" no fim da mensagem, nem tarefa do Executor. Ou ela foi respondida, ou o bloco **não
+   fecha**. Este item é irmão do ⑥ do portão — o ⑥ pega a **falta de aceite**; este pega o **aceite
+   obtido sobre um plano incompleto**, que nenhum comando enxerga.
 
 > **Por que checklist e não "seja cuidadoso":** os 4 defeitos que motivaram esta seção saíram de uma
 > única sessão de Executor que **relatou tudo com honestidade** — o baton velho, o critério que não
@@ -438,6 +527,12 @@ Os itens 1–8 abaixo seguem **na mão**; o portão cobre só os quatro decidív
   **Não vale como desculpa:** "era só documentar", "é reversível", "ia commitar mesmo", "o ritual de
   `end` manda commitar". O ritual **não** sobrepõe esta regra — se há questionamento aberto no fim da
   sessão, o `end` **para** e pergunta antes de commitar.
+  **PLANO TAMBÉM É REGISTRO — e é o caso que mais escapa.** Selar um bloco (escrever o contrato no
+  `PLAN.md`, gravar o baton, commitar) exige **decisões pendentes zeradas** e o **plano mostrado e
+  aceito**, registrado como `**Aceite:** <quem>, <AAAA-MM-DD>` no bloco. ⚠️ **Responder às perguntas
+  do agente NÃO é aceitar o plano:** 3 perguntas respondidas fecham as 3 perguntas, não abrem o
+  commit. O portão confere isso no item ⑥ — a regra já falhou uma vez estando escrita em três lugares
+  ao mesmo tempo, o que prova que prosa auto-atestada não segura.
   **Se eu já registrei antes do aval:** dizer isso explicitamente na primeira frase, oferecer o
   `git reset --soft` (ou reverter a edição) e **esperar** — nunca deixar passar como se tivesse sido
   combinado, nunca "aproveitar que já está lá".
@@ -448,19 +543,22 @@ Os itens 1–8 abaixo seguem **na mão**; o portão cobre só os quatro decidív
 - **Escopo é argumento, não estado; um por vez por working tree.** `/sessao <sub> [<slug>] [nota]`,
   resolvido por slug → único ativo → branch → pergunta (ver "🎯 Resolução de escopo"). Nunca guarde
   ponteiro de escopo ativo, nunca opere dois PLANs na mesma sessão, e **mantenha `docs/sessoes/**` +
-  `CLAUDE.md` na branch base** — o PLAN é versionado, então branch errada = estado errado.
+  `AGENTS.md` na branch base** — o PLAN é versionado, então branch errada = estado errado.
 - **Um escopo = uma pasta; o protocolo é um só.** Frente de trabalho nova = `docs/sessoes/<slug>/PLAN.md`
   novo, **nunca** um segundo protocolo. `AGENTS.md` e `template-relatorio.md` são **reusados, jamais
   copiados por escopo**; o `CLAUDE.md` é só índice. Nada específico de escopo (branch, ambiente,
   `KUBECONFIG`, guardrails da frente) entra no `AGENTS.md` — isso mora no PLAN do escopo,
   senão o próximo escopo herda restrição que não é dele. E `init` **nunca sobrescreve** instalação
   existente (ver passo 0 do `init`).
-- **Entrega destinada a deploy = `push` no mesmo turno, e o pipeline tem mais elos que o commit.**
+- **Entrega destinada a deploy: o pipeline tem mais elos que o commit — mas o `push` PEDE VALIDAÇÃO.**
   Quando o commit existe **para ser deployado**, deixá-lo só local é entrega incompleta: quem builda
   (Jenkins/CI) lê do **remoto**, então um commit não-pushado vira um deploy que "não mudou nada", sem
   erro nenhum — o modo de falha mais caro e mais confuso, porque parece problema de deploy e é falha de
-  autoria. **Por isso: commitou para deploy → pushou, sem esperar o usuário pedir.** Isto sobrepõe o
-  "sem `push` sem pedir" do `end`/`handoff`; para todo o resto, a regra normal continua valendo.
+  autoria. **Por isso: ao commitar para deploy, PEÇA a validação do push no mesmo turno** — explique
+  que sem ele o deploy roda e não muda nada. ⚠️ **Revertido em 2026-08-24:** esta regra autorizava o
+  push automático "sem esperar o usuário pedir". Não autoriza mais. `push` publica para fora e não se
+  desfaz sem estrago; o risco de um push indevido é maior que o de um deploy que não pegou, que o
+  diagnóstico de 5 s abaixo resolve. **Avise, e espere.**
   **E o push não é o último elo.** Antes de anunciar "versão X pronta para deployar", confira a cadeia
   inteira, porque *qualquer* elo faltando produz o **mesmo sintoma silencioso** (deploy roda, nada muda):
   1. **Versão bumpada** onde o projeto exige (ex.: `Chart.yaml` **e** `VERSION` juntos) — sem bump, o
@@ -479,7 +577,7 @@ Os itens 1–8 abaixo seguem **na mão**; o portão cobre só os quatro decidív
   falhou". **Não presuma qual elo foi:** verifique (o remoto tem o commit? o artefato novo existe?)
   antes de apontar a causa.
 - **Anti-duplicação:** regras de trabalho → `AGENTS.md`; estado/plano → `PLAN.md` do escopo; detalhe
-  denso → relatórios do escopo; ganchos → memória. Nunca suba detalhe de relatório para o PLAN.
+  denso → relatórios do escopo; ganchos → memória automática, **onde a ferramenta tiver uma**. Nunca suba detalhe de relatório para o PLAN.
 - **Rolling-wave:** detalhe só o bloco ativo (+ próximo). Replanejar na fronteira do bloco é ritual.
 - **Papéis:** Planejador (modelo forte) deixa o bloco executor-ready e NÃO implementa, especificando
   decisões e restrições — não keystrokes. Executor (modelo barato) executa à risca, e ao divergir do
@@ -503,8 +601,10 @@ Os itens 1–8 abaixo seguem **na mão**; o portão cobre só os quatro decidív
 - **Fechamento passa pela ✅ Conferência de saída** (seção própria acima) — `end` e `handoff`, sempre,
   antes do commit. Nenhum item vermelho vira "ressalva no relatório": vermelho é PARADA.
 - **Executor fecha o próprio bloco (auto-`end` na fronteira):** ao concluir um **bloco inteiro** (toda a
-  DoD satisfeita), o Executor **dispara o ritual `end` por si — commit + relatório + atualização in-place
-  do PLAN — sem o usuário pedir**, e só então grava o baton `🎬 Próximo`. É o mesmo `end`, auto-disparado
+  DoD satisfeita), o Executor **dispara o ritual `end` por si — relatório + atualização in-place do PLAN
+  — sem o usuário pedir**, e só então grava o baton `🎬 Próximo`. ⚠️ **O que é auto-disparado é o
+  RITUAL, não o commit:** o passo 6 (commit) e o `push` continuam exigindo validação explícita, e o
+  apontamento só é escrito depois dela (ver "Ordem canônica do fechamento"). É o mesmo `end`, auto-disparado
   no fechamento de bloco. **Não** vale para terminar só alguns steps no meio de um bloco (bloco ainda
   aberto) — aí não há relatório nem fechamento, só atualização de checkboxes/estado, e o `end` continua
   sendo ato explícito do usuário. Isto **não** contradiz a "Fronteira de papel = PARADA": o Executor
@@ -531,8 +631,8 @@ Os itens 1–8 abaixo seguem **na mão**; o portão cobre só os quatro decidív
   contexto do ponto onde parou, sem ler tudo, e parar) e pode **condicionar** a execução (diretivas
   operacionais), mas **não redefine o papel** — quem define papel é o baton — nem altera o contrato do
   bloco por conta própria (isso é PARADA + decisão do usuário). Diretivas valem só para a sessão.
-- **Sincronia com `resumo-trabalho`: UMA SESSÃO = UMA ENTRADA, e o label É o slug.** `end` **e**
-  `handoff` alimentam `~/.claude/work-log/<slug>.md` — **o índice é a sessão, não o relatório**. Toda
+- **Sincronia com `resumo-trabalho`: UMA SESSÃO = UMA ENTRADA, e o label É o slug — mas só APÓS o
+  usuário validar o commit.** `end` **e** `handoff` alimentam `<work-log>/<slug>.md` — **o índice é a sessão, não o relatório**. Toda
   sessão que termina grava a sua entrada: fechou bloco, parou no meio, fez handoff ou só validou.
   **Relatório é matéria-prima quando existe**; quando não existe (handoff e validação nunca geram um),
   a fonte é a **linha do §8 + a entrada do §7 + os commits** daquela sessão. Nada é inventado fora

@@ -1,5 +1,11 @@
 # 📘 Help — Skill `sessao` (Controle de Sessões v2)
 
+> 🔤 **Invocação:** `/sessao <sub>` no **Claude Code**; `$sessao <sub>` ou `@sessao <sub>` no
+> **Codex**. Onde este guia escreve `/sessao`, entenda "invoque a skill".
+> 📁 **Descoberta:** `~/.claude/skills/` (Claude Code) · `~/.codex/skills/` e `.agents/skills/`
+> (Codex). A skill mora num lugar só; os demais caminhos são symlinks.
+> 📒 **Log de apontamento:** `$SESSAO_WORKLOG_DIR`, default `$SESSAO_WORKLOG_DIR (default ~/.claude/work-log/)`.
+
 > Documento de uso da skill. Exiba-o quando o usuário rodar `/sessao help` (ou pedir "help/ajuda do
 > sessao"). É referência: reproduza o conteúdo relevante, não invente comportamento fora do `SKILL.md`.
 
@@ -55,7 +61,7 @@ for abrir o **segundo escopo** no mesmo repo.
 Não existe arquivo de STATUS separado — ele é a primeira seção do `PLAN.md` (`🔎 Agora`).
 
 > **Escoadouro automático:** o `end` também alimenta o log da skill `resumo-trabalho`
-> (`~/.claude/work-log/<slug>.md` — o label **é** o slug do escopo) a partir dos
+> (`$SESSAO_WORKLOG_DIR (default ~/.claude/work-log/)<slug>.md` — o label **é** o slug do escopo) a partir dos
 > relatórios do dia — ver a seção "🔗 Apontamentos automáticos" abaixo. Não é um 5º artefato do modelo:
 > é um consumidor a jusante dos relatórios, fora do repo.
 
@@ -103,7 +109,7 @@ nome da pasta, log de apontamento faltando). Não altera nada. `/sessao escopos 
    linha no índice do `CLAUDE.md`; layout legado (PLAN na raiz) → avisa e oferece migrar.
 1. Lê os templates necessários (`AGENTS`, `CLAUDE`, `PLAN`).
 2. Levanta os `<PLACEHOLDERS>` **com o usuário** (não inventa). **Por escopo:** **slug** (validado:
-   kebab-case, inédito no repo e sem colidir em `~/.claude/work-log/`) + **descrição**, o que fica fora
+   kebab-case, inédito no repo e sem colidir em `$SESSAO_WORKLOG_DIR (default ~/.claude/work-log/)`) + **descrição**, o que fica fora
    do escopo, blocos iniciais (id + título + tipo 🔧/🔬), **branch de trabalho**, ambiente e
    **guardrails específicos**. **Só na 1ª instalação:** tratamento, idioma, política de commit, repos
    irmãos, guardrails permanentes. Não pergunta pasta de relatórios nem label — ambos derivam do slug.
@@ -111,7 +117,8 @@ nome da pasta, log de apontamento faltando). Não altera nada. `/sessao escopos 
    relatório (só na 1ª vez) e o `PLAN.md` do escopo — **detalha só o bloco B1**; os demais ficam em 1
    linha marcados `(rascunho)`.
 4. **Grava o baton `🎬 Próximo`** (B1 🔬 ou ainda não executor-ready → 🧠 Planejador) e **commita a
-   instalação** — PLAN não-commitado faz a próxima sessão ler estado do working tree. Mostra a árvore.
+   instalação com validação do usuário** — PLAN não-commitado faz a próxima sessão ler estado do
+   working tree. Mostra a árvore.
 
 ### `start [<texto livre>]` — início de sessão
 0. **Nota de sessão** — se você escrever qualquer coisa depois de `start`, ela é lida e classificada
@@ -146,7 +153,8 @@ nome da pasta, log de apontamento faltando). Não altera nada. `/sessao escopos 
    critério deduzido ("o código novo será X, logo o grep dará 0") **nasce falso** e trava o Executor.
 3. Ajusta o que faltar no `PLAN.md`.
 4. **Grava o baton** no cabeçalho: `🎬 Próximo: ⚙️ Executor · Ponto de entrada: <tarefa>`.
-5. **Roda a ✅ Conferência de saída** e **commita** as edições do handoff (senão a próxima sessão lê
+5. **Roda a ✅ Conferência de saída** e **commita, com validação do usuário,** as edições do handoff
+   (sem o aval nada é commitado; com ele, PLAN não-commitado faz a próxima sessão lê
    estado do working tree). Reporta o hash.
 
 ### `end` — fim de sessão (quando o usuário pedir **ou** ao fechar um bloco inteiro)
@@ -160,9 +168,10 @@ nome da pasta, log de apontamento faltando). Não altera nada. `/sessao escopos 
 3. Grava/atualiza o baton `🎬 Próximo` com o papel da próxima sessão.
 4. Se o **escopo inteiro** fechou, marca 🟢 na tabela do `CLAUDE.md`. Atualiza ponteiros de memória só
    se algo de alto nível mudou.
-5. **Registra o apontamento desta sessão no `resumo-trabalho`** (sempre — o label é o slug, e **o
+5. **Registra o apontamento desta sessão no `resumo-trabalho`** (**só depois de o usuário validar o
+   commit** — o label é o slug, e **o
    índice é a SESSÃO, não o relatório**): toda sessão que termina grava a sua entrada em
-   `~/.claude/work-log/<slug>.md` — fechou bloco, parou no meio, fez `handoff` ou só validou. Relatório
+   `$SESSAO_WORKLOG_DIR (default ~/.claude/work-log/)<slug>.md` — fechou bloco, parou no meio, fez `handoff` ou só validou. Relatório
    é matéria-prima **quando existe**; quando não existe (handoff e validação nunca geram um), a fonte é
    a linha do registro de sessões + a entrada de decisões + os commits daquela sessão. Idempotência
    pela linha `**Relatório-fonte:**` ou `**Sessão:** <N>`. Log global/append-only, fora do commit.
@@ -193,7 +202,7 @@ o `sessao` alimenta esse log **sozinho** — não precisa mais rodar `registrar`
 apontamento do dia nunca sai incompleto por esquecimento.
 
 **1. Não há o que ligar — o label É o slug.** O identificador do apontamento é o próprio slug do
-escopo: o log dele é `~/.claude/work-log/<slug>.md` e o resumo sai com `/resumo-trabalho gerar <slug>`.
+escopo: o log dele é `$SESSAO_WORKLOG_DIR (default ~/.claude/work-log/)<slug>.md` e o resumo sai com `/resumo-trabalho gerar <slug>`.
 Não existe campo separado, nem escopo "sem label", nem apelido — **um escopo, um nome**, do comando ao
 apontamento.
 
@@ -201,10 +210,10 @@ Isso tem uma consequência prática na hora de batizar o escopo: como o log é *
 qualquer repo), o slug precisa ser único **entre projetos**, não só dentro do repo. Prefira
 `aca-amortizacao` a `amortizacao`, `poc-benchmark` a `benchmark` — genérico colide com outro projeto
 seu no mês que vem, e aí dois trabalhos diferentes passam a escrever no mesmo apontamento. O
-`/sessao init` confere isso (`~/.claude/work-log/`) antes de aceitar o nome.
+`/sessao init` confere isso (`$SESSAO_WORKLOG_DIR (default ~/.claude/work-log/)`) antes de aceitar o nome.
 
 **2. O que o `end` faz.** Depois de atualizar o PLAN (e gerar o relatório, quando houver), o `end`
-grava **uma entrada por sessão** no log do escopo (`~/.claude/work-log/<slug>.md`) — **o índice é a
+grava **uma entrada por sessão** no log do escopo (`<work-log>/<slug>.md`) — **o índice é a
 sessão, não o relatório**. Quando a sessão gerou relatório, ele é a matéria-prima; quando não gerou
 (todo `handoff`, toda validação, toda sessão que para no meio de um bloco), a fonte é a linha do
 registro de sessões + a entrada de decisões + os commits daquela sessão. Cada entrada carrega
@@ -224,7 +233,7 @@ dois repos, e é bug quando são trabalhos diferentes com nome genérico. Daí a
   não gera relatório) não registra nada por si — para anotar algo avulso, use `/resumo-trabalho
   registrar <slug> ...` à mão.
 - **Não inventa** nada fora do relatório (ele é a matéria-prima) e o log é **append-only**.
-- O log é **global** (`~/.claude/work-log/`), fora do repo — **não** entra no commit do `end`.
+- O log é **global** (`$SESSAO_WORKLOG_DIR (default ~/.claude/work-log/)`), fora do repo — **não** entra no commit do `end`.
 
 ## O protocolo de dois papéis
 

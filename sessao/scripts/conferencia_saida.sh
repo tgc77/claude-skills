@@ -31,8 +31,12 @@
 #
 set -o pipefail
 
-readonly INDICE_DE_ESCOPOS="CLAUDE.md"
-readonly LOG_DE_APONTAMENTO_DIR="${HOME}/.claude/work-log"
+# Índice de escopos: AGENTS.md primeiro (lido nativamente por Codex E, via `@AGENTS.md`, pelo Claude
+# Code), CLAUDE.md depois (projetos instalados antes da unificação). O primeiro que existir e citar o
+# slug vence.
+readonly INDICES_DE_ESCOPOS=("AGENTS.md" "CLAUDE.md")
+# Log de apontamento: default histórico, sobrescrevível para instalação neutra de ferramenta.
+readonly LOG_DE_APONTAMENTO_DIR="${SESSAO_WORKLOG_DIR:-${HOME}/.claude/work-log}"
 readonly REGEX_LINHA_BATON='^- \*\*🎬 Próximo:\*\*'
 readonly REGEX_LINHA_SESSAO='^\| [0-9]+ \| [0-9]{4}-[0-9]{2}-[0-9]{2} \|'
 
@@ -59,16 +63,18 @@ fi
 # convenção do layout canônico → PLAN na raiz (layout legado, instalação anterior ao multi-escopo).
 cd "$(git rev-parse --show-toplevel)" || exit 2
 PLAN=""
-if [[ -f "${INDICE_DE_ESCOPOS}" ]]; then
-    PLAN=$(grep -E "^\| \`${SLUG}\`" "${INDICE_DE_ESCOPOS}" | sed -E 's/.*\]\(([^)]+)\).*/\1/')
-fi
+for indice in "${INDICES_DE_ESCOPOS[@]}"; do
+    [[ -f "${indice}" ]] || continue
+    PLAN=$(grep -E "^\| \`${SLUG}\`" "${indice}" | sed -E 's/.*\]\(([^)]+)\).*/\1/')
+    [[ -n "${PLAN}" ]] && break
+done
 if [[ -z "${PLAN}" || ! -f "${PLAN}" ]]; then
     for candidato in "docs/sessoes/${SLUG}/PLAN.md" "PLAN.md"; do
         [[ -f "${candidato}" ]] && { PLAN="${candidato}"; break; }
     done
 fi
 if [[ -z "${PLAN}" || ! -f "${PLAN}" ]]; then
-    echo "🔴 slug '${SLUG}' não resolve para nenhum PLAN (nem no ${INDICE_DE_ESCOPOS}, nem em" >&2
+    echo "🔴 slug '${SLUG}' não resolve para nenhum PLAN (nem em ${INDICES_DE_ESCOPOS[*]}, nem em" >&2
     echo "   docs/sessoes/${SLUG}/PLAN.md, nem em PLAN.md na raiz)" >&2
     exit 2
 fi
@@ -109,24 +115,34 @@ else
 fi
 
 # --- ③ O ponto de entrada citado não é tarefa já concluída -------------------------------------
-tarefa_citada=$(grep -oE '[0-9]+\.[0-9]+[a-z]?' <<<"${linha_baton}" | head -1)
+# TOLERANTE A DIALETO (corrigido 2026-08-24): antes só reconhecia `N.N`, formato que NENHUM template
+# desta skill produz — o item vivia em ⚠️, isto é, auto-atestado. Aceita agora `T1`, `B11 / T1` e
+# `11.1`, e casa o checkbox mesmo com markdown em volta (`- [ ] **T1 — ...**`).
+tarefa_citada=$(grep -oE '\bT[0-9]+\b|[0-9]+\.[0-9]+[a-z]?' <<<"${linha_baton}" | head -1)
 if [[ -z "${tarefa_citada}" ]]; then
-    amarelo "③ a linha 🎬 não cita tarefa no formato N.N — confira o ponto de entrada na mão"
-elif grep -qE "^ *- \[x\] ${tarefa_citada//./\\.} " "${PLAN}"; then
-    vermelho "③ BATON PODRE: a linha 🎬 manda executar a tarefa ${tarefa_citada}, que está [x]"
-elif grep -qE "^ *- \[ \] ${tarefa_citada//./\\.} " "${PLAN}"; then
-    verde "③ ponto de entrada ${tarefa_citada} está em aberto ([ ])"
+    amarelo "③ a linha 🎬 não cita tarefa reconhecível (T<N> ou N.N) — confira o ponto de entrada na mão"
 else
-    amarelo "③ tarefa ${tarefa_citada} citada na linha 🎬 não achada como checkbox — confira na mão"
+    tarefa_esc=${tarefa_citada//./\\.}
+    if grep -qE "^ *- \[x\] +\**${tarefa_esc}\b" "${PLAN}"; then
+        vermelho "③ BATON PODRE: a linha 🎬 manda executar a tarefa ${tarefa_citada}, que está [x]"
+    elif grep -qE "^ *- \[ \] +\**${tarefa_esc}\b" "${PLAN}"; then
+        verde "③ ponto de entrada ${tarefa_citada} está em aberto ([ ])"
+    else
+        amarelo "③ tarefa ${tarefa_citada} citada na linha 🎬 não achada como checkbox — confira na mão"
+    fi
 fi
 
-# --- ④ O registro de sessões (§8) ganhou a linha desta sessão ----------------------------------
+# --- ④ O registro de sessões ganhou a linha desta sessão ----------------------------------------
+# TOLERANTE A DIALETO (corrigido 2026-08-24): antes exigia `| N | AAAA-MM-DD |`, e o PLAN.template.md
+# gera `| Data | Bloco(s) | Resumo | Relatório |`, SEM coluna de número — o item nunca disparava, e
+# ainda derrubava o ⑤ junto (sem N, o ⑤ virava ⚠️). Aceita agora linha nova começando por número de
+# sessão OU por data (AAAA-MM-DD ou DD/MM/AAAA).
+ultima_sessao=""
 if [[ "${MODO}" == "inicio" ]]; then
-    ultima_sessao=""
-elif ! grep -qE "${REGEX_LINHA_SESSAO}" "${PLAN}"; then
-    amarelo "④ este PLAN não tem tabela de sessões no formato '| N | AAAA-MM-DD |' — confira na mão"
-    ultima_sessao=""
-elif grep -qE "^\+\| [0-9]+ \| [0-9]{4}" <<<"${diff_do_plan}"; then
+    :
+elif ! grep -qE '^#+ .*Registro de sessões' "${PLAN}"; then
+    amarelo "④ este PLAN não tem seção 'Registro de sessões' — confira na mão"
+elif grep -qE '^\+\| *([0-9]+ *\| *[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{2}/[0-9]{2}/[0-9]{4}) *\|' <<<"${diff_do_plan}"; then
     verde "④ registro de sessões ganhou linha nova nesta sessão"
     ultima_sessao=$(grep -oE "${REGEX_LINHA_SESSAO}" "${PLAN}" | tail -1 | grep -oE '[0-9]+' | head -1)
 else
@@ -134,20 +150,65 @@ else
     ultima_sessao=$(grep -oE "${REGEX_LINHA_SESSAO}" "${PLAN}" | tail -1 | grep -oE '[0-9]+' | head -1)
 fi
 
-# --- ⑤ O apontamento da sessão existe no log global -------------------------------------------
+# --- ⑤ O apontamento da sessão existe no log global --------------------------------------------
 # Uma sessão = uma entrada, com ou sem relatório. Indexar por relatório era o bug: handoff e
 # validação nunca geram relatório, então sumiam do apontamento sem erro nenhum.
+# TOLERANTE A DIALETO (corrigido 2026-08-24): a chave principal passa a ser o CABEÇALHO DE HOJE
+# (`## [AAAA-MM-DD`), que todo log tem; o número de sessão continua valendo quando existir. Antes o
+# item dependia do N vindo do ④, e como o ④ nunca disparava, o ⑤ era ⚠️ permanente.
+# ⚠️ ORDEM DO RITUAL: o apontamento é escrito DEPOIS de o usuário validar o commit e ANTES de
+# commitar — por isso este item pode ser conferido aqui.
 log_do_escopo="${LOG_DE_APONTAMENTO_DIR}/${SLUG}.md"
+hoje=$(date +%F)
 if [[ "${MODO}" == "inicio" ]]; then
     :
-elif [[ -z "${ultima_sessao}" ]]; then
-    amarelo "⑤ sem número de sessão para conferir — confira ${log_do_escopo} na mão"
 elif [[ ! -f "${log_do_escopo}" ]]; then
     vermelho "⑤ ${log_do_escopo} não existe — o escopo tem sessões e nenhum apontamento"
-elif grep -qE "^\*\*Sessão:\*\* ${ultima_sessao}\b" "${log_do_escopo}"; then
+elif grep -qE "^## \[${hoje}" "${log_do_escopo}"; then
+    verde "⑤ apontamento de hoje (${hoje}) presente em ${log_do_escopo}"
+elif [[ -n "${ultima_sessao}" ]] && grep -qE "^\*\*Sessão:\*\* ${ultima_sessao}\b" "${log_do_escopo}"; then
     verde "⑤ apontamento da sessão ${ultima_sessao} presente em ${log_do_escopo}"
 else
-    vermelho "⑤ sessão ${ultima_sessao} SEM entrada em ${log_do_escopo} — apontamento do dia sai furado"
+    vermelho "⑤ sem entrada de hoje (${hoje}) em ${log_do_escopo} — apontamento do dia sai furado"
+fi
+
+# --- ⑥ Contrato de bloco escrito nesta sessão exige ACEITE registrado --------------------------
+# POR QUE ESTE ITEM EXISTE
+# Em 2026-08-24 uma sessão de Planejador escreveu um contrato inteiro — 17 tarefas e 15 critérios —,
+# gravou o baton para ⚙️ Executor e commitou DUAS vezes sem o usuário ter visto o plano. A regra
+# ("QUESTIONAMENTO ABERTO = REGISTRO CONGELADO") já estava escrita em TRÊS lugares: AGENTS.md
+# §Guardrails, a memória do projeto e a própria skill. Falhou nos três porque nos três é prosa
+# auto-atestada — e a conferência mecânica, que roda logo antes do commit, deu VERDE, porque não
+# tinha item de aceite. É o mesmo diagnóstico do cabeçalho deste arquivo, agora aplicado ao aval:
+# o controle tem de medir o arquivo, não a intenção de quem executa.
+# O erro específico a prevenir: confundir "respondi às perguntas do agente" com "aceitei o plano".
+#
+# DOIS DEFEITOS DA 1ª VERSÃO, CORRIGIDOS EM 2026-08-24 (achados por auditoria, com repro):
+#   (a) DIALETO — a detecção só reconhecia `### 📋 Tarefas` e critérios em tabela, formatos do repo
+#       onde o item nasceu. O PLAN.template.md escreve `### Tarefas` (sem emoji) e critérios em
+#       lista, então em TODO projeto novo o item não disparava e o portão aprovava sem aceite.
+#   (b) ACEITE ETERNO — o grep varria o PLAN inteiro, então uma linha de aceite de um bloco antigo
+#       deixava o item verde para sempre. Agora o aceite tem de ser NOVO NESTA SESSÃO (vir no diff),
+#       exatamente como o item ② faz com a linha 🎬 — que é o único mecanismo já provado.
+if [[ "${MODO}" != "inicio" ]]; then
+    contrato_novo=0
+    checkboxes_novos=$(grep -cE '^\+ *- \[ \] ' <<<"${diff_do_plan}" || true)
+    if grep -qE '^\+.*###[[:space:]]*(📋[[:space:]]*)?Tarefas' <<<"${diff_do_plan}" \
+       || grep -qE '^\+\| *[A-Za-z][A-Za-z0-9-]*-C[0-9]+ *\|' <<<"${diff_do_plan}" \
+       || grep -qE '^\+.*Critérios de aceite' <<<"${diff_do_plan}" \
+       || [[ "${checkboxes_novos}" -ge 2 ]]; then
+        contrato_novo=1
+    fi
+    if [[ "${contrato_novo}" -eq 1 ]] && grep -q '⚙️' <<<"${linha_baton}"; then
+        if grep -qE '^\+\*\*Aceite:\*\* .+, [0-9]{4}-[0-9]{2}-[0-9]{2}' <<<"${diff_do_plan}"; then
+            verde "⑥ contrato novo com aceite registrado NESTA sessão"
+        else
+            vermelho "⑥ SEM ACEITE: esta sessão escreveu contrato de bloco e passou o baton para ⚙️,"
+            printf '   mas o PLAN não ganhou a linha "**Aceite:** <quem>, <AAAA-MM-DD>" nesta sessão.\n'
+            printf '   Mostre o plano ao usuário e só commite depois do aceite explícito dele.\n'
+            printf '   Responder às perguntas do agente NÃO é aceitar o plano.\n'
+        fi
+    fi
 fi
 
 echo "----------------------------------------------------------------------"
@@ -165,5 +226,5 @@ if [[ "${MODO}" == "inicio" ]]; then
     echo "✅ Baton coerente com o Board. Siga o papel que a linha 🎬 manda."
     exit 0
 fi
-echo "✅ Conferência mecânica aprovada. Os itens ①-⑧ que ela NÃO cobre (critérios de aceite medidos,"
+echo "✅ Conferência mecânica aprovada. Os itens que ela NÃO cobre (critérios de aceite medidos,"
 echo "   Board × checkboxes, in-place, git status, documento de interface) seguem na mão."

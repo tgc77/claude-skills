@@ -3,14 +3,52 @@
 Instruções do agente para este repositório — **como trabalhar**. Este arquivo é **permanente e
 agnóstico de escopo**: vale para qualquer feature, correção ou investigação conduzida pelo sistema de
 controle de sessões. O **quê** (slug, descrição, board, branch, ambiente, guardrails específicos)
-vive no `PLAN.md` de cada escopo, em `docs/sessoes/<escopo>/PLAN.md`. Escopos ativos e arquivados estão
-listados em [`CLAUDE.md`](CLAUDE.md).
+vive no `PLAN.md` de cada escopo, em `docs/sessoes/<escopo>/PLAN.md`. Escopos ativos e arquivados
+estão na tabela **🎯 Escopos de trabalho**, logo abaixo.
+
+> 🤝 **Este arquivo é a fonte única para qualquer agente.** O Codex o lê nativamente; o Claude Code o
+> lê através de um `CLAUDE.md` de uma linha (`@AGENTS.md`), porque ele lê `CLAUDE.md` e não
+> `AGENTS.md`. Por isso **o índice de escopos mora aqui**, e não no `CLAUDE.md` — senão só uma das
+> ferramentas o enxergaria. ⛔ **Nunca crie `AGENTS.override.md`:** no Codex ele *substitui* este
+> arquivo em vez de somar, apagando o protocolo inteiro do contexto.
 
 <1-2 linhas sobre o que é o projeto + link para o README/documentação técnica.>
 
 > **Um escopo = uma pasta.** `docs/sessoes/<escopo>/` contém o `PLAN.md` daquele escopo e seus
 > relatórios. Escopos não se misturam: fechar um não mexe no outro, e um escopo novo não herda o
 > estado do anterior — só este protocolo.
+
+---
+
+## 🎯 Escopos de trabalho (um escopo = uma pasta)
+
+Cada frente de trabalho tem seu próprio `PLAN.md` (fonte única de verdade daquele escopo) e seus
+relatórios, em `docs/sessoes/<escopo>/`. **Leia o PLAN do escopo da sessão — só dele.** Se mais de um
+estiver ativo e a intenção não estiver clara, pergunte a <SEU_NOME> qual é.
+
+| Slug        | Escopo (o que é)                | Estado   | PLAN                                                    |
+|-------------|---------------------------------|----------|---------------------------------------------------------|
+| `<slug>`    | <descrição curta da frente>     | 🟡 Ativo | [`docs/sessoes/<slug>/PLAN.md`](docs/sessoes/<slug>/PLAN.md) |
+
+**Legenda:** 🟡 Ativo · 🟢 Concluído · 🔴 Bloqueado/pausado.
+
+> **Slug é o identificador; escopo é a descrição.** Um escopo tem **um** nome — sem apelidos. O slug é
+> o nome da pasta, o argumento do comando e o label do apontamento (`<work-log>/<slug>.md`), então
+> precisa ser único **entre projetos**, não só aqui.
+
+**Trocar de escopo:** o escopo é **argumento**, não estado — `start <slug> [nota]`, `end <slug>`
+(invoque a skill: `/sessao` no Claude Code, `$sessao` ou `@sessao` no Codex). Omitindo o slug, vale:
+único 🟡 ativo → branch atual casando com a "Branch de trabalho" do PLAN → pergunta. O subcomando
+`escopos` lista todos com estado, branch e baton, sem alterar nada. **Um escopo por vez em cada
+working tree** — paralelo de verdade só com `git worktree`, e isso vale **entre ferramentas também**:
+Claude Code e Codex na mesma árvore ao mesmo tempo colidem em arquivos e commits.
+
+**Escopo novo:** o subcomando `init` cria só `docs/sessoes/<novo-slug>/PLAN.md` e acrescenta uma linha
+nesta tabela. Este `AGENTS.md` e [`docs/sessoes/template-relatorio.md`](docs/sessoes/template-relatorio.md)
+são reusados, nunca copiados. Escopo terminado vira 🟢 Concluído aqui — a pasta permanece como histórico.
+
+> ⚠️ `docs/sessoes/**` e este índice são **documentação, não código da feature**: mantenha-os na branch
+> base e mergeie cedo. O PLAN é versionado — em branch errada, a sessão lê estado errado.
 
 ---
 
@@ -94,7 +132,8 @@ entre as sessões. Saiba qual papel você exerce.
   meu é vetorizado, então vale") — julgar se um critério errado ainda serve é do 🧠. **Registrar o
   achado com transparência não substitui a parada.**
 - **Fecha o próprio bloco:** ao satisfazer toda a DoD, dispara o ritual de fim de turno por si
-  (relatório + PLAN + commit) — sem esperar pedido — e só então passa o baton.
+  (relatório + PLAN) — sem esperar pedido — e só então passa o baton. ⚠️ **O commit NÃO é
+  auto-disparado:** ele, o `push` e o apontamento esperam a validação do usuário (passo 6).
 - **O baton é a linha `🎬 Próximo:` do cabeçalho 🔎 Agora — não é a prosa em volta dela.** Escrever
   "baton → 🧠 Planejador" no resumo da sessão, no relatório ou na mensagem de commit e **deixar a linha
   `🎬` com o papel e o ponto de entrada antigos** entrega à sessão seguinte um bloco já fechado como se
@@ -136,8 +175,11 @@ meio de um bloco não gera relatório.
    resto; **Executor** só marca 🟢, grava o baton `🧠 Planejador` com o motivo e para.
 3. Se o **escopo inteiro** fechou, marque-o 🟢 na tabela de escopos do [`CLAUDE.md`](CLAUDE.md) — a pasta
    fica como histórico. Atualize ponteiros de memória só se algo de alto nível mudou.
-4. **Registre o apontamento no `resumo-trabalho`** — o label **é o slug** do escopo, e o log é
-   `~/.claude/work-log/<slug>.md` (global, append-only — **não** entra no commit).
+4. **Registre o apontamento no `resumo-trabalho` — SÓ DEPOIS de o usuário validar o commit (passo 6).**
+   O label **é o slug** do escopo, e o log é `~/.claude/work-log/<slug>.md` (global, append-only —
+   **não** entra no commit). ⛔ **Validou ⇒ escreve automaticamente; não validou ⇒ não escreve nada.**
+   O log é append-only e mora fora do repo: apontamento gravado sobre trabalho que o usuário rejeitou
+   vira histórico falso que nenhum `git reset` desfaz.
    **🔑 INVARIANTE: uma sessão que termina = UMA entrada. O índice é a SESSÃO, não o relatório.** Toda
    sessão que chega a `end` **ou** a `handoff` grava a sua: fechou bloco, parou no meio, fez handoff ou
    só validou. **Relatório é matéria-prima quando existe, não é a condição para registrar** — quando não
@@ -157,8 +199,11 @@ meio de um bloco não gera relatório.
    `scripts/conferencia_saida.sh <slug> <commit em que esta sessão começou>` (o commit sai de
    `git rev-parse HEAD` no início; se esqueceu, é o último commit da sessão anterior). Ele reprova com
    **exit 1** se a linha `🎬` continua **intacta** desde o início da sessão, se o ponto de entrada
-   citado já está `[x]`, se o registro de sessões não ganhou linha nova, ou se falta o apontamento da
-   sessão no log. **Declarar que conferiu não substitui rodar:** os itens ② e ⑤ abaixo já estavam
+   citado já está `[x]`, se o registro de sessões não ganhou linha nova, se falta o apontamento da
+   sessão no log, ou se **esta sessão escreveu contrato de bloco e passou o baton para ⚙️ sem a linha
+   `**Aceite:** <quem>, <AAAA-MM-DD>`** (item ⑥).
+   ⏱️ **Rode-o no passo 6, depois da validação e do apontamento** — antes disso o item ⑤ reprova por
+   um motivo falso, já que o log ainda não foi (nem deve ter sido) escrito. **Declarar que conferiu não substitui rodar:** os itens ② e ⑤ abaixo já estavam
    escritos quando o defeito passou — duas vezes, em sessões que relataram tudo com honestidade.
    Os itens ①-⑧ seguem **na mão**; o portão cobre só os quatro decidíveis por comando.
    ① todo critério de aceite **medido** (comando + saída) e batendo — um só que não bata impede o 🟢;
@@ -174,8 +219,11 @@ meio de um bloco não gera relatório.
    voltado a terceiro descreve (chefe/negócio, DBA, README do escopo), ele foi **atualizado nesta
    sessão** ou a pendência está escrita com dono. É o único item desta lista cuja falha **ninguém
    descobre lendo código nem rodando teste**.
-6. **Commit** do relatório + PLAN + demais mudanças, em **cada** repo tocado, na branch de trabalho
-   declarada no PLAN do escopo.
+6. **Commit — SOMENTE com validação explícita do usuário.** Apresente o que foi feito e **pergunte se
+   pode commitar**; sem o "ok", tudo fica no working tree. Com o "ok": escreva o apontamento (passo 4),
+   rode o portão (passo 5) e então commite o relatório + PLAN + demais mudanças, em **cada** repo
+   tocado, na branch de trabalho declarada no PLAN do escopo.
+   **`push` é pedido à parte, também com validação** — inclusive quando o commit se destina a deploy.
 
 ---
 
@@ -188,8 +236,7 @@ meio de um bloco não gera relatório.
   `PLAN.md` na pasta nova e soma uma linha no índice; este protocolo e o template de relatório são
   **reusados, nunca copiados**. Escopo concluído vira 🟢 em [`CLAUDE.md`](CLAUDE.md) — a pasta fica.
 - **Política de commit:** <ex.: Conventional Commits; nunca na main, sempre na branch de trabalho do
-  escopo; sem push sem pedir — exceto commit destinado a deploy, que leva push + bump de versão no
-  mesmo turno>.
+  escopo>. **Commit e push exigem validação explícita do usuário — sem exceção, nem para deploy.**
 - **Repos irmãos** (uma sessão pode tocar mais de um; commite em cada, e diga em qual está mexendo):
   - <`../repo-irmao` — para que serve>.
 
@@ -205,7 +252,16 @@ meio de um bloco não gera relatório.
   **No lugar:** apresentar a **evidência crua** (diff, saída de comando, trecho de arquivo) + a
   conclusão + as opções, e **perguntar**. Mudanças ficam no working tree, sem commit.
   **Não vale como desculpa:** "era só documentar", "é reversível", "o ritual de `end` manda commitar" —
-  o ritual não sobrepõe esta regra. **Se já registrou antes do aval:** dizer na primeira frase, oferecer
+  o ritual não sobrepõe esta regra.
+  **PLANO TAMBÉM É REGISTRO.** Selar um bloco — escrever o contrato no `PLAN.md`, gravar o baton e
+  commitar — exige as duas coisas: (a) **todas as decisões pendentes resolvidas**, nenhuma empurrada
+  como "recomendação" no fim da mensagem nem deixada para o Executor decidir; e (b) o **plano mostrado
+  ao usuário e ACEITO por ele**, com a linha `**Aceite:** <quem>, <AAAA-MM-DD>` no bloco.
+  ⚠️ **Responder às perguntas do agente NÃO é aceitar o plano.** Perguntei 3 coisas e recebi 3
+  respostas? Isso fecha as 3 perguntas — não abre o commit. Conferido **mecanicamente** pelo item ⑥
+  do [`scripts/conferencia_saida.sh`](scripts/conferencia_saida.sh), porque a regra já falhou estando
+  escrita aqui, na memória e na skill: prosa auto-atestada não segura.
+  **Se já registrou antes do aval:** dizer na primeira frase, oferecer
   o `git reset --soft` e esperar.
   **Exceção única:** trabalho mecânico já contratado num bloco executor-ready (marcar checkbox, gerar
   relatório de bloco fechado). Conclusão nova, reenquadramento de causa raiz, mudança de contrato,

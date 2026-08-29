@@ -1,0 +1,168 @@
+#!/usr/bin/env bash
+#
+# Autoteste do portão `conferencia_saida.sh` — o controle do controle.
+#
+# POR QUE ESTE ARQUIVO EXISTE
+# ---------------------------
+# Em 2026-08-24 uma auditoria descobriu que o portão fazia valer apenas 2 dos seus 6 itens em
+# qualquer projeto novo. A causa não era um erro de lógica: era que o portão foi escrito contra o
+# DIALETO de um repositório específico (`### 📋 Tarefas`, critérios em tabela, registro de sessões
+# com coluna de número) enquanto o `PLAN.template.md` desta mesma skill gera OUTRO dialeto
+# (`### Tarefas`, critérios em lista, registro sem número). Nada validava que os dois concordassem.
+# O resultado é a pior forma de falha: os itens ③④⑤ imprimiam ⚠️ ("não aplicável"), o ⑥ não
+# imprimia nada, e o portão saía com exit 0 — dizendo "aprovado" sem ter conferido quase nada.
+#
+# Este script fecha esse buraco: monta um repositório descartável A PARTIR DOS TEMPLATES e afirma
+# que cada item dispara quando deve. Se alguém mudar o template ou o portão e os dois deixarem de
+# se entender, este teste reprova — que é exatamente o sinal que faltou em 2026-08-24.
+#
+# USO
+#   scripts/autoteste_portao.sh            # exit 0 = portão íntegro; exit 1 = regressão
+#
+set -o pipefail
+
+falhas=0
+titulo() { printf '\n\033[1m%s\033[0m\n' "$1"; }
+ok()     { printf '  ✅ %s\n' "$1"; }
+nok()    { printf '  🔴 %s\n' "$1"; falhas=$((falhas + 1)); }
+
+SKILL_SCRIPTS="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly SKILL_SCRIPTS
+SKILL_TEMPLATES="$(cd "${SKILL_SCRIPTS}/../templates" && pwd)"
+readonly SKILL_TEMPLATES
+TMP="$(mktemp -d)"
+readonly TMP
+trap 'rm -rf "${TMP}"' EXIT
+HOJE="$(date +%F)"
+readonly HOJE
+
+# Monta um repo limpo a partir dos templates e seta BASE (global).
+# ⚠️ NÃO chamar com $(montar): em subshell o `cd` não persiste no processo de teste.
+montar() {
+    rm -rf "${TMP}/repo" "${TMP}/lar"
+    mkdir -p "${TMP}/repo/docs/sessoes/teste" "${TMP}/repo/scripts" "${TMP}/lar/.claude/work-log"
+    cd "${TMP}/repo" || exit 2
+    git init -q
+    git config user.email autoteste@local
+    git config user.name autoteste
+    cp "${SKILL_SCRIPTS}/conferencia_saida.sh" scripts/
+    chmod +x scripts/conferencia_saida.sh
+    cp "${SKILL_TEMPLATES}/PLAN.template.md" docs/sessoes/teste/PLAN.md
+    {
+        printf '| Slug | Escopo | Estado | PLAN |\n|---|---|---|---|\n'
+        printf '| `teste` | escopo de teste | 🟡 Ativo | [PLAN](docs/sessoes/teste/PLAN.md) |\n'
+    } > "${INDICE:-AGENTS.md}"
+    garantir_sandbox
+    git add -A
+    git commit -qm base
+    BASE="$(git rev-parse HEAD)"
+}
+
+# ⛔ TRAVA DE SANDBOX — nasceu de um acidente real (2026-08-28): na 1ª versão deste script `montar`
+# era chamado com $(montar), o `cd` ficava preso no subshell, e o cenário 3 rodou `git add -A` +
+# `git commit` NO REPO DA SKILL, criando um commit com a mensagem de teste. Toda operação de git de
+# escrita passa a exigir que o diretório corrente seja o repo descartável.
+garantir_sandbox() {
+    if [[ "${PWD}" != "${TMP}/repo" ]]; then
+        echo "🔴 ABORTADO: o autoteste tentou operar git fora do sandbox (${PWD})." >&2
+        echo "   Isso commitaria no repositório real. Verifique se montar() foi chamada em subshell." >&2
+        exit 2
+    fi
+}
+
+# Rodar o portão com um HOME falso, para não encostar no work-log real do usuário.
+rodar() { HOME="${TMP}/lar" ./scripts/conferencia_saida.sh teste "$1" 2>&1; }
+
+P=docs/sessoes/teste/PLAN.md
+
+baton_para()   { python3 - "$1" <<'PY'
+import io,re,sys
+f='docs/sessoes/teste/PLAN.md'; s=io.open(f,encoding='utf-8').read()
+s=re.sub(r'^- \*\*🎬 Próximo:\*\*.*$', '- **🎬 Próximo:** '+sys.argv[1], s, count=1, flags=re.M)
+io.open(f,'w',encoding='utf-8').write(s)
+PY
+}
+escrever_contrato() { python3 - <<'PY'
+import io
+f='docs/sessoes/teste/PLAN.md'; s=io.open(f,encoding='utf-8').read()
+s=s.replace('- [ ] <tarefa-marco atômica com uma checagem de pronto>',
+            '- [ ] **T1 — primeira tarefa** com checagem\n- [ ] **T2 — segunda tarefa** com checagem')
+io.open(f,'w',encoding='utf-8').write(s)
+PY
+}
+concluir_t1() { sed -i 's/^- \[ \] \*\*T1 —/- [x] **T1 —/' "${P}"; }
+linha_de_sessao() { printf '| %s | B1 | sessão de teste | — |\n' "${HOJE}" >> "${P}"; }
+aceite()          { printf '\n**Aceite:** Fulano, %s\n' "${HOJE}" >> "${P}"; }
+apontamento()     { printf '## [%s 10:00] teste\n\n**Sessão:** 1\n' "${HOJE}" > "${TMP}/lar/.claude/work-log/teste.md"; }
+
+# ------------------------------------------------------------------------------------------------
+titulo "1. Baton INTACTO desde o início da sessão ⇒ ② vermelho, exit 1"
+montar
+escrever_contrato; linha_de_sessao; apontamento
+saida="$(rodar "${BASE}")"; codigo=$?
+grep -q '🔴 ② linha 🎬 INTACTA' <<<"${saida}" && ok "② acusou baton intacto" || nok "② NÃO acusou baton intacto"
+[[ "${codigo}" -ne 0 ]] && ok "exit != 0" || nok "exit 0 — deveria reprovar"
+
+titulo "2. Contrato novo + baton ⚙️ SEM aceite ⇒ ⑥ vermelho (o defeito de 2026-08-24)"
+montar
+escrever_contrato; baton_para '⚙️ Executor · **Ponto de entrada:** T1 — primeira tarefa'
+linha_de_sessao; apontamento
+saida="$(rodar "${BASE}")"; codigo=$?
+grep -q '🔴 ⑥ SEM ACEITE' <<<"${saida}" && ok "⑥ exigiu o aceite" || nok "⑥ NÃO disparou — portão aprovaria plano não validado"
+[[ "${codigo}" -ne 0 ]] && ok "exit != 0" || nok "exit 0 — deveria reprovar"
+
+titulo "3. Aceite ANTIGO, já commitado (fora do diff) ⇒ ⑥ continua vermelho (regressão F8)"
+montar
+aceite; garantir_sandbox; git add -A; git commit -qm "commit-base do cenario 3"; BASE_ANTIGO="$(git rev-parse HEAD)"
+escrever_contrato; baton_para '⚙️ Executor · **Ponto de entrada:** T1 — primeira tarefa'
+linha_de_sessao; apontamento
+saida="$(rodar "${BASE_ANTIGO}")"
+grep -q '🔴 ⑥ SEM ACEITE' <<<"${saida}" && ok "aceite velho não vale para contrato novo" || nok "aceite velho aprovou contrato novo — F8 voltou"
+
+titulo "4. Sessão correta e completa ⇒ tudo verde, exit 0"
+montar
+escrever_contrato; baton_para '⚙️ Executor · **Ponto de entrada:** T1 — primeira tarefa'
+linha_de_sessao; aceite; apontamento
+saida="$(rodar "${BASE}")"; codigo=$?
+for item in '✅ ①' '✅ ②' '✅ ③' '✅ ④' '✅ ⑤' '✅ ⑥'; do
+    grep -q "${item}" <<<"${saida}" && ok "${item} verde" || { nok "${item} NÃO ficou verde"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
+done
+[[ "${codigo}" -eq 0 ]] && ok "exit 0" || nok "exit != 0 — sessão correta foi reprovada"
+
+titulo "5. Baton apontando tarefa já [x] ⇒ ③ vermelho (baton podre)"
+montar
+escrever_contrato; baton_para '⚙️ Executor · **Ponto de entrada:** T1 — primeira tarefa'
+concluir_t1; linha_de_sessao; aceite; apontamento
+saida="$(rodar "${BASE}")"
+grep -q '🔴 ③ BATON PODRE' <<<"${saida}" && ok "③ acusou ponto de entrada já concluído" || nok "③ NÃO acusou baton podre"
+
+titulo "6. Sem apontamento no log ⇒ ⑤ vermelho"
+montar
+escrever_contrato; baton_para '⚙️ Executor · **Ponto de entrada:** T1 — primeira tarefa'
+linha_de_sessao; aceite
+saida="$(rodar "${BASE}")"
+grep -q '🔴 ⑤' <<<"${saida}" && ok "⑤ acusou falta de apontamento" || nok "⑤ NÃO acusou falta de apontamento"
+
+titulo "7. Sem linha nova no registro de sessões ⇒ ④ vermelho"
+montar
+escrever_contrato; baton_para '⚙️ Executor · **Ponto de entrada:** T1 — primeira tarefa'
+aceite; apontamento
+saida="$(rodar "${BASE}")"
+grep -q '🔴 ④' <<<"${saida}" && ok "④ acusou registro de sessões parado" || nok "④ NÃO acusou registro parado"
+
+titulo "8. Índice em AGENTS.md (novo) e em CLAUDE.md (legado) ⇒ os dois resolvem o PLAN"
+montar   # monta com AGENTS.md
+saida="$(rodar "${BASE}")"
+grep -q 'PLAN: docs/sessoes/teste/PLAN.md' <<<"${saida}" && ok "índice em AGENTS.md resolve" || nok "índice em AGENTS.md NÃO resolve"
+INDICE=CLAUDE.md montar
+saida="$(rodar "${BASE}")"
+grep -q 'PLAN: docs/sessoes/teste/PLAN.md' <<<"${saida}" && ok "índice em CLAUDE.md (legado) resolve" || nok "fallback CLAUDE.md quebrou — projetos antigos param de funcionar"
+
+echo "------------------------------------------------------------------------"
+if [[ "${falhas}" -ne 0 ]]; then
+    echo "🔴 AUTOTESTE REPROVADO — ${falhas} verificação(ões) falharam."
+    echo "   O portão e os templates deixaram de se entender. Corrija antes de instalar em"
+    echo "   qualquer projeto: um portão que não dispara é pior que nenhum, porque dá verde."
+    exit 1
+fi
+echo "✅ AUTOTESTE APROVADO — os 6 itens do portão disparam nos dialetos que os templates geram."

@@ -1,38 +1,18 @@
-# CLAUDE.md — <NOME_DO_PROJETO>
+@AGENTS.md
 
-> **Leia [`AGENTS.md`](AGENTS.md) antes de agir.** É o protocolo permanente do repositório: papéis
-> 🧠 Planejador / ⚙️ Executor, ritual de fim de turno, convenções de commit e guardrails permanentes.
-> Este `CLAUDE.md` é o índice — não duplique conteúdo aqui.
+## Claude Code
 
-## 🎯 Escopos de trabalho (um escopo = uma pasta)
+> Todo o conteúdo — protocolo permanente **e** índice de escopos — mora no
+> [`AGENTS.md`](AGENTS.md), importado pela linha acima. **Não duplique nada aqui.**
+>
+> **Por que assim:** o Claude Code lê `CLAUDE.md` e **não** lê `AGENTS.md`; o Codex (e demais agentes
+> que seguem a convenção `AGENTS.md`) lê `AGENTS.md` e **não** lê `CLAUDE.md`. Com o import, os dois
+> leem exatamente a mesma fonte, sem cópia e sem risco de divergirem. Se o índice de escopos ficasse
+> só aqui, o Codex não o enxergaria por conta própria.
+>
+> ⛔ **Não crie `AGENTS.override.md`.** No Codex ele **substitui** o `AGENTS.md` do mesmo nível em vez
+> de somar ("uses only the first non-empty file"), o que faria sombra no protocolo inteiro — e, se
+> cada ferramenta lesse um arquivo diferente, dois agentes rodariam protocolos divergentes sobre o
+> mesmo PLAN. O override é recurso temporário, não endereço permanente.
 
-Cada frente de trabalho tem seu próprio `PLAN.md` (fonte única de verdade daquele escopo) e seus
-relatórios, em `docs/sessoes/<escopo>/`. **Leia o PLAN do escopo da sessão — só dele.** Se mais de um
-estiver ativo e a intenção não estiver clara, pergunte a <SEU_NOME> qual é.
-
-| Slug        | Escopo (o que é)                | Estado   | PLAN                                                    |
-|-------------|---------------------------------|----------|---------------------------------------------------------|
-| `<slug>`    | <descrição curta da frente>     | 🟡 Ativo | [`docs/sessoes/<slug>/PLAN.md`](docs/sessoes/<slug>/PLAN.md) |
-
-> **Slug é o identificador; escopo é a descrição.** Um escopo tem **um** nome — sem apelidos. O slug é
-> o nome da pasta, o argumento do comando e o label do apontamento
-> (`~/.claude/work-log/<slug>.md`), então precisa ser único **entre projetos**, não só aqui.
-
-**Trocar de escopo:** o escopo é **argumento**, não estado — `/sessao start <slug> [nota]`,
-`/sessao end <slug>`. Omitindo o slug, vale: único 🟡 ativo → branch atual casando com a "Branch de
-trabalho" do PLAN → pergunta. `/sessao escopos` lista todos com estado, branch e baton, sem alterar
-nada. **Um escopo por vez em cada working tree** (paralelo de verdade só com `git worktree`).
-
-**Escopo novo:** `/sessao init` cria só `docs/sessoes/<novo-slug>/PLAN.md` e acrescenta uma linha nesta
-tabela. `AGENTS.md` e [`docs/sessoes/template-relatorio.md`](docs/sessoes/template-relatorio.md) são
-reusados, nunca copiados. Escopo terminado vira 🟢 Concluído aqui — a pasta permanece como histórico.
-
-**Legenda:** 🟡 Ativo · 🟢 Concluído · 🔴 Bloqueado/pausado.
-
-> ⚠️ `docs/sessoes/**` e este índice são **documentação, não código da feature**: mantenha-os na branch
-> base e mergeie cedo. O PLAN é versionado — em branch errada, a sessão lê estado errado.
-
-## 📚 Referência técnica
-
-- <[`README.md`](README.md) — o que o projeto faz>.
-- <outros documentos de arquitetura/deploy que o agente deve conhecer>.
+<Instruções específicas do Claude Code, se houver — ex.: usar plan mode em `src/x/`.>

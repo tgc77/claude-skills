@@ -117,5 +117,11 @@ descoberta: deixe um modelo só tocar — o overhead de handoff come o ganho.
 - `AGENTS.template.md` — protocolo permanente do repo (papéis, ritual, invariantes, guardrails gerais).
 - `CLAUDE.template.md` — índice auto-carregado: ponteiro do protocolo + tabela de escopos.
 - `PLAN.template.md` — a fonte única de verdade de **um** escopo.
+- ⬆️ **Os scripts saíram desta pasta** (2026-08-29) e moram em `../scripts/`, seguindo a convenção
+  `scripts/` que Claude Code e Codex documentam:
+  - `../scripts/conferencia_saida.sh` — o **portão** executável do fechamento (vai para `scripts/` do projeto).
+  - `../scripts/autoteste_portao.sh` — **testa o portão contra estes templates**; fica na skill, não vai para o
+  projeto. Rode-o sempre que mexer no portão ou no `PLAN.template.md`: em 24/08/2026 os dois estavam
+  em dialetos diferentes e o portão fazia valer só 2 dos 6 itens, saindo com exit 0.
 - `template-relatorio.md` — gabarito de relatório de sessão.
 - `BOOTSTRAP.md` — prompt de bootstrap + prompts curtos do dia a dia.
