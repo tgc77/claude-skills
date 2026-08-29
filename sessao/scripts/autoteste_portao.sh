@@ -158,6 +158,17 @@ INDICE=CLAUDE.md montar
 saida="$(rodar "${BASE}")"
 grep -q 'PLAN: docs/sessoes/teste/PLAN.md' <<<"${saida}" && ok "índice em CLAUDE.md (legado) resolve" || nok "fallback CLAUDE.md quebrou — projetos antigos param de funcionar"
 
+titulo "9. Id de tarefa REUSADO entre blocos ⇒ ③ amarelo, NUNCA vermelho (regressão 2026-08-29)"
+montar
+escrever_contrato; baton_para '⚙️ Executor · **Ponto de entrada:** T1 — primeira tarefa'
+# simula um PLAN com vários blocos: o mesmo id T1 existe concluído em outro bloco
+printf '\n## Bloco anterior\n\n- [x] **T1 — mesma numeração, outro bloco**\n' >> "${P}"
+linha_de_sessao; aceite; apontamento
+saida="$(rodar "${BASE}")"; codigo=$?
+grep -q '🔴 ③ BATON PODRE' <<<"${saida}" && nok "③ acusou baton podre com id ambíguo — FALSO POSITIVO trava a sessão" || ok "③ não acusou baton podre com id ambíguo"
+grep -q '⚠️  ③ id' <<<"${saida}" && ok "③ avisou da ambiguidade" || nok "③ não avisou da ambiguidade"
+[[ "${codigo}" -eq 0 ]] && ok "exit 0 — sessão legítima não foi travada" || nok "exit != 0 — falso positivo bloqueou o commit"
+
 echo "------------------------------------------------------------------------"
 if [[ "${falhas}" -ne 0 ]]; then
     echo "🔴 AUTOTESTE REPROVADO — ${falhas} verificação(ões) falharam."

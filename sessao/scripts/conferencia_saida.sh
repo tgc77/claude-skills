@@ -115,18 +115,31 @@ else
 fi
 
 # --- ③ O ponto de entrada citado não é tarefa já concluída -------------------------------------
-# TOLERANTE A DIALETO (corrigido 2026-08-24): antes só reconhecia `N.N`, formato que NENHUM template
-# desta skill produz — o item vivia em ⚠️, isto é, auto-atestado. Aceita agora `T1`, `B11 / T1` e
-# `11.1`, e casa o checkbox mesmo com markdown em volta (`- [ ] **T1 — ...**`).
-tarefa_citada=$(grep -oE '\bT[0-9]+\b|[0-9]+\.[0-9]+[a-z]?' <<<"${linha_baton}" | head -1)
+# TOLERANTE A DIALETO + À PROVA DE FALSO POSITIVO (2026-08-29). Duas correções, ambas achadas com
+# repro num PLAN real:
+#   (a) antes só reconhecia `N.N`, formato que NENHUM template desta skill produz — o item vivia em
+#       ⚠️, ou seja, auto-atestado. Passa a aceitar `T1`, `T4.1b`, `B11 / T1` e `11.1`, e casa o
+#       checkbox mesmo com markdown em volta (`- [ ] **T1 — ...**`).
+#   (b) ids de tarefa SE REPETEM entre blocos (num PLAN real, `T2` aparecia 24× como [x] e 5× como
+#       [ ]). Um grep global, nesse caso, acusa "baton podre" sem fundamento — e vermelho é PARADA,
+#       então o falso positivo trava toda sessão do repo. Regra: só acusa quando o id é
+#       INEQUÍVOCO (aparece como [x] e em nenhum [ ]). Ambíguo ⇒ ⚠️, nunca 🔴. Falha para o lado
+#       seguro: deixar passar um baton podre custa uma conferência manual; travar sessão boa custa
+#       a sessão inteira.
+tarefa_citada=$(grep -oE '\bT[0-9]+(\.[0-9]+)*[a-z]?\b|\b[0-9]+\.[0-9]+[a-z]?\b' <<<"${linha_baton}" | head -1)
 if [[ -z "${tarefa_citada}" ]]; then
     amarelo "③ a linha 🎬 não cita tarefa reconhecível (T<N> ou N.N) — confira o ponto de entrada na mão"
 else
     tarefa_esc=${tarefa_citada//./\\.}
-    if grep -qE "^ *- \[x\] +\**${tarefa_esc}\b" "${PLAN}"; then
+    n_feitas=$(grep -cE "^ *- \[x\] +\**${tarefa_esc}\b" "${PLAN}" || true)
+    n_abertas=$(grep -cE "^ *- \[ \] +\**${tarefa_esc}\b" "${PLAN}" || true)
+    if [[ "${n_feitas}" -gt 0 && "${n_abertas}" -eq 0 ]]; then
         vermelho "③ BATON PODRE: a linha 🎬 manda executar a tarefa ${tarefa_citada}, que está [x]"
-    elif grep -qE "^ *- \[ \] +\**${tarefa_esc}\b" "${PLAN}"; then
+    elif [[ "${n_abertas}" -gt 0 && "${n_feitas}" -eq 0 ]]; then
         verde "③ ponto de entrada ${tarefa_citada} está em aberto ([ ])"
+    elif [[ "${n_feitas}" -gt 0 && "${n_abertas}" -gt 0 ]]; then
+        amarelo "③ id '${tarefa_citada}' aparece ${n_feitas}× como [x] e ${n_abertas}× como [ ] — reusado"
+        printf '   entre blocos, então o portão não decide. Confira na mão QUAL bloco a linha 🎬 cita.\n'
     else
         amarelo "③ tarefa ${tarefa_citada} citada na linha 🎬 não achada como checkbox — confira na mão"
     fi
