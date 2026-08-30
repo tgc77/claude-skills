@@ -19,7 +19,7 @@
 # USO
 #   scripts/conferencia_saida.sh <slug> <ref-base>   # FECHAMENTO: todos os itens (end/handoff)
 #   scripts/conferencia_saida.sh <slug> --inicio     # INÍCIO: só a coerência do baton que se vai ler
-#     <slug>      escopo da sessão (coluna `Slug` do CLAUDE.md) — ele resolve o caminho do PLAN
+#     <slug>      escopo da sessão (coluna `Slug` do AGENTS.md) — ele resolve o caminho do PLAN
 #     <ref-base>  commit em que ESTA sessão começou (`git rev-parse HEAD` no início)
 #
 # O modo --inicio é a defesa do lado do LEITOR: antes de executar à risca o que o baton manda,

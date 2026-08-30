@@ -57,7 +57,7 @@ são reusados, nunca copiados. Escopo terminado vira 🟢 Concluído aqui — a 
 **Cada sessão começa com o contexto zerado** — a continuidade vive nos arquivos, não na conversa.
 
 1. **Identifique o escopo** da sessão e **diga qual assumiu**, nesta ordem: slug passado no comando →
-   único 🟡 ativo na lista de [`CLAUDE.md`](CLAUDE.md) → escopo cuja "Branch de trabalho" é a branch
+   único 🟡 ativo na tabela **🎯 Escopos de trabalho** acima → escopo cuja "Branch de trabalho" é a branch
    atual → **pergunte** a <SEU_NOME>. Nunca chute, e **nunca opere dois escopos na mesma sessão**.
 2. **LEIA o cabeçalho ("🔎 Agora") + o bloco ativo** do `PLAN.md` **daquele escopo** — a **fonte única
    de verdade** dele. Não precisa ler o PLAN inteiro, e não leia o PLAN de outro escopo.
@@ -173,7 +173,7 @@ meio de um bloco não gera relatório.
    ponto de entrada da próxima sessão); Board; checkboxes do bloco ativo; Registro de sessões (1 linha
    + link). Se o bloco fechou: **Planejador** promove o próximo de rascunho a detalhado e replaneja o
    resto; **Executor** só marca 🟢, grava o baton `🧠 Planejador` com o motivo e para.
-3. Se o **escopo inteiro** fechou, marque-o 🟢 na tabela de escopos do [`CLAUDE.md`](CLAUDE.md) — a pasta
+3. Se o **escopo inteiro** fechou, marque-o 🟢 na tabela de escopos **deste arquivo** — a pasta
    fica como histórico. Atualize ponteiros de memória só se algo de alto nível mudou.
 4. **Registre o apontamento no `resumo-trabalho` — SÓ DEPOIS de o usuário validar o commit (passo 6).**
    O label **é o slug** do escopo, e o log é `~/.claude/work-log/<slug>.md` (global, append-only —
@@ -234,7 +234,7 @@ meio de um bloco não gera relatório.
 - **Estimativas são guia, não SLA.** **Idioma:** <idioma>.
 - **Escopos:** um escopo = uma pasta `docs/sessoes/<slug>/`. Escopo novo = `/sessao init` cria só o
   `PLAN.md` na pasta nova e soma uma linha no índice; este protocolo e o template de relatório são
-  **reusados, nunca copiados**. Escopo concluído vira 🟢 em [`CLAUDE.md`](CLAUDE.md) — a pasta fica.
+  **reusados, nunca copiados**. Escopo concluído vira 🟢 na tabela de escopos acima — a pasta fica.
 - **Política de commit:** <ex.: Conventional Commits; nunca na main, sempre na branch de trabalho do
   escopo>. **Commit e push exigem validação explícita do usuário — sem exceção, nem para deploy.**
 - **Repos irmãos** (uma sessão pode tocar mais de um; commite em cada, e diga em qual está mexendo):

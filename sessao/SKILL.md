@@ -196,7 +196,8 @@ existente:
   completa (passos 1–5).
 - **Repo já instalado** (existe o protocolo + índice com escopos — mesmo que nenhum deles esteja em
   `docs/sessoes/`) → é **escopo novo**: crie **apenas**
-  `docs/sessoes/<novo-slug>/PLAN.md` e acrescente a linha do escopo na tabela do `CLAUDE.md`.
+  `docs/sessoes/<novo-slug>/PLAN.md` e acrescente a linha do escopo na tabela do `AGENTS.md`
+  (ou do `CLAUDE.md`, em projeto legado que ainda não migrou o índice).
   **Não recrie nem reescreva** `AGENTS.md`, `CLAUDE.md` (fora a linha nova) ou o template de relatório.
 - **Layout legado** (PLAN na raiz) → diga isso ao usuário e ofereça migrar para o layout canônico antes
   de abrir o escopo novo; se ele recusar, **não** invente um segundo PLAN na raiz.
@@ -546,7 +547,7 @@ contra o dialeto de UM repo (`### 📋 Tarefas`, critérios em tabela, sessões 
   `AGENTS.md` na branch base** — o PLAN é versionado, então branch errada = estado errado.
 - **Um escopo = uma pasta; o protocolo é um só.** Frente de trabalho nova = `docs/sessoes/<slug>/PLAN.md`
   novo, **nunca** um segundo protocolo. `AGENTS.md` e `template-relatorio.md` são **reusados, jamais
-  copiados por escopo**; o `CLAUDE.md` é só índice. Nada específico de escopo (branch, ambiente,
+  copiados por escopo**; o `CLAUDE.md` é só o import `@AGENTS.md`. Nada específico de escopo (branch, ambiente,
   `KUBECONFIG`, guardrails da frente) entra no `AGENTS.md` — isso mora no PLAN do escopo,
   senão o próximo escopo herda restrição que não é dele. E `init` **nunca sobrescreve** instalação
   existente (ver passo 0 do `init`).

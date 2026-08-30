@@ -24,12 +24,12 @@ plano rígido que a realidade contradiz.
 
 | Artefato | Papel (o único) | Entra no contexto |
 |---|---|---|
-| **`AGENTS.md`** + **`CLAUDE.md`** (raiz) | **Como trabalhar** (protocolo permanente, agnóstico de escopo) + **índice de escopos**. | Sempre (automático). |
+| **`AGENTS.md`** (raiz) | **Como trabalhar** (protocolo permanente, agnóstico de escopo) + **índice de escopos**. O `CLAUDE.md` só o importa (`@AGENTS.md`). | Sempre (automático). |
 | **`docs/sessoes/<escopo>/PLAN.md`** | **Fonte única de verdade viva daquele escopo**: "Agora" + parâmetros + guardrails + Board + bloco ativo + blocos futuros (rascunho) + decisões + registro de sessões. | Sempre — só o cabeçalho + bloco ativo. |
 | **`docs/sessoes/<escopo>/RELATORIO_<bloco>_<data>.md`** | **Histórico denso** (problema→causa→solução→evidência), 1 por sessão. | Quase nunca — só para resgatar um detalhe. |
 | **Memória** | **Ponteiros** de alto nível entre sessões. | Índice sempre; detalhe sob demanda. |
 
-Mapa mental: **regras** (AGENTS) · **índice** (CLAUDE) · **estado+plano** (PLAN do escopo) ·
+Mapa mental: **regras + índice** (AGENTS) · **estado+plano** (PLAN do escopo) ·
 **detalhe** (relatórios) · **ganchos** (memória). Não existe arquivo de STATUS separado — ele é a
 primeira seção do `PLAN.md`.
 
@@ -49,8 +49,8 @@ Um repositório vive mais que uma frente de trabalho. **O protocolo é permanent
 
 ```
 <repo>/
-├── CLAUDE.md                      ← índice auto-carregado: aponta o AGENTS.md + lista os escopos
-├── AGENTS.md                      ← protocolo permanente (papéis, ritual, convenções, guardrails gerais)
+├── CLAUDE.md                      ← 1 linha: `@AGENTS.md` (o Claude Code não lê AGENTS.md)
+├── AGENTS.md                      ← fonte única: protocolo permanente + índice de escopos
 └── docs/sessoes/
     ├── template-relatorio.md      ← gabarito compartilhado
     └── <escopo-slug>/
@@ -107,7 +107,7 @@ descoberta: deixe um modelo só tocar — o overhead de handoff come o ganho.
    `<…>`. O `AGENTS.md` **não** leva nada específico de escopo.
 2. Copie `template-relatorio.md` → `docs/sessoes/template-relatorio.md` (um por repo).
 3. Copie `PLAN.template.md` → `docs/sessoes/<escopo-slug>/PLAN.md` e preencha os parâmetros do escopo,
-   os guardrails, o Board inicial e o **baton `🎬 Próximo`**. Registre o escopo na tabela do `CLAUDE.md`.
+   os guardrails, o Board inicial e o **baton `🎬 Próximo`**. Registre o escopo na tabela do `AGENTS.md`.
 4. **Escopo novo depois:** repita **só** o passo 3 — nada na raiz é recriado.
 5. (Opcional) Cole o **`BOOTSTRAP.md`** na 1ª sessão com um agente forte para ele montar/validar tudo.
 6. Sessões seguintes: o `CLAUDE.md`/`AGENTS.md` força o ritual; use os prompts curtos do BOOTSTRAP.
@@ -115,7 +115,7 @@ descoberta: deixe um modelo só tocar — o overhead de handoff come o ganho.
 ## Arquivos deste kit
 
 - `AGENTS.template.md` — protocolo permanente do repo (papéis, ritual, invariantes, guardrails gerais).
-- `CLAUDE.template.md` — índice auto-carregado: ponteiro do protocolo + tabela de escopos.
+- `CLAUDE.template.md` — arquivo de 1 linha (`@AGENTS.md`) que faz o Claude Code ler o protocolo.
 - `PLAN.template.md` — a fonte única de verdade de **um** escopo.
 - ⬆️ **Os scripts saíram desta pasta** (2026-08-29) e moram em `../scripts/`, seguindo a convenção
   `scripts/` que Claude Code e Codex documentam:

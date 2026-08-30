@@ -32,8 +32,8 @@ escopo** — por isso a raiz não cresce a cada feature nova:
 
 ```
 <repo>/
-├── CLAUDE.md                      ← índice auto-carregado: aponta o AGENTS.md + lista os escopos
-├── AGENTS.md                      ← protocolo permanente (papéis, ritual, convenções, guardrails gerais)
+├── CLAUDE.md                      ← 1 linha: `@AGENTS.md` (o Claude Code não lê AGENTS.md)
+├── AGENTS.md                      ← fonte única: protocolo permanente + índice de escopos
 └── docs/sessoes/
     ├── template-relatorio.md      ← gabarito compartilhado (um por repo)
     └── <escopo-slug>/             ← UM ESCOPO = UMA PASTA
@@ -53,7 +53,7 @@ for abrir o **segundo escopo** no mesmo repo.
 
 | Artefato | Papel único | Entra no contexto |
 |---|---|---|
-| **`AGENTS.md`** + **`CLAUDE.md`** (raiz) | **Como trabalhar** (protocolo permanente) + **índice de escopos** | Sempre (automático) |
+| **`AGENTS.md`** (raiz) | **Como trabalhar** (protocolo permanente) + **índice de escopos**. O `CLAUDE.md` só o importa (`@AGENTS.md`) | Sempre (automático) |
 | **`docs/sessoes/<escopo>/PLAN.md`** | **Fonte única de verdade viva daquele escopo**: Agora + parâmetros + guardrails + Board + bloco ativo + futuros (rascunho) + decisões + registro | Sempre — só o cabeçalho + bloco ativo |
 | **`docs/sessoes/<escopo>/RELATORIO_<bloco>_<data>.md`** | **Histórico denso** (problema→causa→solução→evidência), 1 por sessão | Quase nunca — só p/ resgatar detalhe |
 | **Memória** | **Ponteiros** de alto nível entre sessões | Índice sempre; detalhe sob demanda |
@@ -90,7 +90,7 @@ baton, board, checkboxes e relatórios próprios, então eles não se atropelam.
 
 > ⚠️ **O PLAN é um arquivo versionado.** Quem determina o estado que você enxerga é a **branch**, não o
 > índice. Se cada escopo vive na sua branch, ao entrar em um deles o PLAN do outro pode estar ausente
-> ou velho, e vai parecer que o trabalho sumiu. Mantenha `docs/sessoes/**` e o `CLAUDE.md` na **branch
+> ou velho, e vai parecer que o trabalho sumiu. Mantenha `docs/sessoes/**` e o `AGENTS.md` na **branch
 > base** — são documentação, não código da feature; mergeie cedo e com frequência.
 
 ## Os subcomandos
@@ -106,7 +106,7 @@ nome da pasta, log de apontamento faltando). Não altera nada. `/sessao escopos 
 ### `init` — abrir um escopo (instalando o sistema, se ainda não houver)
 0. **Detecta o estado do repo** e **nunca sobrescreve** o que já existe: repo virgem → instalação
    completa; repo já instalado → **só** a pasta do escopo novo (`docs/sessoes/<slug>/PLAN.md`) + uma
-   linha no índice do `CLAUDE.md`; layout legado (PLAN na raiz) → avisa e oferece migrar.
+   linha no índice do `AGENTS.md`; layout legado (PLAN na raiz) → avisa e oferece migrar.
 1. Lê os templates necessários (`AGENTS`, `CLAUDE`, `PLAN`).
 2. Levanta os `<PLACEHOLDERS>` **com o usuário** (não inventa). **Por escopo:** **slug** (validado:
    kebab-case, inédito no repo e sem colidir em `$SESSAO_WORKLOG_DIR (default ~/.claude/work-log/)`) + **descrição**, o que fica fora
@@ -134,7 +134,7 @@ nome da pasta, log de apontamento faltando). Não altera nada. `/sessao escopos 
      devolve a decisão pra você; não improvisa.
    - Diretivas são **efêmeras**: valem pra sessão, não entram no `PLAN.md` (salvo se você disser que é
      permanente).
-1. **Identifica o escopo** pela tabela de escopos do `CLAUDE.md` (se houver mais de um ativo e a
+1. **Identifica o escopo** pela tabela de escopos do `AGENTS.md` (se houver mais de um ativo e a
    intenção for ambígua, **pergunta qual**) e lê só o cabeçalho `🔎 Agora` + o bloco ativo do `PLAN.md`
    **daquele** escopo (não relê relatórios, não lê o PLAN de outro escopo).
 2. **Determina o papel pelo baton `🎬 Próximo`** — não pergunta se ele existe:
@@ -166,7 +166,7 @@ nome da pasta, log de apontamento faltando). Não altera nada. `/sessao escopos 
    ⚠️ **"Fechou" exige TODOS os critérios de aceite medidos e batendo** — um só que não bate mantém o
    bloco aberto e vira PARADA + escalonamento, nunca 🟢 "com ressalva".
 3. Grava/atualiza o baton `🎬 Próximo` com o papel da próxima sessão.
-4. Se o **escopo inteiro** fechou, marca 🟢 na tabela do `CLAUDE.md`. Atualiza ponteiros de memória só
+4. Se o **escopo inteiro** fechou, marca 🟢 na tabela do `AGENTS.md`. Atualiza ponteiros de memória só
    se algo de alto nível mudou.
 5. **Registra o apontamento desta sessão no `resumo-trabalho`** (**só depois de o usuário validar o
    commit** — o label é o slug, e **o
@@ -278,7 +278,7 @@ dois repos, e é bug quando são trabalhos diferentes com nome genérico. Daí a
 ## Ciclo de vida típico de uma POC
 
 ```
-/sessao init        → 1ª vez: AGENTS.md + CLAUDE.md + docs/sessoes/<escopo>/PLAN.md (B1 detalhado,
+/sessao init        → 1ª vez: AGENTS.md (+ CLAUDE.md de 1 linha) + docs/sessoes/<escopo>/PLAN.md (B1 detalhado,
                       resto rascunho), baton gravado e commit. Escopo novo depois: só a pasta nova.
    │
    ▼  (modelo forte planeja B1)

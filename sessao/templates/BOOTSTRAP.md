@@ -23,10 +23,12 @@ protocolo é permanente enquanto o plano é POR ESCOPO, porque este repo vai ter
 1. AGENTS.md na raiz — PROTOCOLO PERMANENTE, agnóstico de escopo: leitura obrigatória (identificar o
    escopo → cabeçalho + bloco ativo do PLAN dele); protocolo de dois papéis (🧠 Planejador modelo forte
    / ⚙️ Executor modelo barato) com a DoD "executor-ready", a regra de escalonamento e a Fronteira de
-   papel; ritual de fim de turno; convenções de commit; guardrails PERMANENTES. Nada específico de
+   papel; ritual de fim de turno; convenções de commit; guardrails PERMANENTES. Leva também o ÍNDICE
+   DE ESCOPOS numa tabela (slug | escopo/descrição | estado | link do PLAN). Nada específico de
    escopo aqui.
-2. CLAUDE.md na raiz — índice curto: aponta o AGENTS.md e lista os escopos numa tabela
-   (slug | escopo/descrição | estado | link do PLAN). Sem duplicar o protocolo.
+2. CLAUDE.md na raiz — UMA linha: `@AGENTS.md`, porque o Claude Code lê CLAUDE.md e não lê AGENTS.md,
+   enquanto o Codex lê AGENTS.md. Sem duplicar nada. NUNCA crie AGENTS.override.md (no Codex ele
+   SUBSTITUI o AGENTS.md em vez de somar).
 3. docs/sessoes/<escopo-slug>/PLAN.md — FONTE ÚNICA daquele escopo: cabeçalho de parâmetros (branch,
    slug, ambiente/variáveis, namespaces); guardrails DO ESCOPO; "🔎 Agora" com o baton
    🎬 Próximo; Board único (bloco | tipo | estim. | estado); bloco ativo DETALHADO com Contrato de
@@ -45,7 +47,7 @@ REGRAS (registre no AGENTS.md e siga sempre):
 - Atualize o PLAN in-place (nunca duplique linhas). Gere RELATÓRIO quando eu pedir ou ao fechar um
   bloco inteiro — nunca por terminar alguns steps no meio do bloco.
 - Escopo novo no futuro: só uma pasta nova em docs/sessoes/<slug>/ com PLAN.md + uma linha no índice
-  do CLAUDE.md. AGENTS.md e template-relatorio.md são reusados, NUNCA copiados.
+  do AGENTS.md. AGENTS.md e template-relatorio.md são reusados, NUNCA copiados.
 - Memória: só ponteiros de alto nível, nunca o que já está no código ou nos relatórios.
 
 Comece confirmando o plano da estrutura e, se eu aprovar, crie os arquivos.
