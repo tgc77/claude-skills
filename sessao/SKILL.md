@@ -280,6 +280,8 @@ existente:
    - **`🎬 Próximo: ⚙️ Executor`** (o `handoff` já deixou o bloco pronto) → esta é uma sessão de Executor.
      Em 2-3 linhas diga onde parou + o ponto de entrada, e **comece a executar** dali à risca, marcando
      checkboxes. **NÃO pare para perguntar "sou planejador ou executor?"** — o baton já respondeu.
+     Depois disso, cumpra o loop contínuo e as condições terminais fechadas da regra
+     **"EXECUTOR NÃO ESCOLHE QUANDO PARAR"**; tarefa concluída não encerra sessão nem resposta.
    - **`🎬 Próximo: 🧠 Planejador`** → entre como Planejador (detalhar/replanejar/handoff do próximo bloco).
    - **Baton ausente/ambíguo** (só aí) → resuma o estado e pergunte o papel.
    - ⚠️ **Baton incoerente = PARADA (defesa do lado do leitor).** Antes de agir, **confira a linha `🎬`
@@ -583,6 +585,28 @@ contra o dialeto de UM repo (`### 📋 Tarefas`, critérios em tabela, sessões 
 - **Papéis:** Planejador (modelo forte) deixa o bloco executor-ready e NÃO implementa, especificando
   decisões e restrições — não keystrokes. Executor (modelo barato) executa à risca, e ao divergir do
   plano PARA e escala de volta — não improvisa decisão de design. Auto-verifica contra a DoD.
+- **EXECUTOR NÃO ESCOLHE QUANDO PARAR — execução contínua até condição terminal.** Um `start` cujo
+  baton é `⚙️ Executor` inicia um **loop contínuo sobre o bloco ativo**, não a execução avulsa da tarefa
+  citada no ponto de entrada. Ao concluir uma tarefa, o Executor valida seu resultado, marca o checkbox
+  e **começa imediatamente a próxima tarefa aberta do mesmo bloco**. Concluir uma tarefa, atingir um
+  "bom checkpoint", produzir bastante trabalho, consumir muito tempo/contexto ou poder oferecer um
+  resumo **não são condições de parada**: o Executor não pode por decisão própria encerrar a resposta,
+  devolver o controle ao usuário, reduzir/reordenar/reinterpretar o contrato ou trocar o baton por
+  causa delas. As condições terminais são uma **lista fechada**:
+  1. o bloco inteiro satisfez a DoD — dispara o auto-`end`, prepara relatório/PLAN, pede a validação do
+     commit e para na fronteira de papel;
+  2. a realidade divergiu do contrato e exige decisão de design, o estado ficou ambíguo/inesperado ou
+     uma tarefa exigiria escolha não resolvida no PLAN — grava o motivo, devolve ao Planejador e para;
+  3. um critério de aceite mediu diferente do alvo — registra a saída crua, devolve ao Planejador e
+     para;
+  4. falta autorização externa indispensável — solicita a autorização e aguarda;
+  5. o usuário interrompe ou ordena explicitamente pausar/encerrar; ou
+  6. há limite técnico real da ferramenta que impede continuar nesta resposta — informa o impedimento
+     concreto e preserva como ponto de entrada a primeira tarefa aberta.
+  Se nenhuma dessas seis condições ocorreu, **emitir resposta final é violação do protocolo**. O
+  Executor não resolve por conta própria uma decisão ausente do contrato: decisão não resolvida é a
+  condição 2, nunca licença para improvisar. Esta regra governa todos os escopos e sobrepõe qualquer
+  hábito geral de entregar progresso em checkpoints convenientes.
 - **Critério de aceite não batido = PARADA — mesmo que a intenção pareça cumprida.** Vale nos dois
   lados: **🧠 mede** todo critério no estado atual antes de fixá-lo como alvo (critério deduzido nasce
   falso e trava o Executor numa medição inatingível); **⚙️ não fecha** bloco cujo critério mediu
