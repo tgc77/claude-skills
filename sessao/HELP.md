@@ -157,7 +157,16 @@ nome da pasta, log de apontamento faltando). Não altera nada. `/sessao escopos 
    (sem o aval nada é commitado; com ele, PLAN não-commitado faz a próxima sessão lê
    estado do working tree). Reporta o hash.
 
-### `end` — fim de sessão (quando o usuário pedir **ou** ao fechar um bloco inteiro)
+### `end` — fim de sessão (3 portas: o usuário pedir · o bloco fechar · **PARADA no meio do bloco**)
+
+**O ritual tem duas metades com gatilhos diferentes.** O **relatório** (passo 1) só sai quando o bloco
+fecha, ou quando o usuário pede. O **registro da sessão** (passos 2–7: PLAN in-place, linha no registro
+de sessões, baton, validação → apontamento → portão → commit) sai em **toda** sessão que termina —
+inclusive quando o Executor **PARA no meio do bloco** por condição terminal (critério que não bateu,
+decisão de design ausente, estado inesperado, autorização faltando, limite técnico). Nessa 3ª porta ele
+auto-dispara o registro **sem** o usuário pedir e **sem** relatório. *Parar não dispensa registrar:
+sessão sem linha no registro de sessões não existe para a próxima.*
+
 1. Gera `docs/sessoes/<escopo>/RELATORIO_<bloco>_<AAAA-MM-DD>.md` na pasta do escopo, pelo template
    compartilhado (detalhe denso: comandos, saídas, números).
 2. Atualiza o `PLAN.md` do escopo **in-place** (nunca duplica linhas): Agora, Board, checkboxes,
@@ -172,7 +181,7 @@ nome da pasta, log de apontamento faltando). Não altera nada. `/sessao escopos 
    commit** — o label é o slug, e **o
    índice é a SESSÃO, não o relatório**): toda sessão que termina grava a sua entrada em
    `$SESSAO_WORKLOG_DIR (default ~/.claude/work-log/)<slug>.md` — fechou bloco, parou no meio, fez `handoff` ou só validou. Relatório
-   é matéria-prima **quando existe**; quando não existe (handoff e validação nunca geram um), a fonte é
+   é matéria-prima **quando existe**; quando não existe (handoff, PARADA e validação nunca geram um), a fonte é
    a linha do registro de sessões + a entrada de decisões + os commits daquela sessão. Idempotência
    pela linha `**Relatório-fonte:**` ou `**Sessão:** <N>`. Log global/append-only, fora do commit.
 6. **✅ Conferência de saída** (mecânica, antes do commit; item vermelho = PARADA, não ressalva):

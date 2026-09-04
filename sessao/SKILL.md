@@ -2,12 +2,11 @@
 name: sessao
 description: >-
   Monta e opera o sistema de Controle de Sessões (v2) para projetos de escopo definido — protocolo
-  permanente no AGENTS.md + um PLAN.md por escopo (docs/sessoes/<escopo>/) + protocolo
-  planner/executor + rolling-wave. Use quando o usuário quiser inicializar o controle de sessões num
-  repo, abrir um escopo novo de trabalho (feature, correção, investigação), criar/montar um PLAN.md,
-  ou rodar o ritual de início, handoff (troca de modelo planejador→executor) ou fim de sessão.
-  Gatilhos: "controle de sessões", "montar o PLAN", "novo escopo/plano", "bootstrap do playbook de
-  sessões", "/sessao", "iniciar/encerrar sessão do projeto".
+  permanente no AGENTS.md + um PLAN.md por escopo (docs/sessoes/SLUG/) + protocolo
+  planner/executor + rolling-wave. Skill de invocação exclusivamente explícita: use somente quando
+  Tiago escrever $sessao, @sessao ou /sessao. Nunca a acione por contexto do repositório ou por um
+  pedido técnico comum. Para assumir e operar um escopo existente, exija `sessao start SLUG`
+  explicitamente; os demais subcomandos executam somente sua própria função.
 ---
 
 # Skill: sessao — Controle de Sessões (v2)
@@ -16,9 +15,15 @@ Sistema para tocar um projeto de escopo definido com agentes de I.A. mantendo ca
 contexto e zero perda de continuidade. **Princípio único:** cada fato mora em UM arquivo; o resto
 aponta (link), nunca copia. O plano se detalha em rolling-wave (perto detalhado, longe em rascunho).
 
+> ⛔ **Ativação exclusivamente explícita.** A existência de `AGENTS.md`, `CLAUDE.md`, um único escopo
+> ativo, uma branch correspondente ou um pedido técnico dentro de um repositório com controle de
+> sessões **não ativa esta skill**. Só assuma e opere um escopo existente quando Tiago invocar
+> explicitamente `sessao start SLUG`. Outros subcomandos explícitos fazem somente o que pedem e não
+> autorizam um `start` implícito.
+
 > 🔤 **Invocação, em qualquer ferramenta.** Neste documento os subcomandos aparecem como
 > `/sessao <sub>`, que é a forma do **Claude Code**. No **Codex** a mesma invocação é `$sessao <sub>`
-> ou `@sessao <sub>` (e ele também pode acioná-la sozinho pelo `description`). Onde se lê `/sessao`,
+> ou `@sessao <sub>`. Onde se lê `/sessao`,
 > entenda "invoque esta skill" — o protocolo é idêntico nas duas.
 >
 > 📁 **Onde a skill é descoberta:** Claude Code em `~/.claude/skills/`; Codex em `~/.codex/skills/`
@@ -339,11 +344,32 @@ existente:
    = REGISTRO CONGELADO" nas Regras invioláveis).
 
 ### `end` — fim de sessão
-Duas portas de entrada para este ritual:
-- **Fim de sessão no meio de um bloco** (bloco ainda aberto) → **só quando o usuário pedir** (gerar
-  relatório é ato explícito; não assuma que a sessão encerrou).
+
+**O ritual tem DUAS METADES, com gatilhos diferentes.** Fundi-las foi um bug real (ver a 3ª porta):
+
+| Metade | O que é | Quando dispara |
+|---|---|---|
+| **Relatório** (passo 1) | o detalhe denso do bloco | só quando o **bloco fecha**, ou o usuário pede |
+| **Registro da sessão** (passos 2–6) | PLAN in-place · **linha no §8** · baton · validação → apontamento → portão → commit | em **TODA** sessão que termina, tenha fechado bloco ou não |
+
+Três portas de entrada:
+- **Fim de sessão no meio de um bloco, por vontade de encerrar** (bloco aberto, nada obrigou a parar)
+  → **só quando o usuário pedir**. Sem relatório; **com** registro da sessão.
 - **Fechamento de bloco inteiro** (toda a DoD do bloco satisfeita) → o **Executor auto-dispara este
   ritual por si, sem o usuário pedir**, *antes* de passar o baton (ver "Papéis" nas Regras invioláveis).
+  É a **única** porta que gera relatório.
+- **PARADA no meio do bloco** — o Executor bateu numa condição terminal que **não** é o fechamento
+  (critério que não bateu, decisão de design ausente, estado inesperado, autorização faltando, limite
+  técnico da ferramenta) → **auto-dispara o registro da sessão, sem o usuário pedir e sem relatório**:
+  PLAN in-place (checkboxes + o motivo da parada + baton `🧠 Planejador`), **linha nova no §8**, e então
+  validação → apontamento → portão → commit.
+  ⚠️ **Esta porta nasceu de um buraco real (2026-09-04).** Uma sessão de Executor parou por critério
+  não batido e **registrou tudo com honestidade** dentro do bloco — mas não deixou **linha no §8 nem
+  entrada no apontamento**, porque o passo que as grava morava num ritual cujas portas eram só as duas
+  de cima. Sem commit, o **portão também não rodou**: nada falhou, só faltou, e a sessão seguinte teve
+  de preencher retroativamente. É a mesma classe de falha silenciosa que já custou caro quando o
+  apontamento era indexado por **relatório** (todo `handoff` sumia) — ali o índice errado era o
+  artefato, aqui era o **subcomando**. **O índice certo é um só: a sessão terminou.**
 
 1. Gere o relatório **na pasta e no padrão de nome que a linha `Relatórios` do cabeçalho do PLAN
    declara** — default `docs/sessoes/<slug>/RELATORIO_<bloco>_<AAAA-MM-DD>.md`, pelo template
@@ -603,6 +629,12 @@ contra o dialeto de UM repo (`### 📋 Tarefas`, critérios em tabela, sessões 
   5. o usuário interrompe ou ordena explicitamente pausar/encerrar; ou
   6. há limite técnico real da ferramenta que impede continuar nesta resposta — informa o impedimento
      concreto e preserva como ponto de entrada a primeira tarefa aberta.
+  **Toda condição terminal encerra a sessão PELO RITUAL — não só a 1ª.** A condição 1 dispara o `end`
+  completo (relatório + registro). As condições **2, 3, 4 e 6** disparam a **3ª porta do `end`** — o
+  registro da sessão **sem** relatório: PLAN in-place com o motivo, **linha nova no §8**, baton
+  `🧠 Planejador`, e então validação → apontamento → portão → commit. Na condição 5 quem manda é a
+  ordem do usuário. **Parar não dispensa registrar:** sessão que não deixa linha no §8 **não existe**
+  para a próxima, e é o portão (itens ④ e ⑤) que pega isso — mas só se houver commit para ele guardar.
   Se nenhuma dessas seis condições ocorreu, **emitir resposta final é violação do protocolo**. O
   Executor não resolve por conta própria uma decisão ausente do contrato: decisão não resolvida é a
   condição 2, nunca licença para improvisar. Esta regra governa todos os escopos e sobrepõe qualquer
@@ -630,9 +662,11 @@ contra o dialeto de UM repo (`### 📋 Tarefas`, critérios em tabela, sessões 
   — sem o usuário pedir**, e só então grava o baton `🎬 Próximo`. ⚠️ **O que é auto-disparado é o
   RITUAL, não o commit:** o passo 6 (commit) e o `push` continuam exigindo validação explícita, e o
   apontamento só é escrito depois dela (ver "Ordem canônica do fechamento"). É o mesmo `end`, auto-disparado
-  no fechamento de bloco. **Não** vale para terminar só alguns steps no meio de um bloco (bloco ainda
-  aberto) — aí não há relatório nem fechamento, só atualização de checkboxes/estado, e o `end` continua
-  sendo ato explícito do usuário. Isto **não** contradiz a "Fronteira de papel = PARADA": o Executor
+  no fechamento de bloco. **Não** vale para gerar **relatório** no meio de um bloco (bloco ainda
+  aberto): aí não há fechamento, e relatório continua sendo ato explícito do usuário. ⚠️ **Mas o
+  REGISTRO da sessão vale sempre** — se a interrupção foi uma **PARADA** (condição terminal 2, 3, 4 ou
+  6), o Executor auto-dispara a **3ª porta do `end`** (§8 + baton + validação → apontamento → portão →
+  commit), sem o usuário pedir. Não gerar relatório **nunca** significa não registrar a sessão. Isto **não** contradiz a "Fronteira de papel = PARADA": o Executor
   fecha o bloco terminado (relatório+commit) e PARA; **não** planeja o próximo — nem promovendo o
   próximo bloco de rascunho a detalhado (ver `end`, passo 2).
 - **Fronteira de papel = PARADA de sessão (NÃO auto-promoção):** o Executor **nunca vira Planejador
@@ -645,8 +679,10 @@ contra o dialeto de UM repo (`### 📋 Tarefas`, critérios em tabela, sessões 
   mesma sessão de Executor, **é violação de protocolo** — mesmo que "pareça pronto para seguir".
 - **Estimativas são guia de fatiamento, não SLA.**
 - **RELATÓRIO é ato explícito — com uma exceção só:** gere relatório quando o usuário pedir **ou** no
-  auto-`end` de **fechamento de bloco** (toda a DoD satisfeita). Terminar alguns steps no meio de um
-  bloco **não** gera relatório: aí só atualize checkboxes e estado no PLAN.
+  auto-`end` de **fechamento de bloco** (toda a DoD satisfeita). Terminar no meio de um bloco **não**
+  gera relatório: aí atualize checkboxes e estado no PLAN — **e, se foi PARADA, dispare o registro da
+  sessão pela 3ª porta do `end`** (§8 + baton + validação → apontamento → portão → commit). **Não
+  gerar relatório nunca significa não registrar a sessão.**
 - **Baton de papel (`🎬 Próximo`):** o cabeçalho "Agora" carrega SEMPRE uma linha
   `🎬 Próximo: <⚙️ Executor|🧠 Planejador> · Ponto de entrada: <tarefa>`. É a fonte de verdade do papel
   da próxima sessão — `init`/`handoff`/`end` a gravam, `start` a lê e age sem perguntar. Sem baton, o
@@ -657,9 +693,9 @@ contra o dialeto de UM repo (`### 📋 Tarefas`, critérios em tabela, sessões 
   operacionais), mas **não redefine o papel** — quem define papel é o baton — nem altera o contrato do
   bloco por conta própria (isso é PARADA + decisão do usuário). Diretivas valem só para a sessão.
 - **Sincronia com `resumo-trabalho`: UMA SESSÃO = UMA ENTRADA, e o label É o slug — mas só APÓS o
-  usuário validar o commit.** `end` **e** `handoff` alimentam `<work-log>/<slug>.md` — **o índice é a sessão, não o relatório**. Toda
+  usuário validar o commit.** `end`, `handoff` **e toda PARADA no meio de bloco** alimentam `<work-log>/<slug>.md` — **o índice é a sessão, não o relatório, e muito menos o subcomando**. Toda
   sessão que termina grava a sua entrada: fechou bloco, parou no meio, fez handoff ou só validou.
-  **Relatório é matéria-prima quando existe**; quando não existe (handoff e validação nunca geram um),
+  **Relatório é matéria-prima quando existe**; quando não existe (handoff, validação e PARADA nunca geram um),
   a fonte é a **linha do §8 + a entrada do §7 + os commits** daquela sessão. Nada é inventado fora
   dessas fontes; se o rastro não bastar, diga ao usuário em vez de supor. Idempotência pela linha
   `**Relatório-fonte:**` ou `**Sessão:** <N>`; horário do cabeçalho = quando a sessão **aconteceu**.

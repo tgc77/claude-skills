@@ -134,6 +134,11 @@ entre as sessões. Saiba qual papel você exerce.
 - **Fecha o próprio bloco:** ao satisfazer toda a DoD, dispara o ritual de fim de turno por si
   (relatório + PLAN) — sem esperar pedido — e só então passa o baton. ⚠️ **O commit NÃO é
   auto-disparado:** ele, o `push` e o apontamento esperam a validação do usuário (passo 6).
+- **E fecha a própria SESSÃO quando PARA no meio do bloco.** Parar não dispensa registrar: o Executor
+  auto-dispara o **registro da sessão** (a 2ª metade do ritual — PLAN in-place com o motivo, **linha
+  nova no §8**, baton, e então validação → apontamento → portão → commit), **sem** relatório, porque o
+  bloco não fechou. **Sessão que não deixa linha no §8 não existe para a próxima** — e o portão só
+  pega a falta se houver commit para ele guardar.
 - **O baton é a linha `🎬 Próximo:` do cabeçalho 🔎 Agora — não é a prosa em volta dela.** Escrever
   "baton → 🧠 Planejador" no resumo da sessão, no relatório ou na mensagem de commit e **deixar a linha
   `🎬` com o papel e o ponto de entrada antigos** entrega à sessão seguinte um bloco já fechado como se
@@ -144,7 +149,8 @@ entre as sessões. Saiba qual papel você exerce.
   portão `scripts/conferencia_saida.sh`, que **reprova o commit** se a linha `🎬` não tiver sido
   reescrita nesta sessão (item ⓪ do ritual de fim de turno).
 - **Fronteira de papel = PARADA de sessão:** nunca vira Planejador na mesma sessão. Ao fechar o bloco,
-  ou ao topar com algo que exija (re)planejar, grava `🎬 Próximo: 🧠 Planejador` junto do motivo e para.
+  ou ao topar com algo que exija (re)planejar, grava `🎬 Próximo: 🧠 Planejador` junto do motivo,
+  **dispara o registro da sessão** (§8 + apontamento + portão + commit, com validação) e para.
   **Não** promove o próximo bloco de rascunho a detalhado, **não** escreve contrato novo.
 
 ### Tipo de bloco
@@ -157,12 +163,32 @@ entre as sessões. Saiba qual papel você exerce.
 
 ## 🧾 Ritual de fim de turno
 
-**Atualizar o PLAN é contínuo; gerar o RELATÓRIO é ato explícito** — quando <SEU_NOME> pedir **ou**
-quando um **bloco inteiro fecha** (aí o Executor dispara sozinho, ver acima). Terminar alguns steps no
-meio de um bloco não gera relatório.
+**Este ritual tem DUAS METADES, e elas têm gatilhos diferentes.** Confundi-las já custou trabalho
+perdido, então a distinção vem antes dos passos:
+
+| Metade | O que é | Quando dispara |
+|---|---|---|
+| **Relatório** (passo 1) | o detalhe denso do bloco | **só quando o bloco fecha**, ou <SEU_NOME> pedir |
+| **Registro da sessão** (passos 2–6) | PLAN in-place · **linha no §8** · baton · validação → apontamento → portão → commit | em **TODA** sessão que termina, tenha fechado bloco ou não |
+
+Três portas levam aqui: **bloco fechou** (Executor auto-dispara, com relatório) · **<SEU_NOME> pediu o
+`end`** (sem relatório) · **PARADA no meio do bloco** (Executor auto-dispara, **sem** relatório).
+
+> ⚠️ **PARADA no meio do bloco TAMBÉM fecha a sessão pelo ritual — só que sem relatório.** Quando o
+> Executor bate numa condição terminal que não é o fechamento (critério que não bateu, decisão de
+> design ausente, estado inesperado, autorização faltando, limite técnico), ele **auto-dispara o
+> registro da sessão sem esperar pedido**: PLAN in-place com o motivo, **linha nova no §8**, baton
+> `🧠 Planejador`, e então validação → apontamento → portão → commit.
+> **Por que isto está escrito:** em 2026-09-04 uma sessão de Executor parou por critério não batido e
+> registrou tudo com honestidade dentro do bloco — mas **não deixou linha no §8 nem entrada no
+> apontamento**, porque o passo que as grava só era alcançado por `end` e `handoff`, e uma PARADA não
+> chega a nenhum dos dois. Sem commit, o **portão também não rodou**: nada falhou, só faltou, e a
+> sessão seguinte teve de preencher retroativamente. Mesma classe de falha silenciosa de quando o
+> apontamento era indexado por **relatório** (todo `handoff` sumia) — ali o índice errado era o
+> artefato, aqui era o **subcomando**. **O índice certo é um só: a sessão terminou.**
 
 > ⚠️ **O apontamento (passo 4) não é exclusivo do `end` e não depende de relatório.** Toda sessão que
-> termina grava a sua entrada — inclusive `handoff` e sessão de validação, que **nunca** geram
+> termina grava a sua entrada — inclusive `handoff`, PARADA e sessão de validação, que **nunca** geram
 > relatório porque não fecham bloco. Um `handoff` é uma sessão inteira de trabalho (mediu baselines,
 > resolveu desenho, corrigiu contrato) e precisa aparecer no apontamento do dia como qualquer outra.
 
