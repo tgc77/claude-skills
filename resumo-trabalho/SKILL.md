@@ -236,6 +236,10 @@ equivalente.
    feito com subseções por tema/projeto, Problemas em tabela, Validações, Diagnóstico final, Resultado
    prático, Pendências). Em `gerar dia`, uma subseção de "O que foi feito" por card. Não invente itens
    fora dos registros.
+   ⛔ **Título de subseção NUNCA carrega horário** (nem do log-fonte, nem inventado) — nada de
+   `### 🧠 Planejamento do porte do núcleo (09:56)`. O título nomeia o **tema/etapa**, só isso
+   (`### 🧠 Planejamento do porte do núcleo`); a chefia lê por assunto, não por timestamp, e o horário
+   do log-fonte não tem valor pra quem só quer entender o que foi feito e por quê.
 4. **Aplique a Regra do leitor não-técnico e rode o checklist dela antes de entregar.** Não é opcional
    nem "quando sobrar espaço": é critério de aceitação do resumo. Se o log já traz a explicação
    (porque quem registrou aplicou a regra), **transporte-a** — não reescreva do zero nem invente uma
