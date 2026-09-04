@@ -20,6 +20,12 @@ aponta (link), nunca copia. O plano se detalha em rolling-wave (perto detalhado,
 > sessões **não ativa esta skill**. Só assuma e opere um escopo existente quando Tiago invocar
 > explicitamente `sessao start SLUG`. Outros subcomandos explícitos fazem somente o que pedem e não
 > autorizam um `start` implícito.
+>
+> 🔒 **Esta regra não vive só nesta prosa** — [`agents/openai.yaml`](agents/openai.yaml) a declara em
+> configuração (`policy.allow_implicit_invocation: false`), para o lado que lê política em vez de
+> aviso. Se você mover, clonar ou empacotar a skill, **leve o arquivo junto**: sem ele sobra o texto
+> acima, e texto sozinho não impede invocação implícita — é o mesmo padrão de regra escrita sem
+> mecanismo que já produziu falha silenciosa neste protocolo (ver a 3ª porta do `end`).
 
 > 🔤 **Invocação, em qualquer ferramenta.** Neste documento os subcomandos aparecem como
 > `/sessao <sub>`, que é a forma do **Claude Code**. No **Codex** a mesma invocação é `$sessao <sub>`
