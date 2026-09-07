@@ -39,6 +39,12 @@ readonly INDICES_DE_ESCOPOS=("AGENTS.md" "CLAUDE.md")
 readonly LOG_DE_APONTAMENTO_DIR="${SESSAO_WORKLOG_DIR:-${HOME}/.claude/work-log}"
 readonly REGEX_LINHA_BATON='^- \*\*🎬 Próximo:\*\*'
 readonly REGEX_LINHA_SESSAO='^\| [0-9]+ \| [0-9]{4}-[0-9]{2}-[0-9]{2} \|'
+# DATA da última linha do registro de sessões, nos DOIS dialetos (corrigido 2026-09-07):
+#   legado  `| 11 | 2026-09-04 | ...`      (com coluna de número)
+#   atual   `| 2026-09-04 | B3 | ...`      (o que o PLAN.template.md gera)
+# É o que alimenta a porta retroativa do ⑤. Sem ela, o dialeto atual tinha UMA única chave — a data
+# de hoje — e portanto nenhuma saída para sessão registrada em dia posterior ao do trabalho.
+readonly REGEX_DATA_SESSAO='^\| *([0-9]+ *\| *)?[0-9]{4}-[0-9]{2}-[0-9]{2} *\|'
 
 houve_vermelho=0
 
@@ -131,8 +137,14 @@ if [[ -z "${tarefa_citada}" ]]; then
     amarelo "③ a linha 🎬 não cita tarefa reconhecível (T<N> ou N.N) — confira o ponto de entrada na mão"
 else
     tarefa_esc=${tarefa_citada//./\\.}
-    n_feitas=$(grep -cE "^ *- \[x\] +\**${tarefa_esc}\b" "${PLAN}" || true)
-    n_abertas=$(grep -cE "^ *- \[ \] +\**${tarefa_esc}\b" "${PLAN}" || true)
+    # PREFIXO TOLERADO (corrigido 2026-09-07): o id pode vir precedido de marcação — `**`, e os
+    # marcadores de tipo que a própria skill manda usar (`🔁 T0 — DoR`, SKILL.md §"Gate por-sessão
+    # × marco"). O padrão antigo (`\**${id}`) só engolia asteriscos, então TODO checkbox de gate
+    # escrito conforme a documentação caía no ⚠️ "não achada como checkbox" — em qualquer PLAN,
+    # sempre. Dois PLANs deste repo já nasciam assim. `[^A-Za-z0-9]*` engole asterisco, emoji e
+    # espaço, e para no primeiro alfanumérico, então não atravessa um id vizinho (`B11 / T1`).
+    n_feitas=$(grep -cE "^ *- \[x\] +[^A-Za-z0-9]*${tarefa_esc}\b" "${PLAN}" || true)
+    n_abertas=$(grep -cE "^ *- \[ \] +[^A-Za-z0-9]*${tarefa_esc}\b" "${PLAN}" || true)
     if [[ "${n_feitas}" -gt 0 && "${n_abertas}" -eq 0 ]]; then
         vermelho "③ BATON PODRE: a linha 🎬 manda executar a tarefa ${tarefa_citada}, que está [x]"
     elif [[ "${n_abertas}" -gt 0 && "${n_feitas}" -eq 0 ]]; then
@@ -151,6 +163,7 @@ fi
 # ainda derrubava o ⑤ junto (sem N, o ⑤ virava ⚠️). Aceita agora linha nova começando por número de
 # sessão OU por data (AAAA-MM-DD ou DD/MM/AAAA).
 ultima_sessao=""
+ultima_data_sessao=""
 if [[ "${MODO}" == "inicio" ]]; then
     :
 elif ! grep -qE '^#+ .*Registro de sessões' "${PLAN}"; then
@@ -158,9 +171,11 @@ elif ! grep -qE '^#+ .*Registro de sessões' "${PLAN}"; then
 elif grep -qE '^\+\| *([0-9]+ *\| *[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{2}/[0-9]{2}/[0-9]{4}) *\|' <<<"${diff_do_plan}"; then
     verde "④ registro de sessões ganhou linha nova nesta sessão"
     ultima_sessao=$(grep -oE "${REGEX_LINHA_SESSAO}" "${PLAN}" | tail -1 | grep -oE '[0-9]+' | head -1)
+    ultima_data_sessao=$(grep -oE "${REGEX_DATA_SESSAO}" "${PLAN}" | tail -1 | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | head -1)
 else
     vermelho "④ nenhuma linha nova no registro de sessões — esta sessão não vai existir para a próxima"
     ultima_sessao=$(grep -oE "${REGEX_LINHA_SESSAO}" "${PLAN}" | tail -1 | grep -oE '[0-9]+' | head -1)
+    ultima_data_sessao=$(grep -oE "${REGEX_DATA_SESSAO}" "${PLAN}" | tail -1 | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | head -1)
 fi
 
 # --- ⑤ O apontamento da sessão existe no log global --------------------------------------------
@@ -181,8 +196,15 @@ elif grep -qE "^## \[${hoje}" "${log_do_escopo}"; then
     verde "⑤ apontamento de hoje (${hoje}) presente em ${log_do_escopo}"
 elif [[ -n "${ultima_sessao}" ]] && grep -qE "^\*\*Sessão:\*\* ${ultima_sessao}\b" "${log_do_escopo}"; then
     verde "⑤ apontamento da sessão ${ultima_sessao} presente em ${log_do_escopo}"
+elif [[ -n "${ultima_data_sessao}" ]] && grep -qE "^## \[${ultima_data_sessao}" "${log_do_escopo}"; then
+    # PORTA RETROATIVA (2026-09-07): a entrada não é de hoje, mas casa a DATA da linha que esta
+    # sessão acabou de acrescentar ao registro de sessões — é o caso "trabalho de sexta, registro
+    # na segunda". Não é brecha: exige que a sessão TENHA escrito a linha no §8 (item ④) e que o
+    # log tenha entrada naquela data. Sessão que simplesmente não registrou não casa nenhuma das
+    # três portas e segue vermelha.
+    verde "⑤ apontamento de ${ultima_data_sessao} presente (registro retroativo; hoje é ${hoje})"
 else
-    vermelho "⑤ sem entrada de hoje (${hoje}) em ${log_do_escopo} — apontamento do dia sai furado"
+    vermelho "⑤ sem entrada de hoje (${hoje}) nem de ${ultima_data_sessao:-<data da sessão>} em ${log_do_escopo} — apontamento do dia sai furado"
 fi
 
 # --- ⑥ Contrato de bloco escrito nesta sessão exige ACEITE registrado --------------------------

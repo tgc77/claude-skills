@@ -51,8 +51,9 @@ cada frente nova:
 ├── AGENTS.md                      ← FONTE ÚNICA: protocolo permanente + ÍNDICE DE ESCOPOS
 │                                    (lido nativamente pelo Codex; pelo Claude via @import)
 ├── scripts/
-│   └── conferencia_saida.sh       ← PORTÃO executável da Conferência de saída (instalado pelo `init`)
-│                                    (na skill ele mora em `scripts/`, junto do autoteste)
+│   └── conferencia_saida.sh       ← LANÇADOR do portão (instalado pelo `init`): resolve a skill
+│                                    e a executa. O portão DE VERDADE mora só na skill, junto do
+│                                    autoteste — projeto guarda o endereço, não a versão.
 └── docs/sessoes/
     ├── template-relatorio.md      ← gabarito compartilhado (um por repo, nunca copiado por escopo)
     └── <escopo-slug>/             ← UM ESCOPO = UMA PASTA
@@ -239,9 +240,14 @@ existente:
      `@AGENTS.md`** + eventual seção específica do Claude Code) — **só na 1ª instalação**. Os dois
      saem de `templates/`. ⛔ **Nada de `AGENTS.override.md`** (ver a seção de layout).
    - `docs/sessoes/template-relatorio.md` — **só na 1ª instalação** (copie de `templates/`).
-   - `scripts/conferencia_saida.sh` — **só na 1ª instalação** (copie de `scripts/` da skill,
-     `chmod +x`). É o portão executável da Conferência de saída; sem ele a conferência volta a ser
-     auto-atestada.
+   - `scripts/conferencia_saida.sh` — **só na 1ª instalação**: copie o **lançador**
+     `scripts/conferencia_saida.shim.sh` da skill para `scripts/conferencia_saida.sh` do projeto e
+     `chmod +x`. ⛔ **NÃO copie `conferencia_saida.sh` da skill** — era o que se fazia até
+     2026-09-07, e por isso toda correção do portão parava na skill: escopo instalado em agosto
+     seguia rodando o portão de agosto, sem aviso nenhum. O lançador resolve a skill em runtime
+     (`$SESSAO_SKILL_DIR` → `~/.claude/skills/sessao` → `~/.codex/skills/sessao` →
+     `<repo>/.agents/skills/sessao`) e **falha fechada** (exit 2, nunca 0) se não a achar — portão
+     que não roda não pode parecer portão que passou.
    - `docs/sessoes/<escopo-slug>/PLAN.md` — sempre. Detalhe **só o bloco B1**; deixe os demais em uma
      linha, marcados `(rascunho)`. Preencha o cabeçalho de parâmetros do escopo (branch, ambiente,
      namespaces, pasta de relatórios) e a seção "🚧 Guardrails deste escopo".
@@ -492,8 +498,10 @@ já está `[x]`, se o registro de sessões não ganhou linha nova, se falta o ap
 log, ou se **esta sessão escreveu contrato de bloco e passou o baton para ⚙️ sem a linha
 `**Aceite:** <quem>, <AAAA-MM-DD>` no PLAN** (item ⑥). **Declarar que conferiu não substitui rodar** — os itens 2, 3 e 5 abaixo já estavam escritos, com
 todas as letras, nas duas vezes em que o defeito passou. Repo sem o portão instalado (instalação
-anterior a ele): copie `scripts/conferencia_saida.sh` da skill para `scripts/` do projeto — é a
-mesma correção.
+anterior a ele): copie o **lançador** `scripts/conferencia_saida.shim.sh` da skill para
+`scripts/conferencia_saida.sh` do projeto — é a mesma correção. Projeto que ainda tenha a **cópia
+integral** do portão (instalação anterior a 2026-09-07) deve trocá-la pelo lançador: enquanto for
+cópia, ele está congelado na versão do dia em que foi instalado.
 Os itens 1–9 abaixo seguem **na mão**; o portão cobre os **seis** decidíveis por comando (①-⑥).
 ⚠️ **Se mexer no portão ou nos templates, rode `scripts/autoteste_portao.sh` da skill.** Ele monta um
 repo descartável a partir dos templates e afirma que cada item dispara. Existe porque em 24/08/2026 uma

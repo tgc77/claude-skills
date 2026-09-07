@@ -169,6 +169,62 @@ grep -q '🔴 ③ BATON PODRE' <<<"${saida}" && nok "③ acusou baton podre com 
 grep -q '⚠️  ③ id' <<<"${saida}" && ok "③ avisou da ambiguidade" || nok "③ não avisou da ambiguidade"
 [[ "${codigo}" -eq 0 ]] && ok "exit 0 — sessão legítima não foi travada" || nok "exit != 0 — falso positivo bloqueou o commit"
 
+titulo "10. Checkbox de GATE (🔁 T0) ⇒ ③ verde (regressão 2026-09-07)"
+# A skill manda escrever gate por-sessão como `🔁 T0 — DoR` (SKILL.md, "Gate por-sessão × marco").
+# O ③ casava o id logo após `- [ ] **`, então TODO checkbox escrito conforme a documentação caía
+# em ⚠️ "não achada como checkbox" — em qualquer PLAN, sempre. A convenção e o parser diziam
+# coisas diferentes, e nenhum teste cobria isso.
+montar
+escrever_contrato
+printf '\n- [ ] **🔁 T0 — gate por-sessão** reestabelecer o ambiente\n' >> "${P}"
+baton_para '⚙️ Executor · **Ponto de entrada:** T0 — gate por-sessão'
+linha_de_sessao; aceite; apontamento
+saida="$(rodar "${BASE}")"; codigo=$?
+grep -q '✅ ③ ponto de entrada T0 está em aberto' <<<"${saida}" && ok "③ leu o id atrás do marcador 🔁" || { nok "③ NÃO reconheceu checkbox de gate — convenção e parser divergiram de novo"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
+[[ "${codigo}" -eq 0 ]] && ok "exit 0" || nok "exit != 0 — checkbox de gate reprovou sessão legítima"
+
+titulo "11. Registro RETROATIVO ⇒ ⑤ verde pela data da linha do §8 (regressão 2026-09-07)"
+# Trabalho feito na sexta, apontamento pedido na segunda. O ⑤ só tinha a porta "entrada de hoje"
+# (a porta por número de sessão é do dialeto legado e nunca dispara no template atual), então
+# fechamento em dia posterior era vermelho permanente, sem saída nenhuma.
+montar
+escrever_contrato; baton_para '⚙️ Executor · **Ponto de entrada:** T1 — primeira tarefa'
+ONTEM="$(date -d '3 days ago' +%F 2>/dev/null || date -v-3d +%F)"
+printf '| %s | B1 | sessão de sexta | — |\n' "${ONTEM}" >> "${P}"
+aceite
+printf '## [%s 20:45] teste\n\n**Sessão:** 1\n' "${ONTEM}" > "${TMP}/lar/.claude/work-log/teste.md"
+saida="$(rodar "${BASE}")"; codigo=$?
+grep -q "✅ ⑤ apontamento de ${ONTEM} presente (registro retroativo" <<<"${saida}" && ok "⑤ aceitou o registro retroativo" || { nok "⑤ NÃO aceitou registro retroativo"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
+[[ "${codigo}" -eq 0 ]] && ok "exit 0" || nok "exit != 0 — fechamento retroativo legítimo travado"
+
+titulo "12. Retroativo NÃO é brecha: sem apontamento nenhum ⇒ ⑤ continua vermelho"
+montar
+escrever_contrato; baton_para '⚙️ Executor · **Ponto de entrada:** T1 — primeira tarefa'
+ONTEM="$(date -d '3 days ago' +%F 2>/dev/null || date -v-3d +%F)"
+printf '| %s | B1 | sessão de sexta | — |\n' "${ONTEM}" >> "${P}"
+aceite
+: > "${TMP}/lar/.claude/work-log/teste.md"
+saida="$(rodar "${BASE}")"; codigo=$?
+grep -q '🔴 ⑤' <<<"${saida}" && ok "⑤ seguiu vermelho sem apontamento" || nok "⑤ passou SEM apontamento — a porta retroativa virou brecha"
+[[ "${codigo}" -ne 0 ]] && ok "exit != 0" || nok "exit 0 — commitaria sem apontamento"
+
+titulo "13. LANÇADOR: resolve a skill, e falha FECHADA quando não acha (2026-09-07)"
+# O projeto instala um lançador, não uma cópia — senão correção na skill não alcança escopo já
+# instalado. Um lançador que falhe ABERTO (exit 0) seria pior que a cópia velha: daria verde.
+montar
+escrever_contrato; baton_para '⚙️ Executor · **Ponto de entrada:** T1 — primeira tarefa'
+linha_de_sessao; aceite; apontamento
+cp "${SKILL_SCRIPTS}/conferencia_saida.shim.sh" scripts/conferencia_saida.sh
+chmod +x scripts/conferencia_saida.sh
+saida="$(HOME="${TMP}/lar" SESSAO_SKILL_DIR="$(dirname "${SKILL_SCRIPTS}")" ./scripts/conferencia_saida.sh teste "${BASE}" 2>&1)"; codigo=$?
+grep -q 'PLAN: docs/sessoes/teste/PLAN.md' <<<"${saida}" && ok "lançador resolveu a skill e rodou o portão" || { nok "lançador NÃO resolveu a skill"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
+[[ "${codigo}" -eq 0 ]] && ok "exit 0 pelo portão real" || nok "exit != 0"
+HOME=/nao/existe SESSAO_SKILL_DIR=/nao/existe CLAUDE_CONFIG_DIR=/nao/existe CODEX_HOME=/nao/existe \
+  ./scripts/conferencia_saida.sh teste "${BASE}" >/dev/null 2>&1
+codigo=$?
+[[ "${codigo}" -eq 2 ]] && ok "sem skill: exit 2 (não rodou), nunca 0" || nok "sem skill: exit ${codigo} — deveria ser 2; exit 0 seria aprovação falsa"
+
+
 echo "------------------------------------------------------------------------"
 if [[ "${falhas}" -ne 0 ]]; then
     echo "🔴 AUTOTESTE REPROVADO — ${falhas} verificação(ões) falharam."
@@ -176,4 +232,5 @@ if [[ "${falhas}" -ne 0 ]]; then
     echo "   qualquer projeto: um portão que não dispara é pior que nenhum, porque dá verde."
     exit 1
 fi
-echo "✅ AUTOTESTE APROVADO — os 6 itens do portão disparam nos dialetos que os templates geram."
+echo "✅ AUTOTESTE APROVADO — os 6 itens disparam nos dialetos dos templates, o gate 🔁 é lido,"
+echo "   o fechamento retroativo passa sem virar brecha, e o lançador falha fechado."
