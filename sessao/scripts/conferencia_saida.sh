@@ -34,10 +34,19 @@ set -o pipefail
 # Índice de escopos: AGENTS.md primeiro (lido nativamente por Codex E, via `@AGENTS.md`, pelo Claude
 # Code), CLAUDE.md depois (projetos instalados antes da unificação). O primeiro que existir e citar o
 # slug vence.
+# `CLAUDE.md` é RAMO DE LEGADO deliberado (projetos instalados antes da unificação do índice no
+# AGENTS.md). Mesma regra do REGEX_LINHA_SESSAO abaixo: não remova como limpeza. Caso 8 do autoteste.
 readonly INDICES_DE_ESCOPOS=("AGENTS.md" "CLAUDE.md")
 # Log de apontamento: default histórico, sobrescrevível para instalação neutra de ferramenta.
 readonly LOG_DE_APONTAMENTO_DIR="${SESSAO_WORKLOG_DIR:-${HOME}/.claude/work-log}"
 readonly REGEX_LINHA_BATON='^- \*\*🎬 Próximo:\*\*'
+# ⛔ RAMO DE LEGADO — DELIBERADO, CARREGANDO PESO. NÃO REMOVA COMO "código morto".
+# Este regex casa o dialeto ANTIGO do registro de sessões (`| 7 | 2026-09-04 | ...`, com coluna de
+# número), que o PLAN.template.md não gera mais. Ele parece morto e NÃO É: é o que alimenta a porta
+# 2 do ⑤ e, com ela, o que mantém escopo legado trabalhando sem migração — decisão do Tiago em
+# 2026-09-07 (poucos escopos legados, talvez descontinuados; migrar custaria mais que manter).
+# Coberto pelo caso 14 do autoteste, que isola a porta 2 das outras duas. Se for remover um dia,
+# remova o caso 14 junto e combine antes — não é limpeza, é retirada de suporte.
 readonly REGEX_LINHA_SESSAO='^\| [0-9]+ \| [0-9]{4}-[0-9]{2}-[0-9]{2} \|'
 # DATA da última linha do registro de sessões, nos DOIS dialetos (corrigido 2026-09-07):
 #   legado  `| 11 | 2026-09-04 | ...`      (com coluna de número)

@@ -225,6 +225,28 @@ codigo=$?
 [[ "${codigo}" -eq 2 ]] && ok "sem skill: exit 2 (não rodou), nunca 0" || nok "sem skill: exit ${codigo} — deveria ser 2; exit 0 seria aprovação falsa"
 
 
+titulo "14. Dialeto LEGADO (| N | data |) ⇒ ⑤ verde pela porta 2 (número da sessão)"
+# Escopo legado NÃO vai ser migrado (decisão do Tiago, 2026-09-07): a porta 2 é o que o mantém
+# funcionando, então ela carrega peso e precisa de teste. Ela já morreu em silêncio uma vez — a
+# correção de 2026-08-24 tornou o ④ tolerante ao dialeto novo e deixou o alimentador dela no regex
+# velho, e ninguém percebeu até 2026-09-07.
+# ⚠️ AS DUAS DATAS SÃO DIFERENTES DE PROPÓSITO. Se a data do apontamento casasse a da linha do §8,
+# a porta 3 (retroativa) atenderia primeiro e este teste passaria sem exercitar a porta 2 — um
+# teste que passa sem provar nada é pior que nenhum. Aqui: hoje ≠ data do §8 ≠ data do log, e só
+# o número da sessão casa.
+montar
+escrever_contrato; baton_para '⚙️ Executor · **Ponto de entrada:** T1 — primeira tarefa'
+D_SESSAO="$(date -d '10 days ago' +%F 2>/dev/null || date -v-10d +%F)"
+D_LOG="$(date -d '20 days ago' +%F 2>/dev/null || date -v-20d +%F)"
+printf '| 7 | %s | sessão em repo legado | — |\n' "${D_SESSAO}" >> "${P}"
+aceite
+printf '## [%s 09:00] teste\n\n**Sessão:** 7\n' "${D_LOG}" > "${TMP}/lar/.claude/work-log/teste.md"
+saida="$(rodar "${BASE}")"; codigo=$?
+grep -q '✅ ⑤ apontamento da sessão 7 presente' <<<"${saida}" && ok "⑤ casou pelo número da sessão (porta 2 viva)" || { nok "⑤ NÃO casou pela porta 2 — suporte a escopo legado quebrou"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
+grep -q 'registro retroativo' <<<"${saida}" && nok "passou pela porta 3, não pela 2 — o teste não prova o legado" || ok "não caiu na porta 3 (isolamento correto)"
+[[ "${codigo}" -eq 0 ]] && ok "exit 0 — escopo legado segue trabalhando" || nok "exit != 0 — escopo legado foi travado"
+
+
 echo "------------------------------------------------------------------------"
 if [[ "${falhas}" -ne 0 ]]; then
     echo "🔴 AUTOTESTE REPROVADO — ${falhas} verificação(ões) falharam."
@@ -233,4 +255,5 @@ if [[ "${falhas}" -ne 0 ]]; then
     exit 1
 fi
 echo "✅ AUTOTESTE APROVADO — os 6 itens disparam nos dialetos dos templates, o gate 🔁 é lido,"
-echo "   o fechamento retroativo passa sem virar brecha, e o lançador falha fechado."
+echo "   o fechamento retroativo passa sem virar brecha, o lançador falha fechado, e o dialeto"
+echo "   legado segue atendido pela porta 2 do ⑤."
