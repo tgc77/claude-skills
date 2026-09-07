@@ -56,6 +56,37 @@ montar() {
     git add -A
     git commit -qm base
     BASE="$(git rev-parse HEAD)"
+    P=docs/sessoes/teste/PLAN.md
+}
+
+# Variante LEGADA: PLAN.md na raiz + índice em CLAUDE.md — layout dos projetos instalados antes do
+# modelo multi-escopo. Tiago decidiu em 2026-09-07 NÃO migrá-los, então este caminho é suporte vivo
+# e precisa de teste, não resquício.
+montar_legado() {
+    rm -rf "${TMP}/repo" "${TMP}/lar"
+    mkdir -p "${TMP}/repo/scripts" "${TMP}/lar/.claude/work-log"
+    cd "${TMP}/repo" || exit 2
+    git init -q
+    git config user.email autoteste@local
+    git config user.name autoteste
+    cp "${SKILL_SCRIPTS}/conferencia_saida.sh" scripts/
+    chmod +x scripts/conferencia_saida.sh
+    cp "${SKILL_TEMPLATES}/PLAN.template.md" PLAN.md
+    if [[ -n "${SEM_INDICE:-}" ]]; then
+        # Repo legado MONO-ESCOPO: CLAUDE.md tem o protocolo, mas nenhuma tabela de escopos —
+        # a tabela é conceito do modelo multi-escopo. Aqui o PLAN só resolve pelo FALLBACK.
+        printf '# CLAUDE.md legado (protocolo inline, sem tabela de escopos)\n' > CLAUDE.md
+    else
+        {
+            printf '| Slug | Escopo | Estado | PLAN |\n|---|---|---|---|\n'
+            printf '| `teste` | escopo legado | 🟡 Ativo | [PLAN](PLAN.md) |\n'
+        } > CLAUDE.md
+    fi
+    garantir_sandbox
+    git add -A
+    git commit -qm base
+    BASE="$(git rev-parse HEAD)"
+    P=PLAN.md
 }
 
 # ⛔ TRAVA DE SANDBOX — nasceu de um acidente real (2026-08-28): na 1ª versão deste script `montar`
@@ -75,16 +106,16 @@ rodar() { HOME="${TMP}/lar" ./scripts/conferencia_saida.sh teste "$1" 2>&1; }
 
 P=docs/sessoes/teste/PLAN.md
 
-baton_para()   { python3 - "$1" <<'PY'
+baton_para()   { python3 - "${P}" "$1" <<'PY'
 import io,re,sys
-f='docs/sessoes/teste/PLAN.md'; s=io.open(f,encoding='utf-8').read()
-s=re.sub(r'^- \*\*🎬 Próximo:\*\*.*$', '- **🎬 Próximo:** '+sys.argv[1], s, count=1, flags=re.M)
+f=sys.argv[1]; s=io.open(f,encoding='utf-8').read()
+s=re.sub(r'^- \*\*🎬 Próximo:\*\*.*$', '- **🎬 Próximo:** '+sys.argv[2], s, count=1, flags=re.M)
 io.open(f,'w',encoding='utf-8').write(s)
 PY
 }
-escrever_contrato() { python3 - <<'PY'
-import io
-f='docs/sessoes/teste/PLAN.md'; s=io.open(f,encoding='utf-8').read()
+escrever_contrato() { python3 - "${P}" <<'PY'
+import io,sys
+f=sys.argv[1]; s=io.open(f,encoding='utf-8').read()
 s=s.replace('- [ ] <tarefa-marco atômica com uma checagem de pronto>',
             '- [ ] **T1 — primeira tarefa** com checagem\n- [ ] **T2 — segunda tarefa** com checagem')
 io.open(f,'w',encoding='utf-8').write(s)
@@ -247,6 +278,126 @@ grep -q 'registro retroativo' <<<"${saida}" && nok "passou pela porta 3, não pe
 [[ "${codigo}" -eq 0 ]] && ok "exit 0 — escopo legado segue trabalhando" || nok "exit != 0 — escopo legado foi travado"
 
 
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+# GATILHOS DO ⑥ — casos 15-17 (auditoria de cobertura, 2026-09-07)
+# O ⑥ tem QUATRO gatilhos alternativos para "esta sessão escreveu contrato"; até aqui o autoteste
+# exercitava só o quarto (≥2 checkboxes novos), porque é o que escrever_contrato() produz. Os
+# outros três nunca rodaram — e não é detalhe teórico: no contrato real do B3, em 2026-09-07, quem
+# disparou primeiro foi o gatilho `### Tarefas`. O caminho que os PLANs reais percorrem não era o
+# coberto. Se um gatilho parar de casar, o efeito é VERDE FALSO no item que guarda o aceite — o
+# defeito de 2026-08-24 de volta, com os outros três gatilhos dizendo que está tudo bem.
+# Cada caso abaixo isola UM gatilho: os demais não podem casar, senão o teste passa sem prová-lo.
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+
+titulo "15. ⑥ gatilho '### Tarefas' SOZINHO (1 só checkbox) ⇒ vermelho sem aceite"
+montar
+baton_para '⚙️ Executor · **Ponto de entrada:** T9 — nova'
+printf '\n### 📋 Tarefas\n\n- [ ] **T9 — nova**\n' >> "${P}"   # 1 checkbox: gatilho 4 NÃO casa
+linha_de_sessao; apontamento
+saida="$(rodar "${BASE}")"; codigo=$?
+grep -q '🔴 ⑥ SEM ACEITE' <<<"${saida}" && ok "⑥ disparou pelo cabeçalho de Tarefas" || { nok "⑥ NÃO disparou — contrato passaria sem aceite"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
+[[ "${codigo}" -ne 0 ]] && ok "exit != 0" || nok "exit 0 — commitaria contrato sem aceite"
+
+titulo "16. ⑥ gatilho tabela de critérios (B1-C1) SOZINHO (zero checkbox) ⇒ vermelho sem aceite"
+montar
+baton_para '⚙️ Executor · **Ponto de entrada:** T9 — nova'
+printf '\n| B1-C1 | comando de medição | alvo |\n' >> "${P}"   # nenhum checkbox novo
+linha_de_sessao; apontamento
+saida="$(rodar "${BASE}")"; codigo=$?
+grep -q '🔴 ⑥ SEM ACEITE' <<<"${saida}" && ok "⑥ disparou pela tabela de critérios" || { nok "⑥ NÃO disparou pela tabela"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
+[[ "${codigo}" -ne 0 ]] && ok "exit != 0" || nok "exit 0 — commitaria contrato sem aceite"
+
+titulo "17. ⑥ gatilho 'Critérios de aceite' SOZINHO (1 só checkbox) ⇒ vermelho sem aceite"
+montar
+baton_para '⚙️ Executor · **Ponto de entrada:** T9 — nova'
+printf '\n### Critérios de aceite\n\n- [ ] **T9 — nova**\n' >> "${P}"
+linha_de_sessao; apontamento
+saida="$(rodar "${BASE}")"; codigo=$?
+grep -q '🔴 ⑥ SEM ACEITE' <<<"${saida}" && ok "⑥ disparou pelo texto de critérios" || { nok "⑥ NÃO disparou pelo texto de critérios"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
+[[ "${codigo}" -ne 0 ]] && ok "exit != 0" || nok "exit 0 — commitaria contrato sem aceite"
+
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+# MODO --inicio — casos 18-19 (auditoria de cobertura, 2026-09-07)
+# É a defesa do lado do LEITOR, que o AGENTS.md manda rodar em TODO `start`: antes de obedecer ao
+# baton, confere se ele não manda refazer tarefa já [x]. Era o modo mais executado do portão e
+# tinha ZERO cobertura — se regredisse, pararia de proteger em silêncio.
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+
+titulo "18. --inicio com baton PODRE ⇒ ③ vermelho, exit 1 (sessão não deve executar)"
+montar
+escrever_contrato; baton_para '⚙️ Executor · **Ponto de entrada:** T1 — primeira tarefa'
+concluir_t1
+saida="$(HOME="${TMP}/lar" ./scripts/conferencia_saida.sh teste --inicio 2>&1)"; codigo=$?
+grep -q '🔴 ③ BATON PODRE' <<<"${saida}" && ok "③ acusou baton podre já no início" || { nok "③ NÃO acusou no --inicio — sessão refaria bloco pronto"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
+[[ "${codigo}" -ne 0 ]] && ok "exit != 0" || nok "exit 0 — o leitor seguiria executando"
+
+titulo "19. --inicio com baton SAUDÁVEL ⇒ exit 0, e ④⑤⑥ nem são avaliados"
+montar
+escrever_contrato; baton_para '⚙️ Executor · **Ponto de entrada:** T1 — primeira tarefa'
+saida="$(HOME="${TMP}/lar" ./scripts/conferencia_saida.sh teste --inicio 2>&1)"; codigo=$?
+[[ "${codigo}" -eq 0 ]] && ok "exit 0 — início legítimo não é travado" || { nok "exit != 0 — início legítimo travado"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
+grep -qE '④|⑤|⑥' <<<"${saida}" && nok "④/⑤/⑥ avaliados no --inicio — eles dependem de diff e apontamento, que no início não existem" || ok "④⑤⑥ corretamente fora do modo início"
+
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+# ① — casos 20-21 (auditoria de cobertura, 2026-09-07)
+# Só o ramo "1 linha 🎬" tinha cobertura. Os outros dois falhariam em VERDE FALSO: baton ausente
+# deixa a próxima sessão sem papel, e baton duplicado é a violação literal do invariante
+# anti-duplicação ("cada fato mora em um arquivo; atualize in-place").
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+
+titulo "20. NENHUMA linha 🎬 no PLAN ⇒ ① vermelho"
+montar
+escrever_contrato
+python3 - "${P}" <<'PYINNER'
+import io,re,sys
+f=sys.argv[1]; s=io.open(f,encoding='utf-8').read()
+io.open(f,'w',encoding='utf-8').write(re.sub(r'^- \*\*🎬 Próximo:\*\*.*$','',s,flags=re.M))
+PYINNER
+linha_de_sessao; aceite; apontamento
+saida="$(rodar "${BASE}")"; codigo=$?
+grep -q '🔴 ① nenhuma linha' <<<"${saida}" && ok "① acusou baton ausente" || nok "① NÃO acusou baton ausente"
+[[ "${codigo}" -ne 0 ]] && ok "exit != 0" || nok "exit 0 — próxima sessão ficaria sem papel"
+
+titulo "21. DUAS linhas 🎬 no PLAN ⇒ ① vermelho (invariante anti-duplicação)"
+montar
+escrever_contrato; baton_para '⚙️ Executor · **Ponto de entrada:** T1 — primeira tarefa'
+printf '\n- **🎬 Próximo:** 🧠 Planejador · **Ponto de entrada:** outra coisa\n' >> "${P}"
+linha_de_sessao; aceite; apontamento
+saida="$(rodar "${BASE}")"; codigo=$?
+grep -q '🔴 ① 2 linhas 🎬' <<<"${saida}" && ok "① acusou baton duplicado" || nok "① NÃO acusou duas cópias do mesmo estado"
+[[ "${codigo}" -ne 0 ]] && ok "exit != 0" || nok "exit 0 — duas fontes de verdade passariam"
+
+titulo "22. Legado COM índice: CLAUDE.md aponta para PLAN.md na raiz ⇒ tudo verde"
+# Escopo legado não será migrado (Tiago, 2026-09-07). Se a resolução do PLAN na raiz quebrar, o
+# portão nem acha o arquivo e o repo legado para de conseguir fechar sessão.
+montar_legado
+escrever_contrato; baton_para '⚙️ Executor · **Ponto de entrada:** T1 — primeira tarefa'
+printf '| 3 | %s | sessão legada | — |\n' "${HOJE}" >> "${P}"
+aceite
+printf '## [%s 10:00] teste\n\n**Sessão:** 3\n' "${HOJE}" > "${TMP}/lar/.claude/work-log/teste.md"
+saida="$(rodar "${BASE}")"; codigo=$?
+grep -q 'PLAN: PLAN.md' <<<"${saida}" && ok "resolveu o PLAN na raiz" || { nok "NÃO resolveu PLAN.md na raiz — repo legado não fecha sessão"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
+for item in '✅ ①' '✅ ②' '✅ ③' '✅ ④' '✅ ⑤' '✅ ⑥'; do
+    grep -q "${item}" <<<"${saida}" || nok "${item} não ficou verde no layout legado"
+done
+[[ "${codigo}" -eq 0 ]] && ok "exit 0 — escopo legado fecha sessão normalmente" || nok "exit != 0 — escopo legado travado"
+
+
+titulo "23. Legado SEM índice: PLAN.md na raiz só pelo FALLBACK ⇒ tudo verde"
+# Repo mono-escopo antigo: o CLAUDE.md traz o protocolo mas não tem tabela de escopos (ela é do
+# modelo multi-escopo). O slug não casa em índice nenhum, e o PLAN só é achado pela lista de
+# candidatos — `docs/sessoes/<slug>/PLAN.md`, depois `PLAN.md`. Este é o caminho MAIS provável num
+# repo legado de verdade, e o caso 22 não o exercita: lá o índice resolve antes.
+SEM_INDICE=1 montar_legado
+escrever_contrato; baton_para '⚙️ Executor · **Ponto de entrada:** T1 — primeira tarefa'
+printf '| 4 | %s | sessão legada sem índice | — |\n' "${HOJE}" >> "${P}"
+aceite
+printf '## [%s 10:00] teste\n\n**Sessão:** 4\n' "${HOJE}" > "${TMP}/lar/.claude/work-log/teste.md"
+saida="$(rodar "${BASE}")"; codigo=$?
+grep -q 'PLAN: PLAN.md' <<<"${saida}" && ok "fallback achou PLAN.md na raiz sem índice" || { nok "fallback NÃO achou o PLAN — repo legado mono-escopo não fecha sessão"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
+[[ "${codigo}" -eq 0 ]] && ok "exit 0" || nok "exit != 0 — legado sem índice travado"
+
+
 echo "------------------------------------------------------------------------"
 if [[ "${falhas}" -ne 0 ]]; then
     echo "🔴 AUTOTESTE REPROVADO — ${falhas} verificação(ões) falharam."
@@ -254,6 +405,7 @@ if [[ "${falhas}" -ne 0 ]]; then
     echo "   qualquer projeto: um portão que não dispara é pior que nenhum, porque dá verde."
     exit 1
 fi
-echo "✅ AUTOTESTE APROVADO — os 6 itens disparam nos dialetos dos templates, o gate 🔁 é lido,"
-echo "   o fechamento retroativo passa sem virar brecha, o lançador falha fechado, e o dialeto"
-echo "   legado segue atendido pela porta 2 do ⑤."
+echo "✅ AUTOTESTE APROVADO — 23 casos. Cobre: os 6 itens nos dialetos dos templates; os QUATRO"
+echo "   gatilhos do ⑥ isolados um a um; o modo --inicio (baton podre pega, baton são passa); os"
+echo "   três ramos do ①; as três portas do ⑤ (hoje, nº de sessão, retroativo) sem virar brecha;"
+echo "   o gate 🔁; o lançador falhando fechado; e o legado por índice E por fallback."
