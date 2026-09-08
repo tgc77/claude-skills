@@ -493,8 +493,8 @@ ressalva no relatório.
 **0. RODE O PORTÃO E COLE A SAÍDA CRUA no resumo da sessão — obrigatório, não é opcional:**
 `scripts/conferencia_saida.sh <slug> <commit em que esta sessão começou>` (o commit sai de
 `git rev-parse HEAD` no início; se esqueceu, é o último commit da sessão anterior). Ele sai com
-**exit 1** se a linha `🎬` continua **intacta** desde o início da sessão, se o ponto de entrada citado
-já está `[x]`, se o registro de sessões não ganhou linha nova, se falta o apontamento da sessão no
+**exit 1** se o **parágrafo do baton `🎬`** (a linha mais suas continuações indentadas) continua
+**intacto** desde o início da sessão, se o ponto de entrada citado já está `[x]`, se o registro de sessões não ganhou linha nova, se falta o apontamento da sessão no
 log, ou se **esta sessão escreveu contrato de bloco e passou o baton para ⚙️ sem a linha
 `**Aceite:** <quem>, <AAAA-MM-DD>` no PLAN** (item ⑥). **Declarar que conferiu não substitui rodar** — os itens 2, 3 e 5 abaixo já estavam escritos, com
 todas as letras, nas duas vezes em que o defeito passou. Repo sem o portão instalado (instalação

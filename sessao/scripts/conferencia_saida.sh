@@ -117,16 +117,38 @@ else
 fi
 linha_baton=$(grep -E "${REGEX_LINHA_BATON}" "${PLAN}" | head -1)
 
-# --- ② A linha 🎬 foi REESCRITA nesta sessão ---------------------------------------------------
+# --- ② O baton foi REESCRITO nesta sessão ------------------------------------------------------
 # É o item que pega o defeito real: sessão que trabalhou, avançou o ponto de entrada e deixou a
 # linha do handoff anterior de pé. Sessão que não mexe no baton não tem o que fechar.
+#
+# ⚠️ COMPARA O PARÁGRAFO INTEIRO DO BATON — corrigido em 2026-09-08, com repro. Antes ele procurava
+# `^\+.*🎬 Próximo` no diff, isto é, só a PRIMEIRA LINHA FÍSICA. Mas o baton é um parágrafo: a linha
+# `- **🎬 Próximo:**` mais as continuações indentadas, que carregam ponto de entrada, gates a
+# reestabelecer e avisos ao Executor. Enquanto o item olhava só a linha 1, uma sessão que mudasse o
+# parágrafo sem tocá-la era reprovada como se não tivesse passado baton nenhum — e a única saída era
+# reflowar o texto para empurrar a mudança para cima, ou seja, editar o PLAN para agradar o portão.
+# Caso real que motivou a correção: sessão de conferência de handoff que achou uma checagem de pronto
+# defeituosa, corrigiu-a e avisou o Executor nas linhas de continuação, mantendo — corretamente —
+# papel e ponto de entrada, porque nada tinha sido executado.
+extrai_paragrafo_baton() {
+    awk '
+        /^- \*\*🎬 Próximo:\*\*/            { dentro=1; print; next }
+        dentro && /^[[:space:]]+[^[:space:]]/ { print; next }
+        dentro                                { exit }
+    '
+}
 if [[ "${MODO}" == "inicio" ]]; then
     :
-elif grep -qE "^\+.*🎬 Próximo" <<<"${diff_do_plan}"; then
-    verde "② linha 🎬 reescrita nesta sessão (aparece no diff desde ${REF_BASE})"
 else
-    vermelho "② linha 🎬 INTACTA desde ${REF_BASE} — o baton não foi passado, foi só narrado"
-    printf '   linha atual: %s\n' "${linha_baton:0:120}"
+    baton_agora=$(extrai_paragrafo_baton < "${PLAN}")
+    # PLAN ausente na ref-base (escopo nascido nesta sessão) ⇒ base vazia ⇒ difere ⇒ verde.
+    baton_base=$(git show "${REF_BASE}:${PLAN}" 2>/dev/null | extrai_paragrafo_baton) || baton_base=""
+    if [[ "${baton_agora}" != "${baton_base}" ]]; then
+        verde "② baton 🎬 reescrito nesta sessão (parágrafo difere de ${REF_BASE})"
+    else
+        vermelho "② baton 🎬 INTACTO desde ${REF_BASE} — o baton não foi passado, foi só narrado"
+        printf '   linha atual: %s\n' "${linha_baton:0:120}"
+    fi
 fi
 
 # --- ③ O ponto de entrada citado não é tarefa já concluída -------------------------------------

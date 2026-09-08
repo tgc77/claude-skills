@@ -186,8 +186,8 @@ sessão sem linha no registro de sessões não existe para a próxima.*
    pela linha `**Relatório-fonte:**` ou `**Sessão:** <N>`. Log global/append-only, fora do commit.
 6. **✅ Conferência de saída** (mecânica, antes do commit; item vermelho = PARADA, não ressalva):
    **⓪ o portão executável `scripts/conferencia_saida.sh <slug> <commit do início da sessão>`, com a
-   saída crua colada no resumo** (reprova em linha `🎬` intacta, ponto de entrada já `[x]`, registro de
-   sessões sem linha nova, apontamento faltando) · critérios medidos e batendo · a **linha** `🎬 Próximo` coerente com o Board (bloco 🟢 ou tarefa `[x]`
+   saída crua colada no resumo** (reprova em parágrafo do baton `🎬` intacto, ponto de entrada já
+   `[x]`, registro de sessões sem linha nova, apontamento faltando) · critérios medidos e batendo · a **linha** `🎬 Próximo` coerente com o Board (bloco 🟢 ou tarefa `[x]`
    citada como ponto de entrada = baton podre) · resumos batendo com a linha `🎬` · bloco 🟢 com todas as
    tarefas `[x]` · número do registro de sessões vindo da **própria tabela + 1** (não do nº do
    relatório) · tudo in-place · `git status` sem arquivo alheio · **documento de interface atualizado**

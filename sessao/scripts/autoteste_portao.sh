@@ -131,7 +131,7 @@ titulo "1. Baton INTACTO desde o início da sessão ⇒ ② vermelho, exit 1"
 montar
 escrever_contrato; linha_de_sessao; apontamento
 saida="$(rodar "${BASE}")"; codigo=$?
-grep -q '🔴 ② linha 🎬 INTACTA' <<<"${saida}" && ok "② acusou baton intacto" || nok "② NÃO acusou baton intacto"
+grep -q '🔴 ② baton 🎬 INTACTO' <<<"${saida}" && ok "② acusou baton intacto" || nok "② NÃO acusou baton intacto"
 [[ "${codigo}" -ne 0 ]] && ok "exit != 0" || nok "exit 0 — deveria reprovar"
 
 titulo "2. Contrato novo + baton ⚙️ SEM aceite ⇒ ⑥ vermelho (o defeito de 2026-08-24)"
@@ -398,6 +398,40 @@ grep -q 'PLAN: PLAN.md' <<<"${saida}" && ok "fallback achou PLAN.md na raiz sem 
 [[ "${codigo}" -eq 0 ]] && ok "exit 0" || nok "exit != 0 — legado sem índice travado"
 
 
+titulo "24. Mudança SÓ nas linhas de continuação do baton ⇒ ② verde (o defeito de 2026-09-08)"
+# Sessão que corrige o contrato e avisa o Executor no baton, mantendo papel e ponto de entrada
+# porque nada foi executado. Enquanto o ② olhava só a 1ª linha física, isto era reprovado — e a
+# única saída era reflowar o PLAN para agradar o portão.
+montar
+escrever_contrato; baton_para '⚙️ Executor · **Ponto de entrada:** T1 — primeira tarefa'
+linha_de_sessao; aceite; apontamento
+garantir_sandbox; git add -A; git commit -qm "commit-base do cenario 24"; BASE_CONT="$(git rev-parse HEAD)"
+# a sessão seguinte NÃO toca a linha 🎬 — só acrescenta uma continuação indentada a ela
+python3 - "${P}" <<'PY'
+import io,re,sys
+f=sys.argv[1]; s=io.open(f,encoding='utf-8').read()
+s=re.sub(r'^(- \*\*🎬 Próximo:\*\*.*)$',
+         r'\1\n  ⚠️ a T2 mudou nesta sessão: use a checagem escrita hoje na tarefa.',
+         s, count=1, flags=re.M)
+io.open(f,'w',encoding='utf-8').write(s)
+PY
+linha_de_sessao; printf '## [%s 11:00] teste\n\n**Sessão:** 2\n' "${HOJE}" >> "${TMP}/lar/.claude/work-log/teste.md"
+saida="$(rodar "${BASE_CONT}")"; codigo=$?
+grep -q '✅ ②' <<<"${saida}" && ok "② aceitou mudança em linha de continuação" || { nok "② reprovou baton REALMENTE reescrito — o defeito de 2026-09-08 voltou"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
+[[ "${codigo}" -eq 0 ]] && ok "exit 0" || { nok "exit != 0"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
+
+titulo "25. Baton REALMENTE intacto (nem linha, nem continuação) ⇒ ② vermelho — o ② não virou frouxo"
+montar
+escrever_contrato; baton_para '⚙️ Executor · **Ponto de entrada:** T1 — primeira tarefa'
+linha_de_sessao; aceite; apontamento
+garantir_sandbox; git add -A; git commit -qm "commit-base do cenario 25"; BASE_INT="$(git rev-parse HEAD)"
+# a sessão seguinte mexe no PLAN, mas em nada que seja o baton
+printf '\nUma linha qualquer, longe do baton.\n' >> "${P}"
+linha_de_sessao
+saida="$(rodar "${BASE_INT}")"; codigo=$?
+grep -q '🔴 ② baton 🎬 INTACTO' <<<"${saida}" && ok "② ainda acusa baton intacto" || { nok "② deixou passar baton intacto — a correção virou brecha"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
+[[ "${codigo}" -ne 0 ]] && ok "exit != 0" || nok "exit 0 — deveria reprovar"
+
 echo "------------------------------------------------------------------------"
 if [[ "${falhas}" -ne 0 ]]; then
     echo "🔴 AUTOTESTE REPROVADO — ${falhas} verificação(ões) falharam."
@@ -405,7 +439,8 @@ if [[ "${falhas}" -ne 0 ]]; then
     echo "   qualquer projeto: um portão que não dispara é pior que nenhum, porque dá verde."
     exit 1
 fi
-echo "✅ AUTOTESTE APROVADO — 23 casos. Cobre: os 6 itens nos dialetos dos templates; os QUATRO"
+echo "✅ AUTOTESTE APROVADO — 25 casos. Cobre: os 6 itens nos dialetos dos templates; os QUATRO"
 echo "   gatilhos do ⑥ isolados um a um; o modo --inicio (baton podre pega, baton são passa); os"
 echo "   três ramos do ①; as três portas do ⑤ (hoje, nº de sessão, retroativo) sem virar brecha;"
-echo "   o gate 🔁; o lançador falhando fechado; e o legado por índice E por fallback."
+echo "   o gate 🔁; o lançador falhando fechado; o legado por índice E por fallback; e o ② medindo o"
+echo "   PARÁGRAFO do baton — continuação conta como reescrita, baton intacto continua reprovando."
