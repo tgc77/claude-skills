@@ -75,7 +75,7 @@ serão detalhados/replanejados ao chegar a vez — a ordem pode mudar.
 - **Escalonamento (PARE e devolva ao Planejador se):** <condições que exigem decisão de design>.
 - **Evidência a capturar no relatório:** <saídas/números/artefatos a registrar>.
 
-**Aceite:** <quem>, <AAAA-MM-DD>
+**Aceite:** <quem>, <AAAA-MM-DD> (bloco <B-id>)
 > ⛔ Linha **obrigatória** para selar o contrato: o item ⑥ do `scripts/conferencia_saida.sh` reprova o
 > commit se esta sessão escreveu contrato, passou o baton para ⚙️ e **não** acrescentou esta linha.
 > Ela é preenchida **depois** de o plano ser mostrado ao usuário e aceito por ele — **responder às

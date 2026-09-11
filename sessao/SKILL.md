@@ -496,7 +496,7 @@ ressalva no relatório.
 **exit 1** se o **parágrafo do baton `🎬`** (a linha mais suas continuações indentadas) continua
 **intacto** desde o início da sessão, se o ponto de entrada citado já está `[x]`, se o registro de sessões não ganhou linha nova, se falta o apontamento da sessão no
 log, ou se **esta sessão escreveu contrato de bloco e passou o baton para ⚙️ sem a linha
-`**Aceite:** <quem>, <AAAA-MM-DD>` no PLAN** (item ⑥). **Declarar que conferiu não substitui rodar** — os itens 2, 3 e 5 abaixo já estavam escritos, com
+`**Aceite:** <quem>, <AAAA-MM-DD> (bloco <id>)` no PLAN** (item ⑥). **Declarar que conferiu não substitui rodar** — os itens 2, 3 e 5 abaixo já estavam escritos, com
 todas as letras, nas duas vezes em que o defeito passou. Repo sem o portão instalado (instalação
 anterior a ele): copie o **lançador** `scripts/conferencia_saida.shim.sh` da skill para
 `scripts/conferencia_saida.sh` do projeto — é a mesma correção. Projeto que ainda tenha a **cópia
@@ -572,7 +572,9 @@ contra o dialeto de UM repo (`### 📋 Tarefas`, critérios em tabela, sessões 
   sessão, o `end` **para** e pergunta antes de commitar.
   **PLANO TAMBÉM É REGISTRO — e é o caso que mais escapa.** Selar um bloco (escrever o contrato no
   `PLAN.md`, gravar o baton, commitar) exige **decisões pendentes zeradas** e o **plano mostrado e
-  aceito**, registrado como `**Aceite:** <quem>, <AAAA-MM-DD>` no bloco. ⚠️ **Responder às perguntas
+  aceito**, registrado como `**Aceite:** <quem>, <AAAA-MM-DD> (bloco <id>)` no bloco — o
+  identificador do bloco é obrigatório: sem ele, dois blocos aceitos pela mesma pessoa no mesmo dia
+  produzem linhas idênticas e o item ⑥ cega (falso negativo de 2026-09-11). ⚠️ **Responder às perguntas
   do agente NÃO é aceitar o plano:** 3 perguntas respondidas fecham as 3 perguntas, não abrem o
   commit. O portão confere isso no item ⑥ — a regra já falhou uma vez estando escrita em três lugares
   ao mesmo tempo, o que prova que prosa auto-atestada não segura.

@@ -270,9 +270,27 @@ if [[ "${MODO}" != "inicio" ]]; then
             verde "⑥ contrato novo com aceite registrado NESTA sessão"
         else
             vermelho "⑥ SEM ACEITE: esta sessão escreveu contrato de bloco e passou o baton para ⚙️,"
-            printf '   mas o PLAN não ganhou a linha "**Aceite:** <quem>, <AAAA-MM-DD>" nesta sessão.\n'
+            printf '   mas o PLAN não ganhou a linha "**Aceite:** <quem>, <AAAA-MM-DD> (bloco <id>)" nesta sessão.\n'
             printf '   Mostre o plano ao usuário e só commite depois do aceite explícito dele.\n'
             printf '   Responder às perguntas do agente NÃO é aceitar o plano.\n'
+            # FALSO NEGATIVO CONHECIDO (2026-09-11) — aceite REAL que o diff não enxerga.
+            # A linha de aceite de dois blocos aceitos pela MESMA pessoa no MESMO dia sai byte a
+            # byte idêntica; o `git diff` a trata como contexto e o grep de `^+` acima não acha
+            # linha nova. O aceite existe, o portão é que fica cego. Não dá para afrouxar o item
+            # (seria a volta do "aceite eterno", defeito (b) acima) — a saída é a linha carregar o
+            # identificador do bloco, que é informação que faltava ao registro de qualquer forma:
+            # num PLAN que acumula blocos, "**Aceite:** Fulano, 2026-09-11" sozinho não diz a QUAL
+            # bloco pertence. Aqui o portão só ENSINA o caminho; continua vermelho, porque a
+            # evidência ainda não está no arquivo.
+            if grep -qE '^\*\*Aceite:\*\* .+, [0-9]{4}-[0-9]{2}-[0-9]{2}' "${PLAN}" \
+               && grep -qE '^\+.*Bloco ativo' <<<"${diff_do_plan}"; then
+                printf '\n   ⚠️  DIAGNÓSTICO: o PLAN TEM uma linha de aceite e o bloco ativo mudou nesta\n'
+                printf '   sessão. Se esse aceite É desta sessão, ele está invisível ao diff por ser byte a\n'
+                printf '   byte IDÊNTICO ao de um bloco anterior (mesma pessoa, mesma data). Identifique o\n'
+                printf '   bloco na linha — e aí ela passa a ser linha nova de fato:\n'
+                printf '       **Aceite:** <quem>, <AAAA-MM-DD> (bloco <id>)\n'
+                printf '   Isto NÃO afrouxa o item: torna o aceite deste bloco distinguível do anterior.\n'
+            fi
         fi
     fi
 fi

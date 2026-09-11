@@ -227,7 +227,7 @@ Três portas levam aqui: **bloco fechou** (Executor auto-dispara, com relatório
    **exit 1** se a linha `🎬` continua **intacta** desde o início da sessão, se o ponto de entrada
    citado já está `[x]`, se o registro de sessões não ganhou linha nova, se falta o apontamento da
    sessão no log, ou se **esta sessão escreveu contrato de bloco e passou o baton para ⚙️ sem a linha
-   `**Aceite:** <quem>, <AAAA-MM-DD>`** (item ⑥).
+   `**Aceite:** <quem>, <AAAA-MM-DD> (bloco <id>)`** (item ⑥).
    ⏱️ **Rode-o no passo 6, depois da validação e do apontamento** — antes disso o item ⑤ reprova por
    um motivo falso, já que o log ainda não foi (nem deve ter sido) escrito. **Declarar que conferiu não substitui rodar:** os itens ② e ⑤ abaixo já estavam
    escritos quando o defeito passou — duas vezes, em sessões que relataram tudo com honestidade.
@@ -282,7 +282,11 @@ Três portas levam aqui: **bloco fechou** (Executor auto-dispara, com relatório
   **PLANO TAMBÉM É REGISTRO.** Selar um bloco — escrever o contrato no `PLAN.md`, gravar o baton e
   commitar — exige as duas coisas: (a) **todas as decisões pendentes resolvidas**, nenhuma empurrada
   como "recomendação" no fim da mensagem nem deixada para o Executor decidir; e (b) o **plano mostrado
-  ao usuário e ACEITO por ele**, com a linha `**Aceite:** <quem>, <AAAA-MM-DD>` no bloco.
+  ao usuário e ACEITO por ele**, com a linha `**Aceite:** <quem>, <AAAA-MM-DD> (bloco <id>)` no
+  bloco. ⚠️ **O `(bloco <id>)` não é enfeite:** num PLAN que acumula blocos a linha sem ele não diz
+  a qual bloco pertence, e dois blocos aceitos pela mesma pessoa no mesmo dia geram linhas byte a
+  byte idênticas — o item ⑥ procura linha *acrescentada* no diff, não vê nada e reprova um aceite
+  que existe.
   ⚠️ **Responder às perguntas do agente NÃO é aceitar o plano.** Perguntei 3 coisas e recebi 3
   respostas? Isso fecha as 3 perguntas — não abre o commit. Conferido **mecanicamente** pelo item ⑥
   do [`scripts/conferencia_saida.sh`](scripts/conferencia_saida.sh), porque a regra já falhou estando

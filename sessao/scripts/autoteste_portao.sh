@@ -432,6 +432,43 @@ saida="$(rodar "${BASE_INT}")"; codigo=$?
 grep -q '🔴 ② baton 🎬 INTACTO' <<<"${saida}" && ok "② ainda acusa baton intacto" || { nok "② deixou passar baton intacto — a correção virou brecha"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
 [[ "${codigo}" -ne 0 ]] && ok "exit != 0" || nok "exit 0 — deveria reprovar"
 
+# ------------------------------------------------------------------------------------------------
+# FALSO NEGATIVO DO ⑥ — caso 26 (defeito observado em 2026-09-11, repo sfz-cobranca-dag)
+# Dois blocos aceitos pela MESMA pessoa no MESMO dia geram linha de aceite byte a byte idêntica.
+# O `git diff` a trata como contexto, o grep de `^+` do ⑥ não acha linha nova, e o portão reprova
+# um aceite que EXISTE. Afrouxar o item traria de volta o "aceite eterno" (defeito (b)), então a
+# saída é a linha carregar o identificador do bloco. O portão continua vermelho — mas tem de
+# DIAGNOSTICAR, em vez de mandar o autor procurar um aceite que ele já deu.
+titulo "26. Aceite do bloco anterior IDÊNTICO (mesma pessoa, mesmo dia) ⇒ ⑥ vermelho COM diagnóstico"
+montar
+escrever_contrato; baton_para '⚙️ Executor · **Ponto de entrada:** T1 — primeira tarefa'
+aceite; linha_de_sessao; apontamento
+garantir_sandbox; git add -A; git commit -qm "commit-base do cenario 26"; BASE_26="$(git rev-parse HEAD)"
+# sessão nova: bloco ativo trocado, contrato novo, e o aceite REESCRITO com o MESMO texto
+sed -i 's/^## 🎯 Bloco ativo: .*/## 🎯 Bloco ativo: B2 — bloco seguinte (🔧 mecânico)/' "${P}"
+printf '\n- [ ] **T1 — tarefa do B2** com checagem\n- [ ] **T2 — outra do B2** com checagem\n' >> "${P}"
+linha_de_sessao
+baton_para '⚙️ Executor · **Ponto de entrada:** T1 — tarefa do B2'
+saida="$(rodar "${BASE_26}")"; codigo=$?
+grep -q '🔴 ⑥ SEM ACEITE' <<<"${saida}" && ok "⑥ continua vermelho (não virou brecha)" || nok "⑥ ficou verde — o aceite eterno voltou"
+grep -q 'DIAGNÓSTICO' <<<"${saida}" && ok "⑥ diagnosticou o falso negativo em vez de só acusar" || { nok "⑥ não diagnosticou — autor vai procurar aceite que já deu"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
+[[ "${codigo}" -ne 0 ]] && ok "exit != 0" || nok "exit 0 — deveria reprovar"
+
+titulo "27. Mesma situação, com o identificador do bloco na linha ⇒ ⑥ verde"
+montar
+escrever_contrato; baton_para '⚙️ Executor · **Ponto de entrada:** T1 — primeira tarefa'
+printf '\n**Aceite:** Fulano, %s (bloco B1)\n' "${HOJE}" >> "${P}"
+linha_de_sessao; apontamento
+garantir_sandbox; git add -A; git commit -qm "commit-base do cenario 27"; BASE_27="$(git rev-parse HEAD)"
+sed -i 's/^## 🎯 Bloco ativo: .*/## 🎯 Bloco ativo: B2 — bloco seguinte (🔧 mecânico)/' "${P}"
+printf '\n- [ ] **T1 — tarefa do B2** com checagem\n- [ ] **T2 — outra do B2** com checagem\n' >> "${P}"
+sed -i "s/^\*\*Aceite:\*\* Fulano, ${HOJE} (bloco B1)/**Aceite:** Fulano, ${HOJE} (bloco B2)/" "${P}"
+linha_de_sessao
+baton_para '⚙️ Executor · **Ponto de entrada:** T1 — tarefa do B2'
+saida="$(rodar "${BASE_27}")"; codigo=$?
+grep -q '✅ ⑥' <<<"${saida}" && ok "⑥ enxergou o aceite do bloco novo" || { nok "⑥ seguiu cego mesmo com o identificador"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
+[[ "${codigo}" -eq 0 ]] && ok "exit 0" || { nok "exit != 0"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
+
 echo "------------------------------------------------------------------------"
 if [[ "${falhas}" -ne 0 ]]; then
     echo "🔴 AUTOTESTE REPROVADO — ${falhas} verificação(ões) falharam."
@@ -439,8 +476,9 @@ if [[ "${falhas}" -ne 0 ]]; then
     echo "   qualquer projeto: um portão que não dispara é pior que nenhum, porque dá verde."
     exit 1
 fi
-echo "✅ AUTOTESTE APROVADO — 25 casos. Cobre: os 6 itens nos dialetos dos templates; os QUATRO"
+echo "✅ AUTOTESTE APROVADO — 27 casos. Cobre: os 6 itens nos dialetos dos templates; os QUATRO"
 echo "   gatilhos do ⑥ isolados um a um; o modo --inicio (baton podre pega, baton são passa); os"
 echo "   três ramos do ①; as três portas do ⑤ (hoje, nº de sessão, retroativo) sem virar brecha;"
 echo "   o gate 🔁; o lançador falhando fechado; o legado por índice E por fallback; e o ② medindo o"
-echo "   PARÁGRAFO do baton — continuação conta como reescrita, baton intacto continua reprovando."
+echo "   PARÁGRAFO do baton — continuação conta como reescrita, baton intacto continua reprovando;
+   e o falso negativo do ⑥ (aceite idêntico entre blocos do mesmo dia) diagnosticado, não afrouxado."
