@@ -1,0 +1,4 @@
+# Cache do Claude Code: skills sincronizadas da conta (as que aparecem como
+# `anthropic-skills:*`). São baixadas e reescritas pela própria ferramenta,
+# nomeadas por IDs de organização/conta, e não são conteúdo deste repo.
+synced/
