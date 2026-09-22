@@ -36,5 +36,11 @@
 ## 📦 Resultado prático
 - <impacto concreto, com número quando houver>
 
+## 📎 Documentos e páginas
+<Todo artefato com endereço próprio publicado ou atualizado no período — página web, documento
+ entregue a terceiro, relatório de execução, dashboard. Link markdown com título descritivo.
+ Marque o que ainda está privado/não compartilhado. Omita a seção só se não houve nenhum.>
+- [<nome do documento>](<url>) — <o que é; se foi criado ou atualizado, e o que mudou>
+
 ## 📍 Pendências para continuidade
 - ...   (pode ser tabela com coluna Prioridade 🔴 Alta / 🟡 Média quando fizer sentido)

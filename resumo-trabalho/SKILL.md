@@ -1,9 +1,4 @@
 ---
-
-> 🔤 **Invocação:** `/resumo-trabalho <sub>` no **Claude Code**; `$resumo-trabalho <sub>` ou
-> `@resumo-trabalho <sub>` no **Codex** — o comportamento é idêntico.
-> 📒 **Onde o log mora:** `$SESSAO_WORKLOG_DIR` se definido, senão `~/.claude/work-log/`. É só o
-> endereço do arquivo: qualquer ferramenta lê e escreve nele.
 name: resumo-trabalho
 description: >-
   Registra o que foi feito em cada sessão de trabalho, organizado por label/card do GitLab (uma
@@ -17,6 +12,11 @@ description: >-
   (não fica dentro de um repo), então sessões em repos distintos no mesmo dia/card alimentam o mesmo
   resumo.
 ---
+
+> 🔤 **Invocação:** `/resumo-trabalho <sub>` no **Claude Code**; `$resumo-trabalho <sub>` ou
+> `@resumo-trabalho <sub>` no **Codex** — o comportamento é idêntico.
+> 📒 **Onde o log mora:** `$SESSAO_WORKLOG_DIR` se definido, senão `~/.claude/work-log/`. É só o
+> endereço do arquivo: qualquer ferramenta lê e escreve nele.
 
 # Skill: resumo-trabalho — Registro por card e resumo no modelo "Apontamentos"
 
@@ -177,8 +177,30 @@ equivalente.
 - [ ] O bloco `🧭 Para entender este apontamento` tem 3-6 itens de 1 linha (ou foi omitido por não
       haver termos recorrentes)?
 - [ ] Os números aparecem como números, não como adjetivos?
+- [ ] **Toda página, documento ou relatório publicado no período está no apontamento, com o link?**
 - [ ] Um gerente que conhece o projeto mas não mexe no código conseguiria explicar, com suas palavras,
       **o que foi feito e por que importa**, depois de ler uma vez?
+
+## 🔗 Links dos documentos gerados (OBRIGATÓRIO em `registrar` e `gerar`)
+
+**Todo documento, página ou relatório publicado no período entra no apontamento com o link clicável.**
+Vale para página web publicada, documento entregue a terceiro, relatório de execução, dashboard — o
+que tiver endereço próprio.
+
+**Por quê:** o apontamento é colado num card e lido por quem **não** acompanhou o trabalho. Dizer "a
+página foi entregue ao Alisson" sem o endereço obriga quem lê a perguntar onde está — e o artefato,
+que muitas vezes é o entregável mais visível do dia, fica invisível no registro. O link transforma o
+apontamento em ponto de partida, não em aviso.
+
+**Como:**
+- No `registrar`, guarde o link junto da entrada, no item que descreve o trabalho. Quem registra tem
+  o endereço na mão; quem gera, dias depois, não tem como recuperá-lo.
+- No `gerar`, cite o link **inline** na subseção que descreve o trabalho **e** reúna todos numa seção
+  `## 📎 Documentos e páginas` antes das pendências. Use markdown de link com título descritivo
+  (`[nome do documento](url)`), nunca URL crua solta nem "ver anexo".
+- Inclua também os documentos **atualizados** no período, não só os criados — e diga o que mudou.
+- Se um artefato é privado e ainda não foi compartilhado com o destinatário, **diga isso ao lado do
+  link**: é pendência, não entrega concluída.
 
 ## `registrar` — passo a passo
 
