@@ -11,7 +11,7 @@
 
 | Parâmetro do escopo    | Valor                                                     |
 |------------------------|-----------------------------------------------------------|
-| **Slug**               | `<slug>` — identificador único: nome desta pasta, argumento do comando (`/sessao start <slug>`) e label do apontamento (`~/.claude/work-log/<slug>.md`). **Um escopo, um nome: sem apelidos.** |
+| **Slug**               | `<slug>` — identificador único: nome desta pasta, argumento do comando (`/sessao start <slug>`) e label do apontamento (`<work-log>/<slug>.md`). **Um escopo, um nome: sem apelidos.** |
 | **Branch de trabalho** | `<branch>`                                                |
 | **Ambiente**           | <ambiente/cluster + variáveis obrigatórias (ex.: KUBECONFIG=...)> |
 | **Namespaces / alvos** | <onde se mexe>                                            |
@@ -108,6 +108,10 @@ serão detalhados/replanejados ao chegar a vez — a ordem pode mudar.
 ---
 
 ## 📒 Registro de sessões (1 linha + link; o detalhe vive no relatório)
+
+> **Append-only:** cada sessão que termina acrescenta **uma** linha **no fim** da tabela. A posição
+> dela entre as linhas de mesma data dá a chave do apontamento — `<AAAA-MM-DD>#<k>` (`#1` = 1ª sessão
+> do dia) —, que vai na linha `**Sessão:**` do log e que o portão confere.
 
 | Data   | Bloco(s) | Resumo     | Relatório |
 |--------|----------|------------|-----------|

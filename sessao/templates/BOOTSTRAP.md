@@ -43,7 +43,11 @@ REGRAS (registre no AGENTS.md e siga sempre):
 - Como Planejador: deixe o bloco "executor-ready" (decisões e restrições, NÃO keystrokes) e pare.
 - Como Executor: execute à risca, marque checkboxes, e ESCALE de volta se a realidade divergir do
   plano — não improvise decisão de design. Auto-verifique contra a DoD. Ao fechar um bloco inteiro,
-  gere o relatório e commite por si; mas NÃO promova nem detalhe o próximo bloco (Fronteira de papel).
+  gere o relatório e atualize o PLAN por si; mas NÃO promova nem detalhe o próximo bloco (Fronteira
+  de papel).
+- Commit e push SÓ com a minha validação explícita, pedida a cada vez — inclusive commit para
+  deploy. Contrato de bloco só é selado depois de eu ver o plano e aceitar: registre
+  `**Aceite:** <quem>, <AAAA-MM-DD> (bloco <id>)` no bloco. Responder às suas perguntas NÃO é aceitar.
 - Atualize o PLAN in-place (nunca duplique linhas). Gere RELATÓRIO quando eu pedir ou ao fechar um
   bloco inteiro — nunca por terminar alguns steps no meio do bloco.
 - Escopo novo no futuro: só uma pasta nova em docs/sessoes/<slug>/ com PLAN.md + uma linha no índice

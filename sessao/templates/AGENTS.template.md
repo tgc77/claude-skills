@@ -197,26 +197,33 @@ Três portas levam aqui: **bloco fechou** (Executor auto-dispara, com relatório
    (comandos, saídas, números) que permite resgatar uma ação de sessões anteriores com precisão.
 2. **Atualize o `PLAN.md` do escopo** (in-place): cabeçalho "Agora"; **baton `🎬 Próximo`** (papel +
    ponto de entrada da próxima sessão); Board; checkboxes do bloco ativo; Registro de sessões (1 linha
-   + link). Se o bloco fechou: **Planejador** promove o próximo de rascunho a detalhado e replaneja o
+   + link, **acrescentada no fim** — o §8 é append-only, porque a posição da linha entra na chave do
+   apontamento). Se o bloco fechou: **Planejador** promove o próximo de rascunho a detalhado e replaneja o
    resto; **Executor** só marca 🟢, grava o baton `🧠 Planejador` com o motivo e para.
 3. Se o **escopo inteiro** fechou, marque-o 🟢 na tabela de escopos **deste arquivo** — a pasta
    fica como histórico. Atualize ponteiros de memória só se algo de alto nível mudou.
 4. **Registre o apontamento no `resumo-trabalho` — SÓ DEPOIS de o usuário validar o commit (passo 6).**
-   O label **é o slug** do escopo, e o log é `~/.claude/work-log/<slug>.md` (global, append-only —
-   **não** entra no commit). ⛔ **Validou ⇒ escreve automaticamente; não validou ⇒ não escreve nada.**
+   O label **é o slug** do escopo, e o log é `<work-log>/<slug>.md` — `<work-log>` é
+   `$SESSAO_WORKLOG_DIR`, ou `~/.claude/work-log` se ela não estiver definida (global, append-only —
+   **não** entra no commit; log novo nasce com `# Label: <slug>` na 1ª linha). ⛔ **Validou ⇒ escreve automaticamente; não validou ⇒ não escreve nada.**
    O log é append-only e mora fora do repo: apontamento gravado sobre trabalho que o usuário rejeitou
    vira histórico falso que nenhum `git reset` desfaz.
    **🔑 INVARIANTE: uma sessão que termina = UMA entrada. O índice é a SESSÃO, não o relatório.** Toda
    sessão que chega a `end` **ou** a `handoff` grava a sua: fechou bloco, parou no meio, fez handoff ou
    só validou. **Relatório é matéria-prima quando existe, não é a condição para registrar** — quando não
-   existe, a fonte é a **linha do §8 + a entrada do §7 + os commits** daquela sessão. Idempotência pelas
-   linhas de rastreio sob o cabeçalho: `**Relatório-fonte:** <caminho>` e/ou `**Sessão:** <N>`. Horário
-   do cabeçalho = quando a sessão **aconteceu**, não quando você escreve.
+   existe, a fonte é a **linha do §8 + a entrada do §7 + os commits** daquela sessão. Horário do
+   cabeçalho = quando a sessão **aconteceu**, não quando você escreve.
+   **Chave da sessão — sai da linha dela no §8, nunca da memória:** tabela com coluna de número → o
+   número (`11`); tabela sem ela (a deste template) → `<AAAA-MM-DD>#<k>`, com k = posição da linha
+   entre as de mesma data, contando de cima (`2026-09-24#2` é a 2ª sessão do dia). Grave-a logo abaixo
+   do cabeçalho da entrada, **logo depois dos dois-pontos**: `**Sessão:** 2026-09-24#2 · B5 (⚙️ Executor)`,
+   junto de `**Relatório-fonte:** <caminho>` (ou `— sessão sem relatório`). **Idempotência:** chave já
+   presente no log ⇒ não grave de novo.
    *Por que este invariante existe:* enquanto o passo era indexado por **relatório**, toda sessão sem
    relatório **sumia do apontamento** — pedia-se o resumo do dia e faltava metade do trabalho, **sem
    nenhum sinal de erro**, porque o passo "rodava com sucesso" por não ter o que coletar.
    ⚠️ **Pedido de resumo dentro de um escopo é DAQUELE escopo:** "gere os apontamentos de hoje" resolve
-   para `gerar <slug>` — **um** arquivo. Nunca varra `~/.claude/work-log/*.md` nem use `gerar dia`: "hoje"
+   para `gerar <slug>` — **um** arquivo. Nunca varra `<work-log>/*.md` nem use `gerar dia`: "hoje"
    é filtro de **data dentro do escopo**, não o universo de busca, e misturar labels entrega ao card do
    GitLab trabalho de outra frente.
 5. **✅ Conferência de saída — antes do commit, sempre.** Mecânica, não subjetiva; qualquer item
@@ -224,27 +231,33 @@ Três portas levam aqui: **bloco fechou** (Executor auto-dispara, com relatório
    ⓪ **RODE O PORTÃO E COLE A SAÍDA CRUA no resumo da sessão — obrigatório, não é opcional:**
    `scripts/conferencia_saida.sh <slug> <commit em que esta sessão começou>` (o commit sai de
    `git rev-parse HEAD` no início; se esqueceu, é o último commit da sessão anterior). Ele reprova com
-   **exit 1** se a linha `🎬` continua **intacta** desde o início da sessão, se o ponto de entrada
-   citado já está `[x]`, se o registro de sessões não ganhou linha nova, se falta o apontamento da
-   sessão no log, ou se **esta sessão escreveu contrato de bloco e passou o baton para ⚙️ sem a linha
-   `**Aceite:** <quem>, <AAAA-MM-DD> (bloco <id>)`** (item ⑥).
+   **exit 1** se a linha `🎬` falta ou está duplicada (①), se o **parágrafo** do baton `🎬` continua
+   **intacto** desde o início da sessão (②), se o ponto de entrada citado já está `[x]` (③), se o
+   registro de sessões não ganhou linha nova (④), se alguma linha nova do §8 não tem a **sua** chave
+   `**Sessão:**` no log (⑤), ou se **esta sessão escreveu contrato de bloco e passou o baton para ⚙️
+   sem a linha `**Aceite:** <quem>, <AAAA-MM-DD> (bloco <id>)`** (⑥).
    ⏱️ **Rode-o no passo 6, depois da validação e do apontamento** — antes disso o item ⑤ reprova por
-   um motivo falso, já que o log ainda não foi (nem deve ter sido) escrito. **Declarar que conferiu não substitui rodar:** os itens ② e ⑤ abaixo já estavam
+   um motivo falso, já que o log ainda não foi (nem deve ter sido) escrito. **Declarar que conferiu não substitui rodar:** os itens 2) e 5) abaixo já estavam
    escritos quando o defeito passou — duas vezes, em sessões que relataram tudo com honestidade.
-   Os itens ①-⑧ seguem **na mão**; o portão cobre só os quatro decidíveis por comando.
-   ① todo critério de aceite **medido** (comando + saída) e batendo — um só que não bata impede o 🟢;
-   ② a **linha** `🎬 Próximo` diz o papel e o ponto de entrada certos **para depois desta sessão**, e
+   Os itens 1)–9) abaixo seguem **na mão** (numerados à parte de propósito: ①-⑥ são os do portão);
+   o portão cobre os seis decidíveis por comando.
+   1) todo critério de aceite **medido** (comando + saída) e batendo — um só que não bata impede o 🟢;
+   2) a **linha** `🎬 Próximo` diz o papel e o ponto de entrada certos **para depois desta sessão**, e
    não contradiz o Board (bloco 🟢 ou tarefa `[x]` citada como ponto de entrada = baton podre);
-   ③ cabeçalho, Board, registro de sessões e mensagem de commit **batem com a linha `🎬`** — ela vence;
-   ④ todo bloco 🟢 tem todas as tarefas `[x]`;
-   ⑤ o identificador da linha nova do registro de sessões vem do **último valor da própria tabela + 1**,
-   não do número do relatório (série própria, quase nunca coincide);
-   ⑥ tudo escrito **in-place**, sem 2ª cópia de campo que já existia;
-   ⑦ `git status` sem arquivos alheios ao escopo/sessão;
-   ⑧ **documento de interface não envelheceu** — se a sessão mudou comportamento que algum documento
+   3) cabeçalho, Board, registro de sessões e mensagem de commit **batem com a linha `🎬`** — ela vence;
+   4) todo bloco 🟢 tem todas as tarefas `[x]`;
+   5) a chave da sessão sai **do arquivo**: com coluna de número, **último valor da própria tabela + 1**
+   (nunca o número do relatório, série própria que quase nunca coincide); sem ela, `<data>#<k>`;
+   6) tudo escrito **in-place**, sem 2ª cópia de campo que já existia;
+   7) `git status` sem arquivos alheios ao escopo/sessão;
+   8) **documento de interface não envelheceu** — se a sessão mudou comportamento que algum documento
    voltado a terceiro descreve (chefe/negócio, DBA, README do escopo), ele foi **atualizado nesta
-   sessão** ou a pendência está escrita com dono. É o único item desta lista cuja falha **ninguém
-   descobre lendo código nem rodando teste**.
+   sessão** ou a pendência está escrita com dono. É o item cuja falha **ninguém descobre lendo
+   código nem rodando teste**;
+   9) **nenhuma decisão pendente foi selada por fora** — decisão do usuário que ficou sem resposta não
+   vira premissa do contrato, "recomendação" no fim da mensagem nem tarefa do Executor: ou foi
+   respondida, ou o bloco não fecha. É irmão do ⑥ do portão — o ⑥ pega a **falta** de aceite; este
+   pega o aceite obtido sobre um plano **incompleto**, que nenhum comando enxerga.
 6. **Commit — SOMENTE com validação explícita do usuário.** Apresente o que foi feito e **pergunte se
    pode commitar**; sem o "ok", tudo fica no working tree. Com o "ok": escreva o apontamento (passo 4),
    rode o portão (passo 5) e então commite o relatório + PLAN + demais mudanças, em **cada** repo

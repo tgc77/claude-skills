@@ -26,19 +26,21 @@ plano rígido que a realidade contradiz.
 |---|---|---|
 | **`AGENTS.md`** (raiz) | **Como trabalhar** (protocolo permanente, agnóstico de escopo) + **índice de escopos**. O `CLAUDE.md` só o importa (`@AGENTS.md`). | Sempre (automático). |
 | **`docs/sessoes/<escopo>/PLAN.md`** | **Fonte única de verdade viva daquele escopo**: "Agora" + parâmetros + guardrails + Board + bloco ativo + blocos futuros (rascunho) + decisões + registro de sessões. | Sempre — só o cabeçalho + bloco ativo. |
-| **`docs/sessoes/<escopo>/RELATORIO_<bloco>_<data>.md`** | **Histórico denso** (problema→causa→solução→evidência), 1 por sessão. | Quase nunca — só para resgatar um detalhe. |
+| **`docs/sessoes/<escopo>/RELATORIO_<bloco>_<data>.md`** | **Histórico denso** (problema→causa→solução→evidência), 1 por bloco fechado (ou quando pedido). | Quase nunca — só para resgatar um detalhe. |
 | **Memória** | **Ponteiros** de alto nível entre sessões. | Índice sempre; detalhe sob demanda. |
 
 Mapa mental: **regras + índice** (AGENTS) · **estado+plano** (PLAN do escopo) ·
 **detalhe** (relatórios) · **ganchos** (memória). Não existe arquivo de STATUS separado — ele é a
 primeira seção do `PLAN.md`.
 
-**Escoadouro automático — apontamentos por escopo:** o `end` alimenta o log da skill `resumo-trabalho`
-(`~/.claude/work-log/<slug>.md` — **o label é o slug**, não há campo separado) a partir dos
-`RELATORIO_*_<hoje>.md` — uma entrada por relatório novo,
-marcada com `**Relatório-fonte:**` (idempotente). Assim `/resumo-trabalho gerar <slug>` dá o
-apontamento do dia completo sem `registrar` manual. É consumidor a jusante dos relatórios, fora do repo
-— não é um 5º artefato do modelo.
+**Escoadouro automático — apontamentos por escopo:** toda sessão que termina (`end`, `handoff` ou
+PARADA no meio de bloco) grava **uma** entrada no log da skill `resumo-trabalho` —
+`<work-log>/<slug>.md`, com `<work-log>` = `$SESSAO_WORKLOG_DIR` ou `~/.claude/work-log`; **o label é o
+slug**, não há campo separado. **O índice é a sessão, não o relatório:** relatório é matéria-prima
+quando existe; sem ele, a fonte é a linha do registro de sessões + decisões + commits. Cada entrada
+leva `**Sessão:** <chave>` (a chave sai da linha do §8), que a torna idempotente e é o que o portão
+confere. Assim `/resumo-trabalho gerar <slug>` dá o apontamento do dia completo sem `registrar`
+manual. É consumidor a jusante, fora do repo — não é um 5º artefato do modelo.
 
 ---
 
@@ -90,7 +92,8 @@ Use um **modelo forte para planejar** (raro, alto valor) e um **modelo barato pa
 - ⚙️ **Executor** (modelo barato): executa o bloco **à risca**, marca checkboxes, resolve desvios
   pequenos (retry/fix óbvio). **Não toma decisão de design:** se a realidade divergir do plano, **PARA,
   registra em Blockers/Decisões e escala de volta ao Planejador.** Auto-verifica contra a DoD ao fim.
-  Fecha o próprio bloco (relatório + commit) e **para** — promover/detalhar o próximo é do Planejador.
+  Fecha o próprio bloco (relatório + PLAN; o commit espera a validação do usuário) e **para** —
+  promover/detalhar o próximo é do Planejador.
 
 **Tipo de bloco:** 🔧 **mecânico** (passos conhecíveis → Executor sozinho, onde o split mais rende) ×
 🔬 **descoberta** (a execução produz o conhecimento — ex.: caos, restore → Planejador conduz a 1ª
@@ -106,11 +109,16 @@ descoberta: deixe um modelo só tocar — o overhead de handoff come o ganho.
 1. Copie `AGENTS.template.md` → `AGENTS.md` e `CLAUDE.template.md` → `CLAUDE.md` na raiz, e preencha os
    `<…>`. O `AGENTS.md` **não** leva nada específico de escopo.
 2. Copie `template-relatorio.md` → `docs/sessoes/template-relatorio.md` (um por repo).
-3. Copie `PLAN.template.md` → `docs/sessoes/<escopo-slug>/PLAN.md` e preencha os parâmetros do escopo,
+3. Copie o **lançador** `../scripts/conferencia_saida.shim.sh` → `scripts/conferencia_saida.sh` e dê
+   `chmod +x`. **Não** copie o portão em si: o lançador acha a skill em tempo de execução, então toda
+   correção do portão chega ao projeto sem reinstalar (e ele falha fechado, exit 2, se não achar).
+4. Copie `PLAN.template.md` → `docs/sessoes/<escopo-slug>/PLAN.md` e preencha os parâmetros do escopo,
    os guardrails, o Board inicial e o **baton `🎬 Próximo`**. Registre o escopo na tabela do `AGENTS.md`.
-4. **Escopo novo depois:** repita **só** o passo 3 — nada na raiz é recriado.
-5. (Opcional) Cole o **`BOOTSTRAP.md`** na 1ª sessão com um agente forte para ele montar/validar tudo.
-6. Sessões seguintes: o `CLAUDE.md`/`AGENTS.md` força o ritual; use os prompts curtos do BOOTSTRAP.
+5. **Escopo novo depois:** repita **só** o passo 4 — nada na raiz é recriado.
+6. (Opcional) Cole o **`BOOTSTRAP.md`** na 1ª sessão com um agente forte para ele montar/validar tudo.
+7. Sessões seguintes: o `CLAUDE.md`/`AGENTS.md` força o ritual; use os prompts curtos do BOOTSTRAP.
+
+O caminho normal é a skill (`/sessao init`), que faz tudo isso validando os dados com você.
 
 ## Arquivos deste kit
 
@@ -119,9 +127,13 @@ descoberta: deixe um modelo só tocar — o overhead de handoff come o ganho.
 - `PLAN.template.md` — a fonte única de verdade de **um** escopo.
 - ⬆️ **Os scripts saíram desta pasta** (2026-08-29) e moram em `../scripts/`, seguindo a convenção
   `scripts/` que Claude Code e Codex documentam:
-  - `../scripts/conferencia_saida.sh` — o **portão** executável do fechamento (vai para `scripts/` do projeto).
-  - `../scripts/autoteste_portao.sh` — **testa o portão contra estes templates**; fica na skill, não vai para o
-  projeto. Rode-o sempre que mexer no portão ou no `PLAN.template.md`: em 24/08/2026 os dois estavam
-  em dialetos diferentes e o portão fazia valer só 2 dos 6 itens, saindo com exit 0.
+  - `../scripts/conferencia_saida.shim.sh` — o **lançador**: é ele que vai para
+    `scripts/conferencia_saida.sh` do projeto (desde 2026-09-07; antes ia a cópia do portão, que
+    congelava na versão do dia da instalação).
+  - `../scripts/conferencia_saida.sh` — o **portão** executável do fechamento; fica na skill e é
+    chamado pelo lançador.
+  - `../scripts/autoteste_portao.sh` — **testa o portão contra estes templates**; fica na skill, não
+    vai para o projeto. Rode-o sempre que mexer no portão ou no `PLAN.template.md`: em 24/08/2026 os
+    dois estavam em dialetos diferentes e o portão fazia valer só 2 dos 6 itens, saindo com exit 0.
 - `template-relatorio.md` — gabarito de relatório de sessão.
 - `BOOTSTRAP.md` — prompt de bootstrap + prompts curtos do dia a dia.

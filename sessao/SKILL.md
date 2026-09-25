@@ -66,11 +66,10 @@ cada frente nova:
 | Vai no `AGENTS.md` (permanente + índice) | Vai no `PLAN.md` do escopo (efêmero) |
 |---|---|
 | Papéis 🧠/⚙️, DoD de planejamento, ritual de fim de turno | Escopo, objetivo, Board, blocos, contrato de execução |
-| **Índice de escopos** (tabela slug → PLAN, com estado) | **Slug + descrição** daquele escopo |
+| **Índice de escopos** (tabela slug → PLAN, com estado) | **Slug + descrição** daquele escopo (o slug já é o label do apontamento) |
 | Convenções de commit, idioma, tratamento do usuário | **Branch de trabalho** daquele escopo |
 | Repos irmãos que uma sessão pode tocar | **Ambiente/`KUBECONFIG`/namespaces** daquele escopo |
 | Guardrails **permanentes** (segredos, prod, destrutivo) | Guardrails **específicos** daquele escopo |
-| — | **Slug + descrição** daquele escopo (o slug já é o label do apontamento) |
 
 **`CLAUDE.md` × `AGENTS.md` (por que os dois, e por que o conteúdo fica todo num só):** as ferramentas
 leem arquivos diferentes — o **Claude Code lê `CLAUDE.md` e não lê `AGENTS.md`**; o **Codex (e a
@@ -133,7 +132,7 @@ migração quando ele for abrir um **segundo escopo** no mesmo repo (é aí que 
 
 Sem apelidos, o nome velho deixa de resolver — de propósito. Renomear é: `git mv` da pasta para o slug
 novo · atualizar a linha `Slug` do PLAN e a coluna `Slug` do índice · reescrever os caminhos que citam
-a pasta antiga · **decidir o log de apontamento** (`~/.claude/work-log/<slug-velho>.md`): renomeá-lo
+a pasta antiga · **decidir o log de apontamento** (`<work-log>/<slug-velho>.md`): renomeá-lo
 junto ou manter o antigo como histórico e o slug seguir o log — **o que preserva histórico vence**.
 Diga ao usuário o que aconteceu com o log; nunca deixe apontamento órfão em silêncio.
 
@@ -205,7 +204,7 @@ de vida). Não altera nada no projeto. Use também quando o usuário pedir "help
 **0. Detecte o estado do repo ANTES de qualquer coisa** — `init` **nunca** sobrescreve instalação
 existente:
 - **Repo virgem** (sem `AGENTS.md`/`CLAUDE.md` de controle e sem nenhum escopo no índice) → instalação
-  completa (passos 1–5).
+  completa (passos 1–6).
 - **Repo já instalado** (existe o protocolo + índice com escopos — mesmo que nenhum deles esteja em
   `docs/sessoes/`) → é **escopo novo**: crie **apenas**
   `docs/sessoes/<novo-slug>/PLAN.md` e acrescente a linha do escopo na tabela do `AGENTS.md`
@@ -223,7 +222,7 @@ existente:
      **ambiente** (cluster/`KUBECONFIG`/namespaces/dados) e **guardrails específicos**.
    - **Valide o slug antes de aceitá-lo** (é chave primária, corrigir depois custa rename): kebab-case;
      **não** existe ainda na coluna `Slug` do índice deste repo; **e não colide globalmente** — confira
-     `ls ~/.claude/work-log/` e, se já houver um `<slug>.md` de outro trabalho, proponha um nome mais
+     `ls "${SESSAO_WORKLOG_DIR:-$HOME/.claude/work-log}"` e, se já houver um `<slug>.md` de outro trabalho, proponha um nome mais
      distintivo (`aca-amortizacao`, não `amortizacao`). Um slug bom é reconhecível fora do repo.
    - **Não pergunte o label de apontamento** — ele **é** o slug (`<work-log>/<slug>.md`, ver `SESSAO_WORKLOG_DIR`). Se o
      usuário quiser apontar num card já existente com outro nome, isso é escolher o slug igual ao card,
@@ -334,26 +333,30 @@ existente:
 3. Ajuste o que faltar no `PLAN.md` **do escopo** e confirme que um executor consegue tocar à risca.
 4. **Grave o baton no cabeçalho "🔎 Agora":** `🎬 Próximo: ⚙️ Executor · Ponto de entrada: <tarefa>`
    (a 1ª tarefa não-concluída), listando quais **gates por-sessão** reestabelecer antes (DoR + setup vivo).
-   É esse baton que faz o `start` da próxima sessão entrar como Executor **sem perguntar**.
-5. **Rode a ✅ Conferência de saída** (seção acima) — ela vale para o `handoff` também: baton coerente
-   com o Board, resumos batendo com a linha `🎬`, sem 2ª cópia de campo.
+   É esse baton que faz o `start` da próxima sessão entrar como Executor **sem perguntar**. E
+   **acrescente a linha desta sessão ao registro de sessões (§8)** — handoff é sessão como qualquer
+   outra, e é dessa linha que sai a chave do apontamento (passo 6).
+5. **Mostre o plano ao usuário e peça o aceite — e, com ele, a validação do commit.**
+   ⛔ **PRÉ-CONDIÇÃO — o handoff é exatamente o momento em que a regra falha:** nada dos passos 6–8
+   acontece antes de o plano ter sido **mostrado ao usuário e aceito**, com
+   `**Aceite:** <quem>, <AAAA-MM-DD> (bloco <id>)` no bloco. Um handoff é, por definição, contrato
+   novo indo para o Executor — se ele não passou pelo aceite, **não commite e não escreva no log**.
+   **Se houver questionamento aberto do usuário, pare aqui e pergunte** (ver "QUESTIONAMENTO ABERTO
+   = REGISTRO CONGELADO" nas Regras invioláveis). Sem o "ok", as edições ficam no working tree.
 6. **Registre o apontamento desta sessão** — **exatamente o passo 5 do `end`** (portanto **só depois
-   de o usuário validar o commit**), sem exceção por ser handoff. Um `handoff` É uma sessão inteira de trabalho (mediu baselines, resolveu desenho, corrigiu
+   do "ok" do passo 5**), sem exceção por ser handoff. Um `handoff` É uma sessão inteira de trabalho (mediu baselines, resolveu desenho, corrigiu
    contrato) e **precisa aparecer no apontamento do dia como qualquer outra**.
    ⚠️ **Este passo nasceu de um buraco real:** por muito tempo só o `end` alimentava o log, então toda
    sessão que terminava em `handoff` **sumia do apontamento** — o usuário pedia o resumo do dia e
    faltava metade do trabalho, sem nenhum sinal de erro. Handoff não gera relatório (não fechou bloco),
    e o passo do `end` era indexado por relatório: sem relatório, nada era gravado. Ver o invariante
    **uma sessão = uma entrada** no passo 5 do `end`.
-7. **Commit das edições do handoff — SOMENTE com validação explícita do usuário** (mesma regra do
-   `end`, passo 6). Não deixe o PLAN pronto porém não-commitado **depois do aval**, senão a próxima
-   sessão lê estado do working tree; mas **sem** o aval nada é commitado. Reporte o hash.
-   ⛔ **PRÉ-CONDIÇÃO — o handoff é exatamente o momento em que a regra falha:** este passo só se
-   executa depois de o plano ter sido **mostrado ao usuário e aceito**, com `**Aceite:** <quem>,
-   <AAAA-MM-DD>` no bloco. Um handoff é, por definição, contrato novo indo para o Executor — se ele
-   não passou pelo aceite, **não commite**. **Exceção: se
-   houver questionamento aberto do usuário, não commite — pergunte antes** (ver "QUESTIONAMENTO ABERTO
-   = REGISTRO CONGELADO" nas Regras invioláveis).
+7. **Rode a ✅ Conferência de saída** (seção abaixo) — **agora, com o apontamento já no lugar**; antes
+   dele o item ⑤ do portão reprova por um motivo falso. Ela vale para o `handoff` também: baton
+   coerente com o Board, resumos batendo com a linha `🎬`, sem 2ª cópia de campo, aceite registrado.
+8. **Commit das edições do handoff** (mesma regra do `end`, passo 6). Não deixe o PLAN pronto porém
+   não-commitado **depois do aval**, senão a próxima sessão lê estado do working tree; mas **sem** o
+   aval nada é commitado. Reporte o hash. `push` é pedido à parte.
 
 ### `end` — fim de sessão
 
@@ -431,28 +434,42 @@ Três portas de entrada:
      caminho é só o endereço do arquivo, não uma dependência do Claude Code). **Não procure campo "label" no PLAN** — não
      existe mais campo separado; se um PLAN antigo ainda declarar um label diferente do slug, isso é
      inconsistência de identidade: **avise o usuário e pergunte** qual dos dois nomes vale (o que tem
-     histórico no log costuma vencer), em vez de escrever nos dois.
-   - **Levante as sessões de HOJE que ainda não estão no log** — não só a sua. Cruze o **registro de
-     sessões (§8) do PLAN** com as entradas de hoje no log: linha do §8 com a data de hoje e sem
-     entrada correspondente é buraco a preencher, inclusive de sessão anterior que não registrou.
+     histórico no log costuma vencer), em vez de escrever nos dois. **Log ainda inexistente:** crie-o
+     com `# Label: <slug>` na 1ª linha (o formato do `resumo-trabalho`, que o `listar` lê).
+   - **A chave da sessão sai da linha dela no §8 — nunca da memória:**
+     - tabela **com** coluna de número (dialeto legado, `| 11 | 2026-09-04 | …`) → a chave é o
+       **número**: `11`;
+     - tabela **sem** coluna de número (a do `PLAN.template.md`, `| 2026-09-04 | B3 | …`) → a chave
+       é `<AAAA-MM-DD>#<k>`, onde **k é a posição da linha entre as linhas do §8 com a mesma data**,
+       contando de cima (a 1ª sessão do dia é `#1`, a 2ª é `#2`). Data em `DD/MM/AAAA` entra
+       normalizada para `AAAA-MM-DD`.
+     Por isso o §8 é **append-only**: cada sessão acrescenta a sua linha **no fim**; inserir linha no
+     meio desloca o k das outras. É a mesma chave que o item ⑤ do portão confere, e ele diz qual
+     falta.
+   - **Levante as sessões de HOJE que ainda não estão no log** — não só a sua. Calcule a chave de
+     cada linha do §8 com a data de hoje e procure `**Sessão:** <chave>` no log: chave ausente é
+     buraco a preencher, inclusive de sessão anterior que não registrou.
    - **Fonte de cada entrada, nesta ordem:** (1) o **relatório** da sessão, se existir; (2) senão, a
      **linha do §8 + a entrada do §7** que aquela sessão gravou + os **commits** dela. Nunca invente
      nada fora dessas fontes. Se uma sessão antiga não deixou rastro suficiente, **diga isso ao usuário
      em 1 linha** em vez de preencher com suposição.
-   - **Idempotência:** procure no log a chave da sessão — o basename do relatório
-     (`RELATORIO_<bloco>_<data>.md`) quando houver, ou a linha `**Sessão:** <N>`. **Se já aparece,
-     pule.** Senão, faça **append** de uma entrada densa e factual (formato do `resumo-trabalho`:
-     O que foi feito / Problemas-Correções / Validações / Pendências). Logo abaixo do cabeçalho
+   - **Idempotência:** procure no log a linha `**Sessão:** <chave>`. **Se já aparece, pule.** Senão,
+     faça **append** de uma entrada densa e factual (formato do `resumo-trabalho`: O que foi feito /
+     Problemas-Correções / Validações / Pendências). Logo abaixo do cabeçalho
      `## [data hora] <projeto>`, grave as duas linhas de rastreio:
      `**Relatório-fonte:** <caminho>` — ou `— sessão sem relatório. Fonte: <§8/§7/commits>` — e
-     `**Sessão:** <N>`. São elas que tornam o passo idempotente.
+     `**Sessão:** <chave>`, **com a chave logo depois dos dois-pontos**; texto livre só depois dela
+     (`**Sessão:** 2026-09-24#2 · B5 (⚙️ Executor)`). A linha `**Sessão:**` é a que torna o passo
+     idempotente e a que o portão procura; o `Relatório-fonte` é rastreio.
    - **Horário do cabeçalho = quando a sessão realmente aconteceu**, não a hora em que você está
      escrevendo. Para sessão anterior, tire dos commits dela (`git log --date=format:'%Y-%m-%d %H:%M'`)
      e marque a entrada como *registrada retroativamente*.
-   - Log é **append-only e global** (`~/.claude/work-log/`), fora do repo — **não** entra no commit do
+   - Log é **append-only e global** (`<work-log>/`), fora do repo — **não** entra no commit do
      passo 6. Confirme em 1 linha quais sessões viraram entrada (ou "nada novo a registrar").
 6. **Commit SOMENTE com validação explícita do usuário.** Apresente o que foi feito e **pergunte se
-   pode commitar**; sem o "ok", as mudanças ficam no working tree. Isto **substitui** o antigo "commit
+   pode commitar**; sem o "ok", as mudanças ficam no working tree. **Com o "ok", nesta ordem:**
+   escreva o apontamento (passo 5), rode o portão (item 0 da Conferência de saída) e só então
+   commite — é a "Ordem canônica do fechamento". Isto **substitui** o antigo "commit
    obrigatório", que commitava por conta própria: o usuário frequentemente discorda do resultado ao
    fim da sessão, e desfazer commit é mais caro do que esperar uma frase. Continua valendo a
    "QUESTIONAMENTO ABERTO = REGISTRO CONGELADO" (Regras invioláveis). Commite o
@@ -481,8 +498,8 @@ ressalva no relatório.
 >    e o relatório, se houver.
 > 2. **Apresentar ao usuário** o que foi feito e **pedir validação para commitar**.
 > 3. **Sem o "ok": PARA.** Nada de commit, nada de push, **nada de escrever no `work-log`**.
-> 4. Com o "ok": **escrever o apontamento** em `~/.claude/work-log/<slug>.md` (automático a partir daqui
->    — não peça duas vezes).
+> 4. Com o "ok": **escrever o apontamento** em `<work-log>/<slug>.md`, com a linha
+>    `**Sessão:** <chave>` (automático a partir daqui — não peça duas vezes).
 > 5. **Rodar o portão** (abaixo) — é aqui que ele roda, com o apontamento já no lugar, senão o item ⑤
 >    reprova por um motivo falso.
 > 6. **Commitar.** 7. **`push` só com validação própria**, pedida em separado.
@@ -493,9 +510,11 @@ ressalva no relatório.
 **0. RODE O PORTÃO E COLE A SAÍDA CRUA no resumo da sessão — obrigatório, não é opcional:**
 `scripts/conferencia_saida.sh <slug> <commit em que esta sessão começou>` (o commit sai de
 `git rev-parse HEAD` no início; se esqueceu, é o último commit da sessão anterior). Ele sai com
-**exit 1** se o **parágrafo do baton `🎬`** (a linha mais suas continuações indentadas) continua
-**intacto** desde o início da sessão, se o ponto de entrada citado já está `[x]`, se o registro de sessões não ganhou linha nova, se falta o apontamento da sessão no
-log, ou se **esta sessão escreveu contrato de bloco e passou o baton para ⚙️ sem a linha
+**exit 1** se a linha `🎬` falta ou está duplicada (①), se o **parágrafo do baton `🎬`** (a linha
+mais suas continuações indentadas) continua **intacto** desde o início da sessão (②), se o ponto de
+entrada citado já está `[x]` (③), se o registro de sessões não ganhou linha nova (④), se alguma
+linha nova do §8 não tem a **sua** chave `**Sessão:**` no log (⑤ — a 2ª sessão do dia não se
+apoia na entrada da 1ª), ou se **esta sessão escreveu contrato de bloco e passou o baton para ⚙️ sem a linha
 `**Aceite:** <quem>, <AAAA-MM-DD> (bloco <id>)` no PLAN** (item ⑥). **Declarar que conferiu não substitui rodar** — os itens 2, 3 e 5 abaixo já estavam escritos, com
 todas as letras, nas duas vezes em que o defeito passou. Repo sem o portão instalado (instalação
 anterior a ele): copie o **lançador** `scripts/conferencia_saida.shim.sh` da skill para
@@ -527,8 +546,9 @@ contra o dialeto de UM repo (`### 📋 Tarefas`, critérios em tabela, sessões 
    sessões sai do **último valor da própria tabela + 1** — nunca do número do relatório, que tem série
    própria e quase nunca coincide. ⚠️ **Se a tabela daquele PLAN não tem coluna de número** (é o caso
    do `PLAN.template.md`, cuja tabela é `| Data | Bloco(s) | Resumo | Relatório |`), então **não invente
-   um**: a chave da sessão passa a ser a **data**, e o apontamento é indexado pelo cabeçalho
-   `## [AAAA-MM-DD ...]` do log — que é o que o item ⑤ do portão confere. Mesma regra para o nome do relatório: use o padrão declarado no
+   um**: a chave da sessão passa a ser `<AAAA-MM-DD>#<k>` — k = posição da linha entre as de mesma
+   data no §8 (ver passo 5 do `end`) —, e é ela que vai na linha `**Sessão:**` do log e que o item ⑤
+   do portão confere. Mesma regra para o nome do relatório: use o padrão declarado no
    cabeçalho do PLAN, conferindo o último gravado na pasta.
 6. **In-place, sem 2ª cópia.** O que você escreveu atualizou o campo existente, em vez de criar uma
    segunda cópia dele em outro ponto do arquivo.
@@ -714,7 +734,8 @@ contra o dialeto de UM repo (`### 📋 Tarefas`, critérios em tabela, sessões 
   **Relatório é matéria-prima quando existe**; quando não existe (handoff, validação e PARADA nunca geram um),
   a fonte é a **linha do §8 + a entrada do §7 + os commits** daquela sessão. Nada é inventado fora
   dessas fontes; se o rastro não bastar, diga ao usuário em vez de supor. Idempotência pela linha
-  `**Relatório-fonte:**` ou `**Sessão:** <N>`; horário do cabeçalho = quando a sessão **aconteceu**.
+  `**Sessão:** <chave>` (chave da linha do §8: nº da sessão, ou `<data>#<k>`); horário do cabeçalho =
+  quando a sessão **aconteceu**.
   **Indexar por relatório foi um bug caro:** toda sessão sem relatório sumia do apontamento **sem
   sinal de erro nenhum** — o passo "rodava com sucesso" porque não havia o que coletar, e o usuário só
   descobria ao ler o resumo do dia e sentir falta do próprio trabalho. O log é append-only, global e
@@ -723,13 +744,13 @@ contra o dialeto de UM repo (`### 📋 Tarefas`, critérios em tabela, sessões 
 - **Pedido de resumo/apontamento dentro de um escopo é DAQUELE escopo — nunca agregado do dia.** Quando
   o usuário pede "registre e gere os apontamentos de tudo que foi feito hoje" no contexto de um escopo
   (durante a sessão ou logo após o `end`/`handoff`), o alvo é `gerar <slug>` — **um** arquivo,
-  `~/.claude/work-log/<slug>.md`. **Não varra `~/.claude/work-log/*.md`** e não use `gerar dia`: "hoje" é
+  `<work-log>/<slug>.md`. **Não varra `<work-log>/*.md`** e não use `gerar dia`: "hoje" é
   filtro de **data dentro do escopo**, não o universo de busca. **Por quê:** o apontamento é colado num
   card específico do GitLab, então misturar labels entrega à chefia trabalho de outra frente, em outro
   repo. **Caso real (17/08/2026):** logo após o `end` do escopo `airflow-es-remote-logging`, a varredura
   global trouxe `aca-amortizacao` para dentro do resumo. `gerar dia` **só** com pedido explícito de
   agregar todos os cards. E depois de um `end`/`handoff` que já registrou, **não registre de novo** —
-  confirme a idempotência (`**Relatório-fonte:**` / `**Sessão:** <N>`) e só gere.
+  confirme a idempotência (`**Sessão:** <chave>`) e só gere.
 - **Gate por-sessão × marco (não confundir):** um **marco** é um resultado que persiste (medição/entrega →
   checkbox `[x]` + relatório). Um **gate por-sessão** é pré-condição/processo vivo que **não** sobrevive
   entre sessões (DoR = "está saudável agora?"; armar carga/probe/shells) e **é reestabelecido toda sessão
