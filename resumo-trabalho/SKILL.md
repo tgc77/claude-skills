@@ -25,18 +25,21 @@ vezes toca mais de um projeto, mas o resumo final é entregue **por card** (cola
 isso o log é organizado por **label** (= card), não por dia — um card pode levar mais de uma sessão e
 mais de um dia.
 
-- **Log global, um arquivo por label:** `${SESSAO_WORKLOG_DIR:-${SESSAO_WORKLOG_DIR:-~/.claude/work-log}}/<label-slug>.md`. Fora de qualquer
+- **Log global, um arquivo por label:** `${SESSAO_WORKLOG_DIR:-~/.claude/work-log}/<label-slug>.md`. Fora de qualquer
   projeto — é assim que agrega sessões de repos diferentes para o mesmo card.
 - **Modelo do resumo final:** `templates/template-apontamentos.md`, ao lado deste arquivo. Fonte
   única — se o usuário pedir pra mudar o formato, editar esse arquivo, não duplicar em outro lugar.
 - **Integração com a skill `sessao`: o label É o slug do escopo.** Num projeto que usa o Controle de
   Sessões, cada escopo tem um slug (`docs/sessoes/<slug>/`) que **é** o label deste log — não existe
-  campo separado, e o arquivo é `${SESSAO_WORKLOG_DIR:-${SESSAO_WORKLOG_DIR:-~/.claude/work-log}}/<slug>.md`. O `end` **e** o `handoff` alimentam esse
-  arquivo automaticamente: **uma sessão encerrada = uma entrada**, indexada pela **sessão** e não pelo
-  relatório (sessão de handoff ou de validação não gera relatório e ainda assim registra). A
-  idempotência vem das linhas de rastreio logo abaixo do cabeçalho — `**Relatório-fonte:** <caminho>`
-  quando há relatório, e/ou `**Sessão:** <N>`. Essas entradas são iguais às manuais — `gerar` as trata do
-  mesmo jeito.
+  campo separado, e o arquivo é `${SESSAO_WORKLOG_DIR:-~/.claude/work-log}/<slug>.md`. O `end`, o
+  `handoff` **e** toda PARADA no meio de bloco alimentam esse arquivo automaticamente — sempre **depois**
+  de o usuário validar o commit: **uma sessão encerrada = uma entrada**, indexada pela **sessão** e não
+  pelo relatório (sessão de handoff, de validação ou que parou no meio não gera relatório e ainda assim
+  registra). Logo abaixo do cabeçalho vêm duas linhas de rastreio: `**Relatório-fonte:** <caminho>` (ou
+  `— sessão sem relatório`) e `**Sessão:** <chave>` — a chave sai da linha da sessão no registro do
+  PLAN (o nº da sessão, ou `<AAAA-MM-DD>#<k>`) e é o que torna a entrada idempotente. Fora essas duas
+  linhas, as entradas são iguais às manuais — `gerar` as trata do mesmo jeito (e não copia as linhas de
+  rastreio para o resumo).
   **Consequência para o `gerar`:** num repo com escopo ativo, o alvo do resumo **já está determinado** —
   é o slug. Não pergunte o card e não varra o diretório: leia o arquivo daquele slug. Se um dia sair
   incompleto, a causa provável é sessão que não chegou a `end`/`handoff` (nada foi registrado) — cheque
@@ -64,7 +67,8 @@ card X" = `registrar X ...`; "resumo do card X" = `gerar X`; "resumo de ontem do
 > 1. **Label/escopo ativo nesta conversa** (definido por `label X`, por um `registrar` anterior, ou pelo
 >    escopo da skill `sessao` que esta sessão operou — o slug do escopo **é** o label) → `gerar <esse label>`.
 > 2. **Sem label ativo, mas o repo atual tem escopo do Controle de Sessões** → é o slug daquele escopo
->    (leia o índice do `CLAUDE.md`; se houver mais de um 🟡 ativo, **pergunte** qual).
+>    (leia o índice de escopos do `AGENTS.md` — ou do `CLAUDE.md`, em projeto legado; se houver mais de
+>    um 🟡 ativo, **pergunte** qual).
 > 3. **Só então**, e apenas se o usuário pedir **explicitamente** o agregado de **todos** os cards
 >    ("resumo de tudo que fiz hoje, todos os cards", "agregado do dia") → `gerar dia`.
 >
@@ -73,7 +77,7 @@ card X" = `registrar X ...`; "resumo do card X" = `gerar X`; "resumo de ontem do
 > card, em outro repo** — e o apontamento é colado num card específico do GitLab, então isso entrega à
 > chefia trabalho que não pertence àquele card. **Caso real (17/08/2026):** logo após o `/sessao end` do
 > escopo `airflow-es-remote-logging`, o pedido "apontamentos de tudo que foi feito hoje" foi lido como
-> `gerar dia`; a varredura de `${SESSAO_WORKLOG_DIR:-${SESSAO_WORKLOG_DIR:-~/.claude/work-log}}/*.md` trouxe `aca-amortizacao`, frente sem relação
+> `gerar dia`; a varredura de `${SESSAO_WORKLOG_DIR:-~/.claude/work-log}/*.md` trouxe `aca-amortizacao`, frente sem relação
 > nenhuma com a sessão. **Havendo escopo ativo, ele vence — sempre.**
 
 **Trabalho diário num card que dura vários dias:** o fluxo normal é `registrar` ao longo de cada dia
@@ -207,7 +211,7 @@ apontamento em ponto de partida, não em aviso.
 1. Resolva o label: explícito no comando > label ativo da sessão > pergunte (nunca invente).
 2. Descubra data e hora atuais (`date '+%Y-%m-%d %H:%M'`) e o "projeto" (nome do diretório/repo git
    atual; pergunte se não for óbvio).
-3. `mkdir -p ${SESSAO_WORKLOG_DIR:-${SESSAO_WORKLOG_DIR:-~/.claude/work-log}}/`. Se `<label-slug>.md` não existir, crie com `# Label: <original>` na
+3. `mkdir -p ${SESSAO_WORKLOG_DIR:-~/.claude/work-log}/`. Se `<label-slug>.md` não existir, crie com `# Label: <original>` na
    primeira linha antes da primeira entrada.
 4. Acrescente (append, nunca reescreva entradas existentes) neste formato:
 
@@ -243,12 +247,12 @@ apontamento em ponto de partida, não em aviso.
 1. Resolva o(s) label(s) e a data alvo. **Resolver o alvo é o passo 1 de verdade — não comece lendo
    arquivo.** Se o pedido veio sem card, aplique a ordem de resolução do aviso da seção "Sintaxe"
    (label ativo → escopo do repo → só então agregado) e **diga em 1 linha qual alvo assumiu**:
-   - `gerar <card-id>` → leia `${SESSAO_WORKLOG_DIR:-${SESSAO_WORKLOG_DIR:-~/.claude/work-log}}/<label-slug>.md`. Sem argumento extra, filtre só as
+   - `gerar <card-id>` → leia `${SESSAO_WORKLOG_DIR:-~/.claude/work-log}/<label-slug>.md`. Sem argumento extra, filtre só as
      entradas com data de **hoje**. Com `completo`, use todas as datas. Com uma data explícita
      (`AAAA-MM-DD`), filtre só as entradas daquele dia.
-   - `gerar dia [<AAAA-MM-DD>]` → varra `${SESSAO_WORKLOG_DIR:-${SESSAO_WORKLOG_DIR:-~/.claude/work-log}}/*.md`, colete entradas datadas do dia alvo
+   - `gerar dia [<AAAA-MM-DD>]` → varra `${SESSAO_WORKLOG_DIR:-~/.claude/work-log}/*.md`, colete entradas datadas do dia alvo
      (hoje, se omitido) em qualquer arquivo, agrupe por label. ⛔ **Só entre aqui com pedido explícito de
-     agregação de todos os cards.** Um `ls`/glob em `${SESSAO_WORKLOG_DIR:-${SESSAO_WORKLOG_DIR:-~/.claude/work-log}}/` para descobrir "o que teve
+     agregação de todos os cards.** Um `ls`/glob em `${SESSAO_WORKLOG_DIR:-~/.claude/work-log}/` para descobrir "o que teve
      hoje" **não** é passo de reconhecimento inocente: é o que faz o card errado entrar no resumo.
      Havendo label ou escopo ativo, leia **um** arquivo — o dele.
 2. Se o arquivo do label não existir ou não houver entradas no escopo pedido: avise e ofereça gerar a
@@ -256,7 +260,7 @@ apontamento em ponto de partida, não em aviso.
 3. Leia `templates/template-apontamentos.md` e sintetize as entradas no modelo exato — você decide
    como mapear o conteúdo livre nas seções fixas (Objetivo, Para entender este apontamento, O que foi
    feito com subseções por tema/projeto, Problemas em tabela, Validações, Diagnóstico final, Resultado
-   prático, Pendências). Em `gerar dia`, uma subseção de "O que foi feito" por card. Não invente itens
+   prático, Documentos e páginas, Pendências). Em `gerar dia`, uma subseção de "O que foi feito" por card. Não invente itens
    fora dos registros.
    ⛔ **Título de subseção NUNCA carrega horário** (nem do log-fonte, nem inventado) — nada de
    `### 🧠 Planejamento do porte do núcleo (09:56)`. O título nomeia o **tema/etapa**, só isso
@@ -285,7 +289,7 @@ apontamento em ponto de partida, não em aviso.
 - Label é **obrigatório** em todo `registrar`. Sem label ativo nem informado, pergunte — nunca crie um
   label genérico ou adivinhe o card por conta própria.
 - **`gerar` também exige alvo resolvido, e "hoje" nunca é o alvo.** Pedido de resumo sem card resolve
-  por **label ativo → escopo do repo → pergunta**; `gerar dia` (varredura de `${SESSAO_WORKLOG_DIR:-${SESSAO_WORKLOG_DIR:-~/.claude/work-log}}/*.md`)
+  por **label ativo → escopo do repo → pergunta**; `gerar dia` (varredura de `${SESSAO_WORKLOG_DIR:-~/.claude/work-log}/*.md`)
   **só** com pedido explícito de agregar **todos** os cards. Havendo escopo ativo, ele **vence sempre** —
   misturar labels entrega ao card do GitLab trabalho que não é dele. Ver o aviso da seção "Sintaxe".
 - O modelo do resumo vive só em `templates/template-apontamentos.md` desta skill.
