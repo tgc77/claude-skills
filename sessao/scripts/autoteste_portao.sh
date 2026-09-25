@@ -124,7 +124,8 @@ PY
 concluir_t1() { sed -i 's/^- \[ \] \*\*T1 —/- [x] **T1 —/' "${P}"; }
 linha_de_sessao() { printf '| %s | B1 | sessão de teste | — |\n' "${HOJE}" >> "${P}"; }
 aceite()          { printf '\n**Aceite:** Fulano, %s\n' "${HOJE}" >> "${P}"; }
-apontamento()     { printf '## [%s 10:00] teste\n\n**Sessão:** 1\n' "${HOJE}" > "${TMP}/lar/.claude/work-log/teste.md"; }
+# Chave da sessão no dialeto do template: `<data>#<k>`, k = posição da linha entre as de mesma data no §8.
+apontamento()     { printf '## [%s 10:00] teste\n\n**Sessão:** %s#1\n' "${HOJE}" "${HOJE}" > "${TMP}/lar/.claude/work-log/teste.md"; }
 
 # ------------------------------------------------------------------------------------------------
 titulo "1. Baton INTACTO desde o início da sessão ⇒ ② vermelho, exit 1"
@@ -214,18 +215,18 @@ saida="$(rodar "${BASE}")"; codigo=$?
 grep -q '✅ ③ ponto de entrada T0 está em aberto' <<<"${saida}" && ok "③ leu o id atrás do marcador 🔁" || { nok "③ NÃO reconheceu checkbox de gate — convenção e parser divergiram de novo"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
 [[ "${codigo}" -eq 0 ]] && ok "exit 0" || nok "exit != 0 — checkbox de gate reprovou sessão legítima"
 
-titulo "11. Registro RETROATIVO ⇒ ⑤ verde pela data da linha do §8 (regressão 2026-09-07)"
-# Trabalho feito na sexta, apontamento pedido na segunda. O ⑤ só tinha a porta "entrada de hoje"
-# (a porta por número de sessão é do dialeto legado e nunca dispara no template atual), então
-# fechamento em dia posterior era vermelho permanente, sem saída nenhuma.
+titulo "11. Registro RETROATIVO ⇒ ⑤ verde pela chave <data da linha do §8>#1 (regressão 2026-09-07)"
+# Trabalho feito na sexta, apontamento pedido na segunda. Até 2026-09-07 o ⑤ só tinha a porta
+# "entrada de hoje", e fechamento em dia posterior era vermelho permanente. Desde 2026-09-24 a data
+# faz parte da chave da sessão, então o retroativo não precisa de porta própria.
 montar
 escrever_contrato; baton_para '⚙️ Executor · **Ponto de entrada:** T1 — primeira tarefa'
 ONTEM="$(date -d '3 days ago' +%F 2>/dev/null || date -v-3d +%F)"
 printf '| %s | B1 | sessão de sexta | — |\n' "${ONTEM}" >> "${P}"
 aceite
-printf '## [%s 20:45] teste\n\n**Sessão:** 1\n' "${ONTEM}" > "${TMP}/lar/.claude/work-log/teste.md"
+printf '## [%s 20:45] teste\n\n**Sessão:** %s#1\n' "${ONTEM}" "${ONTEM}" > "${TMP}/lar/.claude/work-log/teste.md"
 saida="$(rodar "${BASE}")"; codigo=$?
-grep -q "✅ ⑤ apontamento de ${ONTEM} presente (registro retroativo" <<<"${saida}" && ok "⑤ aceitou o registro retroativo" || { nok "⑤ NÃO aceitou registro retroativo"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
+grep -q "✅ ⑤ .*(chave: ${ONTEM}#1)" <<<"${saida}" && ok "⑤ aceitou o registro retroativo" || { nok "⑤ NÃO aceitou registro retroativo"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
 [[ "${codigo}" -eq 0 ]] && ok "exit 0" || nok "exit != 0 — fechamento retroativo legítimo travado"
 
 titulo "12. Retroativo NÃO é brecha: sem apontamento nenhum ⇒ ⑤ continua vermelho"
@@ -256,15 +257,14 @@ codigo=$?
 [[ "${codigo}" -eq 2 ]] && ok "sem skill: exit 2 (não rodou), nunca 0" || nok "sem skill: exit ${codigo} — deveria ser 2; exit 0 seria aprovação falsa"
 
 
-titulo "14. Dialeto LEGADO (| N | data |) ⇒ ⑤ verde pela porta 2 (número da sessão)"
-# Escopo legado NÃO vai ser migrado (decisão do Tiago, 2026-09-07): a porta 2 é o que o mantém
-# funcionando, então ela carrega peso e precisa de teste. Ela já morreu em silêncio uma vez — a
-# correção de 2026-08-24 tornou o ④ tolerante ao dialeto novo e deixou o alimentador dela no regex
-# velho, e ninguém percebeu até 2026-09-07.
-# ⚠️ AS DUAS DATAS SÃO DIFERENTES DE PROPÓSITO. Se a data do apontamento casasse a da linha do §8,
-# a porta 3 (retroativa) atenderia primeiro e este teste passaria sem exercitar a porta 2 — um
-# teste que passa sem provar nada é pior que nenhum. Aqui: hoje ≠ data do §8 ≠ data do log, e só
-# o número da sessão casa.
+titulo "14. Dialeto LEGADO (| N | data |) ⇒ a chave do ⑤ é o NÚMERO da sessão, não a data"
+# Escopo legado NÃO vai ser migrado (decisão do Tiago, 2026-09-07): a chave numérica é o que o
+# mantém funcionando, então ela carrega peso e precisa de teste. Ela já morreu em silêncio uma vez —
+# a correção de 2026-08-24 tornou o ④ tolerante ao dialeto novo e deixou o alimentador dela no
+# regex velho, e ninguém percebeu até 2026-09-07.
+# ⚠️ AS DATAS SÃO DIFERENTES DE PROPÓSITO (hoje ≠ data do §8 ≠ data do log): só o número casa. E a
+# 2ª metade prova o outro lado — num PLAN numerado, a chave `<data>#<k>` NÃO serve, senão o teste
+# passaria sem provar que o portão distingue os dialetos.
 montar
 escrever_contrato; baton_para '⚙️ Executor · **Ponto de entrada:** T1 — primeira tarefa'
 D_SESSAO="$(date -d '10 days ago' +%F 2>/dev/null || date -v-10d +%F)"
@@ -273,9 +273,11 @@ printf '| 7 | %s | sessão em repo legado | — |\n' "${D_SESSAO}" >> "${P}"
 aceite
 printf '## [%s 09:00] teste\n\n**Sessão:** 7\n' "${D_LOG}" > "${TMP}/lar/.claude/work-log/teste.md"
 saida="$(rodar "${BASE}")"; codigo=$?
-grep -q '✅ ⑤ apontamento da sessão 7 presente' <<<"${saida}" && ok "⑤ casou pelo número da sessão (porta 2 viva)" || { nok "⑤ NÃO casou pela porta 2 — suporte a escopo legado quebrou"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
-grep -q 'registro retroativo' <<<"${saida}" && nok "passou pela porta 3, não pela 2 — o teste não prova o legado" || ok "não caiu na porta 3 (isolamento correto)"
+grep -q '✅ ⑤ .*(chave: 7)' <<<"${saida}" && ok "⑤ casou pelo número da sessão (chave legada viva)" || { nok "⑤ NÃO casou pelo número — suporte a escopo legado quebrou"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
 [[ "${codigo}" -eq 0 ]] && ok "exit 0 — escopo legado segue trabalhando" || nok "exit != 0 — escopo legado foi travado"
+printf '## [%s 09:00] teste\n\n**Sessão:** %s#1\n' "${D_SESSAO}" "${D_SESSAO}" > "${TMP}/lar/.claude/work-log/teste.md"
+saida="$(rodar "${BASE}")"
+grep -q '🔴 ⑤' <<<"${saida}" && ok "chave por data NÃO serve a PLAN numerado (dialetos distinguidos)" || nok "⑤ aceitou chave por data num PLAN numerado — o portão não distingue os dialetos"
 
 
 # ════════════════════════════════════════════════════════════════════════════════════════════════
@@ -415,7 +417,7 @@ s=re.sub(r'^(- \*\*🎬 Próximo:\*\*.*)$',
          s, count=1, flags=re.M)
 io.open(f,'w',encoding='utf-8').write(s)
 PY
-linha_de_sessao; printf '## [%s 11:00] teste\n\n**Sessão:** 2\n' "${HOJE}" >> "${TMP}/lar/.claude/work-log/teste.md"
+linha_de_sessao; printf '## [%s 11:00] teste\n\n**Sessão:** %s#2\n' "${HOJE}" "${HOJE}" >> "${TMP}/lar/.claude/work-log/teste.md"
 saida="$(rodar "${BASE_CONT}")"; codigo=$?
 grep -q '✅ ②' <<<"${saida}" && ok "② aceitou mudança em linha de continuação" || { nok "② reprovou baton REALMENTE reescrito — o defeito de 2026-09-08 voltou"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
 [[ "${codigo}" -eq 0 ]] && ok "exit 0" || { nok "exit != 0"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
@@ -463,11 +465,81 @@ garantir_sandbox; git add -A; git commit -qm "commit-base do cenario 27"; BASE_2
 sed -i 's/^## 🎯 Bloco ativo: .*/## 🎯 Bloco ativo: B2 — bloco seguinte (🔧 mecânico)/' "${P}"
 printf '\n- [ ] **T1 — tarefa do B2** com checagem\n- [ ] **T2 — outra do B2** com checagem\n' >> "${P}"
 sed -i "s/^\*\*Aceite:\*\* Fulano, ${HOJE} (bloco B1)/**Aceite:** Fulano, ${HOJE} (bloco B2)/" "${P}"
-linha_de_sessao
+linha_de_sessao; printf '## [%s 11:00] teste\n\n**Sessão:** %s#2\n' "${HOJE}" "${HOJE}" >> "${TMP}/lar/.claude/work-log/teste.md"
 baton_para '⚙️ Executor · **Ponto de entrada:** T1 — tarefa do B2'
 saida="$(rodar "${BASE_27}")"; codigo=$?
 grep -q '✅ ⑥' <<<"${saida}" && ok "⑥ enxergou o aceite do bloco novo" || { nok "⑥ seguiu cego mesmo com o identificador"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
 [[ "${codigo}" -eq 0 ]] && ok "exit 0" || { nok "exit != 0"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
+
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+# CHAVE DE SESSÃO DO ⑤ — casos 28-32 (defeito observado em 2026-09-24, com repro)
+# O ⑤ aprovava a 2ª sessão do dia que não registrou nada, porque bastava existir QUALQUER entrada
+# `## [hoje` no log — e a 1ª sessão já a tinha escrito. Num escopo com 2-4 sessões por dia, é a
+# falha que o item existe para pegar. Agora cada linha que a sessão acrescenta ao §8 exige a SUA
+# chave (`<data>#<k>`, ou o nº da sessão no dialeto legado) na linha `**Sessão:**` do log.
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+
+titulo "28. 2ª sessão do DIA sem apontamento próprio ⇒ ⑤ vermelho, pedindo a chave <hoje>#2"
+montar
+baton_para '🧠 Planejador · **Ponto de entrada:** sessão 1'
+linha_de_sessao; apontamento
+garantir_sandbox; git add -A; git commit -qm "commit-base do cenario 28"; BASE_28="$(git rev-parse HEAD)"
+baton_para '🧠 Planejador · **Ponto de entrada:** sessão 2'
+linha_de_sessao                                    # 2ª linha de hoje no §8, sem entrada no log
+saida="$(rodar "${BASE_28}")"; codigo=$?
+grep -q '🔴 ⑤ falta apontamento' <<<"${saida}" && ok "⑤ acusou a 2ª sessão sem apontamento" || { nok "⑤ aprovou a 2ª sessão pela entrada da 1ª — o defeito de 2026-09-24 voltou"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
+grep -q "\*\*Sessão:\*\* ${HOJE}#2" <<<"${saida}" && ok "⑤ disse qual chave falta (${HOJE}#2)" || nok "⑤ não disse qual chave gravar"
+[[ "${codigo}" -ne 0 ]] && ok "exit != 0" || nok "exit 0 — commitaria sessão sem apontamento"
+printf -- '---\n## [%s 15:00] teste\n\n**Sessão:** %s#2 · B1 (🧠 Planejador)\n' "${HOJE}" "${HOJE}" >> "${TMP}/lar/.claude/work-log/teste.md"
+saida="$(rodar "${BASE_28}")"; codigo=$?
+grep -q "✅ ⑤ .*(chave: ${HOJE}#2)" <<<"${saida}" && ok "com a entrada #2 (e texto livre depois da chave), ⑤ verde" || { nok "⑤ não aceitou a chave #2"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
+[[ "${codigo}" -eq 0 ]] && ok "exit 0" || nok "exit != 0"
+
+titulo "29. Chave #1 NÃO é satisfeita por #12 (limite numérico da chave)"
+montar
+baton_para '🧠 Planejador · **Ponto de entrada:** sessão 1'
+linha_de_sessao
+printf '## [%s 10:00] teste\n\n**Sessão:** %s#12\n' "${HOJE}" "${HOJE}" > "${TMP}/lar/.claude/work-log/teste.md"
+saida="$(rodar "${BASE}")"
+grep -q '🔴 ⑤' <<<"${saida}" && ok "#12 não conta como #1" || nok "⑤ casou #1 com #12 — chave sem limite"
+
+titulo "30. Sessão acrescenta DUAS linhas ao §8 (preenche uma retroativa) e só aponta uma ⇒ ⑤ cobra a outra"
+montar
+baton_para '🧠 Planejador · **Ponto de entrada:** sessão'
+ONTEM="$(date -d '1 day ago' +%F 2>/dev/null || date -v-1d +%F)"
+printf '| %s | B1 | sessão de ontem, registrada hoje | — |\n' "${ONTEM}" >> "${P}"
+linha_de_sessao; apontamento                       # só a de hoje tem entrada
+saida="$(rodar "${BASE}")"; codigo=$?
+grep -q "\*\*Sessão:\*\* ${ONTEM}#1" <<<"${saida}" && ok "⑤ cobrou a sessão retroativa (${ONTEM}#1)" || { nok "⑤ não cobrou a linha retroativa"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
+grep -q "\*\*Sessão:\*\* ${HOJE}#1" <<<"${saida}" && nok "⑤ cobrou ${HOJE}#1, que está no log" || ok "⑤ não cobrou a que já está no log"
+[[ "${codigo}" -ne 0 ]] && ok "exit != 0" || nok "exit 0"
+
+titulo "31. Data DD/MM/AAAA no §8 ⇒ chave normalizada para AAAA-MM-DD#k"
+montar
+baton_para '🧠 Planejador · **Ponto de entrada:** sessão'
+printf '| %s | B1 | sessão com data brasileira | — |\n' "$(date +%d/%m/%Y)" >> "${P}"
+apontamento
+saida="$(rodar "${BASE}")"; codigo=$?
+grep -q "✅ ⑤ .*(chave: ${HOJE}#1)" <<<"${saida}" && ok "⑤ normalizou a data da chave" || { nok "⑤ não normalizou DD/MM/AAAA"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
+[[ "${codigo}" -eq 0 ]] && ok "exit 0" || nok "exit != 0"
+
+titulo "32. PLAN de escopo NOVO ainda fora do git ⇒ ④ verde, ⑥ AVALIADO e vermelho sem aceite, com aviso"
+# Até 2026-09-24, `git diff <ref>` não enxergava o PLAN não rastreado: o ④ acusava falta de linha
+# que existia e o ⑥ nem rodava — reprovava, mas pelo motivo errado.
+montar
+mkdir -p docs/sessoes/novo
+cp "${SKILL_TEMPLATES}/PLAN.template.md" docs/sessoes/novo/PLAN.md
+printf '| `novo` | escopo novo | 🟡 Ativo | [PLAN](docs/sessoes/novo/PLAN.md) |\n' >> AGENTS.md
+P=docs/sessoes/novo/PLAN.md
+escrever_contrato; baton_para '⚙️ Executor · **Ponto de entrada:** T1 — primeira tarefa'
+linha_de_sessao
+printf '## [%s 10:00] novo\n\n**Sessão:** %s#1\n' "${HOJE}" "${HOJE}" > "${TMP}/lar/.claude/work-log/novo.md"
+saida="$(HOME="${TMP}/lar" ./scripts/conferencia_saida.sh novo "${BASE}" 2>&1)"; codigo=$?
+P=docs/sessoes/teste/PLAN.md
+grep -q 'PLAN ainda fora do git' <<<"${saida}" && ok "avisou que o PLAN não está rastreado" || nok "não avisou do PLAN fora do git"
+grep -q '✅ ④' <<<"${saida}" && ok "④ enxergou a linha do §8 do PLAN novo" || { nok "④ não enxergou — diff vazio de novo"; printf '%s\n' "${saida}" | sed 's/^/      /'; }
+grep -q '🔴 ⑥ SEM ACEITE' <<<"${saida}" && ok "⑥ avaliou e cobrou o aceite" || nok "⑥ não rodou no PLAN não rastreado"
+[[ "${codigo}" -ne 0 ]] && ok "exit != 0" || nok "exit 0"
 
 echo "------------------------------------------------------------------------"
 if [[ "${falhas}" -ne 0 ]]; then
@@ -476,9 +548,9 @@ if [[ "${falhas}" -ne 0 ]]; then
     echo "   qualquer projeto: um portão que não dispara é pior que nenhum, porque dá verde."
     exit 1
 fi
-echo "✅ AUTOTESTE APROVADO — 27 casos. Cobre: os 6 itens nos dialetos dos templates; os QUATRO"
+echo "✅ AUTOTESTE APROVADO — 32 casos. Cobre: os 6 itens nos dialetos dos templates; os QUATRO"
 echo "   gatilhos do ⑥ isolados um a um; o modo --inicio (baton podre pega, baton são passa); os"
-echo "   três ramos do ①; as três portas do ⑤ (hoje, nº de sessão, retroativo) sem virar brecha;"
-echo "   o gate 🔁; o lançador falhando fechado; o legado por índice E por fallback; e o ② medindo o"
-echo "   PARÁGRAFO do baton — continuação conta como reescrita, baton intacto continua reprovando;
-   e o falso negativo do ⑥ (aceite idêntico entre blocos do mesmo dia) diagnosticado, não afrouxado."
+echo "   três ramos do ①; a chave de sessão do ⑤ (nº legado × <data>#<k>, retroativo, 2ª sessão do"
+echo "   dia, duas linhas numa sessão, DD/MM/AAAA, limite #1≠#12); o gate 🔁; o lançador falhando"
+echo "   fechado; o legado por índice E por fallback; o ② medindo o PARÁGRAFO do baton; o falso"
+echo "   negativo do ⑥ diagnosticado, não afrouxado; e o PLAN de escopo novo ainda fora do git."

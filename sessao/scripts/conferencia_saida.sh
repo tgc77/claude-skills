@@ -35,25 +35,21 @@ set -o pipefail
 # Code), CLAUDE.md depois (projetos instalados antes da unificação). O primeiro que existir e citar o
 # slug vence.
 # `CLAUDE.md` é RAMO DE LEGADO deliberado (projetos instalados antes da unificação do índice no
-# AGENTS.md). Mesma regra do REGEX_LINHA_SESSAO abaixo: não remova como limpeza. Caso 8 do autoteste.
+# AGENTS.md). Mesma regra do ramo numerado do REGEX_LINHA_REGISTRO abaixo: não remova como limpeza. Caso 8 do autoteste.
 readonly INDICES_DE_ESCOPOS=("AGENTS.md" "CLAUDE.md")
 # Log de apontamento: default histórico, sobrescrevível para instalação neutra de ferramenta.
 readonly LOG_DE_APONTAMENTO_DIR="${SESSAO_WORKLOG_DIR:-${HOME}/.claude/work-log}"
 readonly REGEX_LINHA_BATON='^- \*\*🎬 Próximo:\*\*'
-# ⛔ RAMO DE LEGADO — DELIBERADO, CARREGANDO PESO. NÃO REMOVA COMO "código morto".
-# Este regex casa o dialeto ANTIGO do registro de sessões (`| 7 | 2026-09-04 | ...`, com coluna de
-# número), que o PLAN.template.md não gera mais. Ele parece morto e NÃO É: é o que alimenta a porta
-# 2 do ⑤ e, com ela, o que mantém escopo legado trabalhando sem migração — decisão do Tiago em
-# 2026-09-07 (poucos escopos legados, talvez descontinuados; migrar custaria mais que manter).
-# Coberto pelo caso 14 do autoteste, que isola a porta 2 das outras duas. Se for remover um dia,
-# remova o caso 14 junto e combine antes — não é limpeza, é retirada de suporte.
-readonly REGEX_LINHA_SESSAO='^\| [0-9]+ \| [0-9]{4}-[0-9]{2}-[0-9]{2} \|'
-# DATA da última linha do registro de sessões, nos DOIS dialetos (corrigido 2026-09-07):
+# Linha do registro de sessões (§8), nos DOIS dialetos:
+#   atual   `| 2026-09-04 | B3 | ...`      (o que o PLAN.template.md gera; aceita também DD/MM/AAAA)
 #   legado  `| 11 | 2026-09-04 | ...`      (com coluna de número)
-#   atual   `| 2026-09-04 | B3 | ...`      (o que o PLAN.template.md gera)
-# É o que alimenta a porta retroativa do ⑤. Sem ela, o dialeto atual tinha UMA única chave — a data
-# de hoje — e portanto nenhuma saída para sessão registrada em dia posterior ao do trabalho.
-readonly REGEX_DATA_SESSAO='^\| *([0-9]+ *\| *)?[0-9]{4}-[0-9]{2}-[0-9]{2} *\|'
+# ⛔ O RAMO NUMERADO É LEGADO DELIBERADO, CARREGANDO PESO. NÃO REMOVA COMO "código morto".
+# O PLAN.template.md não gera mais a coluna de número, mas é ela que dá a chave de sessão aos
+# escopos legados, que seguem trabalhando sem migração — decisão do Tiago em 2026-09-07 (poucos
+# escopos legados, talvez descontinuados; migrar custaria mais que manter). Coberto pelos casos 14,
+# 22 e 23 do autoteste. Se for remover um dia, remova os casos junto e combine antes — não é
+# limpeza, é retirada de suporte.
+readonly REGEX_LINHA_REGISTRO='^\| *([0-9]+ *\| *)?([0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{2}/[0-9]{2}/[0-9]{4}) *\|'
 
 houve_vermelho=0
 
@@ -98,13 +94,29 @@ if [[ "${MODO}" == "fechamento" ]]; then
         echo "🔴 ref-base '${REF_BASE}' não existe neste repositório" >&2
         exit 2
     fi
-    diff_do_plan=$(git diff "${REF_BASE}" -- "${PLAN}")
+    # PLAN NÃO RASTREADO (corrigido 2026-09-24, com repro): escopo nascido nesta sessão cujo PLAN
+    # ainda não passou por `git add`. `git diff <ref>` não enxerga arquivo fora do índice, então o
+    # diff saía VAZIO: o ④ acusava a falta de uma linha que existe e o ⑥ nem avaliava o aceite. O
+    # portão reprovava do mesmo jeito, mas pelo motivo errado — e mandava o autor consertar o que
+    # não estava quebrado. PLAN que não existe na ref-base é, inteiro, desta sessão: compara contra
+    # o vazio.
+    plan_nao_rastreado=0
+    if git ls-files --error-unmatch -- "${PLAN}" >/dev/null 2>&1; then
+        diff_do_plan=$(git diff --no-color --no-ext-diff "${REF_BASE}" -- "${PLAN}")
+    else
+        plan_nao_rastreado=1
+        diff_do_plan=$(git diff --no-color --no-ext-diff --no-index -- /dev/null "${PLAN}")
+    fi
     echo "PLAN: ${PLAN}   ref-base: $(git rev-parse --short "${REF_BASE}")   modo: fechamento"
 else
     diff_do_plan=""
     echo "PLAN: ${PLAN}   modo: início (só a coerência do baton)"
 fi
 echo "----------------------------------------------------------------------"
+if [[ "${MODO}" == "fechamento" && "${plan_nao_rastreado}" -eq 1 ]]; then
+    amarelo "PLAN ainda fora do git (escopo novo nesta sessão) — conferido contra arquivo vazio."
+    printf '   Faça `git add %s` antes do commit, senão ele fica de fora.\n' "${PLAN}"
+fi
 
 # --- ① A linha 🎬 existe, e existe uma só ------------------------------------------------------
 linhas_baton=$(grep -cE "${REGEX_LINHA_BATON}" "${PLAN}")
@@ -193,49 +205,84 @@ fi
 # gera `| Data | Bloco(s) | Resumo | Relatório |`, SEM coluna de número — o item nunca disparava, e
 # ainda derrubava o ⑤ junto (sem N, o ⑤ virava ⚠️). Aceita agora linha nova começando por número de
 # sessão OU por data (AAAA-MM-DD ou DD/MM/AAAA).
-ultima_sessao=""
-ultima_data_sessao=""
+# Chave de cada linha do §8 que ESTA sessão acrescentou — serve ao ④ (houve linha nova?) e ao ⑤
+# (cada uma tem apontamento?). A linha acrescentada é localizada pelo NÚMERO dela no PLAN atual,
+# lido dos cabeçalhos `@@ … +c,d @@` do diff — nunca pelo conteúdo: duas sessões do mesmo dia podem
+# escrever linhas idênticas, e casar por texto dava à linha nova a chave da antiga (achado pelo caso
+# 28 do autoteste). mawk: nada de intervalo `{n}` nos regex do awk.
+chaves_novas_do_registro() {
+    local acrescentadas
+    acrescentadas=$(awk '
+        /^@@/           { split($3, r, ","); n = substr(r[1], 2) + 0; dentro = 1; next }
+        !dentro || /^\\/ { next }
+        /^\+/           { print n; n++; next }
+        /^-/            { next }
+                        { n++ }' <<<"${diff_do_plan}")
+    grep -nE "${REGEX_LINHA_REGISTRO}" "${PLAN}" | awk -v acrescentadas="${acrescentadas}" '
+        BEGIN { k = split(acrescentadas, v, "\n"); for (i = 1; i <= k; i++) nova[v[i]] = 1 }
+        {
+            p = index($0, ":"); nr = substr($0, 1, p - 1)
+            split(substr($0, p + 1), c, "|"); a = c[2]; gsub(/^ +| +$/, "", a)
+            if (a ~ /^[0-9]+$/) chave = a
+            else {
+                if (split(a, d, "/") == 3) a = d[3] "-" d[2] "-" d[1]
+                chave = a "#" (++ordem[a])
+            }
+            if (nr in nova) print chave
+        }'
+}
+chaves=""
 if [[ "${MODO}" == "inicio" ]]; then
     :
 elif ! grep -qE '^#+ .*Registro de sessões' "${PLAN}"; then
     amarelo "④ este PLAN não tem seção 'Registro de sessões' — confira na mão"
-elif grep -qE '^\+\| *([0-9]+ *\| *[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{2}/[0-9]{2}/[0-9]{4}) *\|' <<<"${diff_do_plan}"; then
-    verde "④ registro de sessões ganhou linha nova nesta sessão"
-    ultima_sessao=$(grep -oE "${REGEX_LINHA_SESSAO}" "${PLAN}" | tail -1 | grep -oE '[0-9]+' | head -1)
-    ultima_data_sessao=$(grep -oE "${REGEX_DATA_SESSAO}" "${PLAN}" | tail -1 | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | head -1)
 else
-    vermelho "④ nenhuma linha nova no registro de sessões — esta sessão não vai existir para a próxima"
-    ultima_sessao=$(grep -oE "${REGEX_LINHA_SESSAO}" "${PLAN}" | tail -1 | grep -oE '[0-9]+' | head -1)
-    ultima_data_sessao=$(grep -oE "${REGEX_DATA_SESSAO}" "${PLAN}" | tail -1 | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | head -1)
+    chaves=$(chaves_novas_do_registro)
+    if [[ -n "${chaves}" ]]; then
+        verde "④ registro de sessões ganhou linha nova nesta sessão"
+    else
+        vermelho "④ nenhuma linha nova no registro de sessões — esta sessão não vai existir para a próxima"
+    fi
 fi
 
-# --- ⑤ O apontamento da sessão existe no log global --------------------------------------------
+# --- ⑤ Cada sessão nova do registro tem o SEU apontamento no log global --------------------------
 # Uma sessão = uma entrada, com ou sem relatório. Indexar por relatório era o bug: handoff e
 # validação nunca geram relatório, então sumiam do apontamento sem erro nenhum.
-# TOLERANTE A DIALETO (corrigido 2026-08-24): a chave principal passa a ser o CABEÇALHO DE HOJE
-# (`## [AAAA-MM-DD`), que todo log tem; o número de sessão continua valendo quando existir. Antes o
-# item dependia do N vindo do ④, e como o ④ nunca disparava, o ⑤ era ⚠️ permanente.
+#
+# CHAVE DA SESSÃO — derivada do arquivo, nunca da memória (corrigido 2026-09-24, com repro):
+#   dialeto atual   `| 2026-09-04 | B3 | ...`  → chave `2026-09-04#k`  (k = posição da linha entre
+#                                                as linhas do §8 com a MESMA data, de cima p/ baixo)
+#   dialeto legado  `| 11 | 2026-09-04 | ...`  → chave `11`            (o número da sessão)
+# e o log a carrega na linha `**Sessão:** <chave>` logo abaixo do cabeçalho da entrada.
+# Antes a porta principal era "existe alguma entrada `## [hoje` no log". Ela aprovava a 2ª sessão
+# do dia que não registrou nada, desde que a 1ª tivesse registrado — exatamente a falha que o item
+# existe para pegar, num padrão comum (dias de 2-4 sessões no mesmo escopo). E o dialeto atual não
+# tinha chave própria: a idempotência do `end` ficava por conta de texto livre ("2026-09-24 · B5
+# (2ª sessão)"), que nenhum comando distingue. Agora cada linha que ESTA sessão acrescentou ao §8
+# exige a sua chave no log. O caso "trabalho de sexta, registro na segunda" sai de graça: a data
+# está na chave. Sessão que não escreveu linha no §8 não tem chave — quem a reprova é o ④.
 # ⚠️ ORDEM DO RITUAL: o apontamento é escrito DEPOIS de o usuário validar o commit e ANTES de
 # commitar — por isso este item pode ser conferido aqui.
 log_do_escopo="${LOG_DE_APONTAMENTO_DIR}/${SLUG}.md"
-hoje=$(date +%F)
 if [[ "${MODO}" == "inicio" ]]; then
     :
+elif [[ -z "${chaves}" ]]; then
+    amarelo "⑤ sem linha nova no registro de sessões, não há chave de sessão a conferir (ver ④)"
 elif [[ ! -f "${log_do_escopo}" ]]; then
     vermelho "⑤ ${log_do_escopo} não existe — o escopo tem sessões e nenhum apontamento"
-elif grep -qE "^## \[${hoje}" "${log_do_escopo}"; then
-    verde "⑤ apontamento de hoje (${hoje}) presente em ${log_do_escopo}"
-elif [[ -n "${ultima_sessao}" ]] && grep -qE "^\*\*Sessão:\*\* ${ultima_sessao}\b" "${log_do_escopo}"; then
-    verde "⑤ apontamento da sessão ${ultima_sessao} presente em ${log_do_escopo}"
-elif [[ -n "${ultima_data_sessao}" ]] && grep -qE "^## \[${ultima_data_sessao}" "${log_do_escopo}"; then
-    # PORTA RETROATIVA (2026-09-07): a entrada não é de hoje, mas casa a DATA da linha que esta
-    # sessão acabou de acrescentar ao registro de sessões — é o caso "trabalho de sexta, registro
-    # na segunda". Não é brecha: exige que a sessão TENHA escrito a linha no §8 (item ④) e que o
-    # log tenha entrada naquela data. Sessão que simplesmente não registrou não casa nenhuma das
-    # três portas e segue vermelha.
-    verde "⑤ apontamento de ${ultima_data_sessao} presente (registro retroativo; hoje é ${hoje})"
 else
-    vermelho "⑤ sem entrada de hoje (${hoje}) nem de ${ultima_data_sessao:-<data da sessão>} em ${log_do_escopo} — apontamento do dia sai furado"
+    faltando=()
+    for chave in ${chaves}; do
+        grep -qE "^\*\*Sessão:\*\* ${chave}([^0-9]|$)" "${log_do_escopo}" || faltando+=("${chave}")
+    done
+    if [[ ${#faltando[@]} -eq 0 ]]; then
+        verde "⑤ apontamento de cada sessão nova presente em ${log_do_escopo} (chave: ${chaves//$'\n'/ })"
+    else
+        vermelho "⑤ falta apontamento em ${log_do_escopo} para:"
+        for chave in "${faltando[@]}"; do printf '     **Sessão:** %s\n' "${chave}"; done
+        printf '   A chave sai da linha do §8: o nº da sessão, ou <data>#<k> (k = posição da linha entre\n'
+        printf '   as de mesma data). Grave-a logo abaixo do cabeçalho da entrada no log.\n'
+    fi
 fi
 
 # --- ⑥ Contrato de bloco escrito nesta sessão exige ACEITE registrado --------------------------
