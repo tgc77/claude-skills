@@ -1,139 +1,16 @@
-# 🧭 Playbook — Controle de Sessões para Projetos de Escopo Definido (v2)
+# templates/ — o que o `init` copia para um projeto
 
-Modelo reutilizável para tocar um projeto de escopo definido (sprint, épico, migração, POC) com
-**agentes de I.A.**, mantendo **cada sessão enxuta de contexto** e **zero perda de continuidade** —
-mesmo quando cada sessão começa com o contexto zerado e modelos diferentes assumem o trabalho.
-
-> Esta é a **v2**, derivada na prática: simplifica o playbook original (3 camadas com STATUS separado)
-> para **fonte única de verdade**, e adiciona **rolling-wave planning**, o **protocolo planner/executor**
-> e o layout **multi-escopo** (um repo dura mais que uma frente de trabalho).
-
----
-
-## A regra que sustenta tudo
-
-> **Cada fato mora em um único arquivo; todo o resto aponta (link), nunca copia.**
-> E o plano se detalha na medida em que você enxerga: **perto em alta resolução, longe em rascunho.**
-
-A primeira metade elimina duplicação e superfícies de sincronização. A segunda (rolling-wave) evita
-plano rígido que a realidade contradiz.
-
----
-
-## Os 4 artefatos (4 papéis, zero sobreposição)
-
-| Artefato | Papel (o único) | Entra no contexto |
+| Arquivo | Vai para | Observação |
 |---|---|---|
-| **`AGENTS.md`** (raiz) | **Como trabalhar** (protocolo permanente, agnóstico de escopo) + **índice de escopos**. O `CLAUDE.md` só o importa (`@AGENTS.md`). | Sempre (automático). |
-| **`docs/sessoes/<escopo>/PLAN.md`** | **Fonte única de verdade viva daquele escopo**: "Agora" + parâmetros + guardrails + Board + bloco ativo + blocos futuros (rascunho) + decisões + registro de sessões. | Sempre — só o cabeçalho + bloco ativo. |
-| **`docs/sessoes/<escopo>/RELATORIO_<bloco>_<data>.md`** | **Histórico denso** (problema→causa→solução→evidência), 1 por bloco fechado (ou quando pedido). | Quase nunca — só para resgatar um detalhe. |
-| **Memória** | **Ponteiros** de alto nível entre sessões. | Índice sempre; detalhe sob demanda. |
+| `AGENTS.template.md` | `AGENTS.md` (1ª instalação) | Índice de escopos, regras do projeto e o **bloco gerenciado** (entre `<!-- sessao:inicio` e `<!-- sessao:fim -->`), que o `/sessao update` mantém igual a este template. Nada de protocolo além do bloco: ele mora na skill. |
+| `CLAUDE.template.md` | `CLAUDE.md` (1ª instalação) | Só o import `@AGENTS.md`: o Claude Code lê `CLAUDE.md`, o Codex lê `AGENTS.md`. |
+| `PLAN.template.md` | `docs/sessoes/<slug>/PLAN.md` (todo escopo novo) | Fonte única de verdade do escopo. O portão e o autoteste dependem do formato dele. |
+| `template-relatorio.md` | `docs/sessoes/template-relatorio.md` (1ª instalação) | Gabarito de relatório de bloco, compartilhado por todos os escopos. |
 
-Mapa mental: **regras + índice** (AGENTS) · **estado+plano** (PLAN do escopo) ·
-**detalhe** (relatórios) · **ganchos** (memória). Não existe arquivo de STATUS separado — ele é a
-primeira seção do `PLAN.md`.
+O lançador do portão não está aqui: o `init` copia `../scripts/conferencia_saida.shim.sh` para
+`scripts/conferencia_saida.sh` do projeto.
 
-**Escoadouro automático — apontamentos por escopo:** toda sessão que termina (`end`, `handoff` ou
-PARADA no meio de bloco) grava **uma** entrada no log da skill `resumo-trabalho` —
-`<work-log>/<slug>.md`, com `<work-log>` = `$SESSAO_WORKLOG_DIR` ou `~/.claude/work-log`; **o label é o
-slug**, não há campo separado. **O índice é a sessão, não o relatório:** relatório é matéria-prima
-quando existe; sem ele, a fonte é a linha do registro de sessões + decisões + commits. Cada entrada
-leva `**Sessão:** <chave>` (a chave sai da linha do §8), que a torna idempotente e é o que o portão
-confere. Assim `/resumo-trabalho gerar <slug>` dá o apontamento do dia completo sem `registrar`
-manual. É consumidor a jusante, fora do repo — não é um 5º artefato do modelo.
-
----
-
-## Um repo, vários escopos
-
-Um repositório vive mais que uma frente de trabalho. **O protocolo é permanente; o plano é por escopo**
-— por isso a raiz não cresce a cada feature:
-
-```
-<repo>/
-├── CLAUDE.md                      ← 1 linha: `@AGENTS.md` (o Claude Code não lê AGENTS.md)
-├── AGENTS.md                      ← fonte única: protocolo permanente + índice de escopos
-└── docs/sessoes/
-    ├── template-relatorio.md      ← gabarito compartilhado
-    └── <escopo-slug>/
-        ├── PLAN.md                ← fonte única de verdade daquele escopo
-        └── RELATORIO_<bloco>_<AAAA-MM-DD>.md
-```
-
-**O que é permanente × o que é do escopo:** papéis, ritual, convenções de commit, repos irmãos e
-guardrails que valem sempre → `AGENTS.md`. Slug + descrição, Board, **branch de trabalho**,
-**ambiente/variáveis** e guardrails daquela frente → `PLAN.md` do escopo. Misturar os dois é o que produz
-bagunça: guardrail de um escopo herdado pelo seguinte, ou protocolo duplicado em N arquivos.
-
----
-
-## Rolling-wave (elaboração progressiva)
-
-- Detalha o **bloco ativo** (e, no máximo, o próximo) com checklist + DoD.
-- Blocos distantes ficam como **uma linha cada**, marcados **(rascunho)** e provisórios.
-- **Replanejar é ritual, não desvio:** na fronteira de cada bloco, revise a ordem e o conteúdo dos
-  blocos futuros à luz do que aprendeu. A ordem pode mudar.
-
-Cada bloco é dimensionado para **~2–4h de trabalho** (≈ uma sessão). Estimativa é guia de fatiamento,
-**não SLA**.
-
----
-
-## Protocolo planner / executor (economia de tokens)
-
-Use um **modelo forte para planejar** (raro, alto valor) e um **modelo barato para executar**
-(frequente, mecânico). Funciona porque o rolling-wave já separa os regimes: planejar acontece na
-**fronteira do bloco**; executar, **dentro** dele.
-
-- 🧠 **Planejador** (modelo forte): na fronteira, detalha o próximo bloco até **"executor-ready"**,
-  resolve decisões, escreve o **Contrato de execução** e replaneja o futuro. **Não implementa.**
-  Calibra o detalhe ao executor — especifica **decisões e restrições, não keystrokes** (micro-roteirizar
-  desperdiça os tokens caros).
-- ⚙️ **Executor** (modelo barato): executa o bloco **à risca**, marca checkboxes, resolve desvios
-  pequenos (retry/fix óbvio). **Não toma decisão de design:** se a realidade divergir do plano, **PARA,
-  registra em Blockers/Decisões e escala de volta ao Planejador.** Auto-verifica contra a DoD ao fim.
-  Fecha o próprio bloco (relatório + PLAN; o commit espera a validação do usuário) e **para** —
-  promover/detalhar o próximo é do Planejador.
-
-**Tipo de bloco:** 🔧 **mecânico** (passos conhecíveis → Executor sozinho, onde o split mais rende) ×
-🔬 **descoberta** (a execução produz o conhecimento — ex.: caos, restore → Planejador conduz a 1ª
-passada; Executor repete/escala depois).
-
-**Quando o split compensa:** execução ≫ planejamento (bloco mecânico e longo). Bloco curto ou pura
-descoberta: deixe um modelo só tocar — o overhead de handoff come o ganho.
-
----
-
-## Como instalar num projeto novo
-
-1. Copie `AGENTS.template.md` → `AGENTS.md` e `CLAUDE.template.md` → `CLAUDE.md` na raiz, e preencha os
-   `<…>`. O `AGENTS.md` **não** leva nada específico de escopo.
-2. Copie `template-relatorio.md` → `docs/sessoes/template-relatorio.md` (um por repo).
-3. Copie o **lançador** `../scripts/conferencia_saida.shim.sh` → `scripts/conferencia_saida.sh` e dê
-   `chmod +x`. **Não** copie o portão em si: o lançador acha a skill em tempo de execução, então toda
-   correção do portão chega ao projeto sem reinstalar (e ele falha fechado, exit 2, se não achar).
-4. Copie `PLAN.template.md` → `docs/sessoes/<escopo-slug>/PLAN.md` e preencha os parâmetros do escopo,
-   os guardrails, o Board inicial e o **baton `🎬 Próximo`**. Registre o escopo na tabela do `AGENTS.md`.
-5. **Escopo novo depois:** repita **só** o passo 4 — nada na raiz é recriado.
-6. (Opcional) Cole o **`BOOTSTRAP.md`** na 1ª sessão com um agente forte para ele montar/validar tudo.
-7. Sessões seguintes: o `CLAUDE.md`/`AGENTS.md` força o ritual; use os prompts curtos do BOOTSTRAP.
-
-O caminho normal é a skill (`/sessao init`), que faz tudo isso validando os dados com você.
-
-## Arquivos deste kit
-
-- `AGENTS.template.md` — protocolo permanente do repo (papéis, ritual, invariantes, guardrails gerais).
-- `CLAUDE.template.md` — arquivo de 1 linha (`@AGENTS.md`) que faz o Claude Code ler o protocolo.
-- `PLAN.template.md` — a fonte única de verdade de **um** escopo.
-- ⬆️ **Os scripts saíram desta pasta** (2026-08-29) e moram em `../scripts/`, seguindo a convenção
-  `scripts/` que Claude Code e Codex documentam:
-  - `../scripts/conferencia_saida.shim.sh` — o **lançador**: é ele que vai para
-    `scripts/conferencia_saida.sh` do projeto (desde 2026-09-07; antes ia a cópia do portão, que
-    congelava na versão do dia da instalação).
-  - `../scripts/conferencia_saida.sh` — o **portão** executável do fechamento; fica na skill e é
-    chamado pelo lançador.
-  - `../scripts/autoteste_portao.sh` — **testa o portão contra estes templates**; fica na skill, não
-    vai para o projeto. Rode-o sempre que mexer no portão ou no `PLAN.template.md`: em 24/08/2026 os
-    dois estavam em dialetos diferentes e o portão fazia valer só 2 dos 6 itens, saindo com exit 0.
-- `template-relatorio.md` — gabarito de relatório de sessão.
-- `BOOTSTRAP.md` — prompt de bootstrap + prompts curtos do dia a dia.
+⚠️ **Mexeu no `PLAN.template.md` ou no bloco gerenciado do `AGENTS.template.md`? Rode
+`../scripts/autoteste_portao.sh`.** O portão lê o PLAN pelo formato dele, e os dois já se
+desentenderam uma vez sem nenhum aviso (ver `../HISTORICO.md`, 2026-08-24). Depois de mudar o bloco
+gerenciado, rode `/sessao update` em cada projeto.

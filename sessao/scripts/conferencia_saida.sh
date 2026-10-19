@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
-# Conferência de saída MECÂNICA — o portão que roda antes de todo commit de fim de turno
-# (`end` / `handoff`). Ver AGENTS.md, "🧾 Ritual de fim de turno", item 5.
+# Conferência de saída MECÂNICA — o portão que roda antes de todo commit de fim de sessão
+# (`end` / `handoff`). Ver a skill `sessao`: referencia/conferencia.md.
 #
 # POR QUE ESTE ARQUIVO EXISTE
 # ---------------------------
@@ -19,12 +19,18 @@
 # USO
 #   scripts/conferencia_saida.sh <slug> <ref-base>   # FECHAMENTO: todos os itens (end/handoff)
 #   scripts/conferencia_saida.sh <slug> --inicio     # INÍCIO: só a coerência do baton que se vai ler
+#   scripts/conferencia_saida.sh <slug> --estado     # ESTADO: o --inicio + o estado do escopo em JSON
 #     <slug>      escopo da sessão (coluna `Slug` do AGENTS.md) — ele resolve o caminho do PLAN
 #     <ref-base>  commit em que ESTA sessão começou (`git rev-parse HEAD` no início)
 #
 # O modo --inicio é a defesa do lado do LEITOR: antes de executar à risca o que o baton manda,
 # confere se ele não está podre (mandando refazer tarefa já [x]). Custa 1 segundo e é o que separa
 # "entrei no papel certo" de "refiz um bloco inteiro que já estava pronto".
+#
+# O modo --estado (2026-10-19) faz o mesmo que o --inicio e ainda imprime no stdout o estado do escopo
+# em JSON — PLAN, branch, bloco ativo, baton, próxima tarefa aberta, gates 🔁, blockers, apontamento —,
+# para o `start` e o `escopos` não dependerem de o modelo (às vezes o barato) interpretar o PLAN
+# sozinho. As linhas ✅/⚠️/🔴 vão para o stderr. Os códigos de saída são os do --inicio.
 #
 # Saída: uma linha por item, ✅ / ⚠️ / 🔴. Qualquer 🔴 ⇒ exit 1 ⇒ NÃO COMMITE.
 # ⚠️ = item não aplicável a este PLAN (formato diferente); confira na mão.
@@ -58,15 +64,20 @@ amarelo()  { printf '⚠️  %s\n' "$1"; }
 vermelho() { printf '🔴 %s\n' "$1"; houve_vermelho=1; }
 
 if [[ $# -ne 2 ]]; then
-    echo "uso: $0 <slug> <ref-base>   |   $0 <slug> --inicio" >&2
+    echo "uso: $0 <slug> <ref-base>   |   $0 <slug> --inicio   |   $0 <slug> --estado" >&2
     exit 2
 fi
 readonly SLUG="$1"
 readonly REF_BASE="$2"
-if [[ "${REF_BASE}" == "--inicio" ]]; then
-    readonly MODO="inicio"
-else
-    readonly MODO="fechamento"
+case "${REF_BASE}" in
+    --inicio) readonly MODO="inicio" ;;
+    --estado) readonly MODO="estado" ;;
+    *)        readonly MODO="fechamento" ;;
+esac
+# No --estado, o stdout é só do JSON: as linhas humanas vão para o stderr, e o JSON sai pelo
+# descritor 3, que guarda o stdout original.
+if [[ "${MODO}" == "estado" ]]; then
+    exec 3>&1 1>&2
 fi
 
 # --- Resolução do PLAN --------------------------------------------------------------------------
@@ -74,9 +85,11 @@ fi
 # convenção do layout canônico → PLAN na raiz (layout legado, instalação anterior ao multi-escopo).
 cd "$(git rev-parse --show-toplevel)" || exit 2
 PLAN=""
+LINHA_INDICE=""
 for indice in "${INDICES_DE_ESCOPOS[@]}"; do
     [[ -f "${indice}" ]] || continue
     PLAN=$(grep -E "^\| \`${SLUG}\`" "${indice}" | sed -E 's/.*\]\(([^)]+)\).*/\1/')
+    LINHA_INDICE=$(grep -m1 -E "^\| \`${SLUG}\`" "${indice}")   # só o --estado usa
     [[ -n "${PLAN}" ]] && break
 done
 if [[ -z "${PLAN}" || ! -f "${PLAN}" ]]; then
@@ -110,7 +123,11 @@ if [[ "${MODO}" == "fechamento" ]]; then
     echo "PLAN: ${PLAN}   ref-base: $(git rev-parse --short "${REF_BASE}")   modo: fechamento"
 else
     diff_do_plan=""
-    echo "PLAN: ${PLAN}   modo: início (só a coerência do baton)"
+    if [[ "${MODO}" == "estado" ]]; then
+        echo "PLAN: ${PLAN}   modo: estado (coerência do baton + JSON no stdout)"
+    else
+        echo "PLAN: ${PLAN}   modo: início (só a coerência do baton)"
+    fi
 fi
 echo "----------------------------------------------------------------------"
 if [[ "${MODO}" == "fechamento" && "${plan_nao_rastreado}" -eq 1 ]]; then
@@ -149,7 +166,7 @@ extrai_paragrafo_baton() {
         dentro                                { exit }
     '
 }
-if [[ "${MODO}" == "inicio" ]]; then
+if [[ "${MODO}" != "fechamento" ]]; then
     :
 else
     baton_agora=$(extrai_paragrafo_baton < "${PLAN}")
@@ -176,7 +193,9 @@ fi
 #       seguro: deixar passar um baton podre custa uma conferência manual; travar sessão boa custa
 #       a sessão inteira.
 tarefa_citada=$(grep -oE '\bT[0-9]+(\.[0-9]+)*[a-z]?\b|\b[0-9]+\.[0-9]+[a-z]?\b' <<<"${linha_baton}" | head -1)
+coerencia_baton=""   # só o --estado lê: coerente | podre | ambigua | sem_tarefa_citada | nao_achada
 if [[ -z "${tarefa_citada}" ]]; then
+    coerencia_baton="sem_tarefa_citada"
     amarelo "③ a linha 🎬 não cita tarefa reconhecível (T<N> ou N.N) — confira o ponto de entrada na mão"
 else
     tarefa_esc=${tarefa_citada//./\\.}
@@ -189,13 +208,17 @@ else
     n_feitas=$(grep -cE "^ *- \[x\] +[^A-Za-z0-9]*${tarefa_esc}\b" "${PLAN}" || true)
     n_abertas=$(grep -cE "^ *- \[ \] +[^A-Za-z0-9]*${tarefa_esc}\b" "${PLAN}" || true)
     if [[ "${n_feitas}" -gt 0 && "${n_abertas}" -eq 0 ]]; then
+        coerencia_baton="podre"
         vermelho "③ BATON PODRE: a linha 🎬 manda executar a tarefa ${tarefa_citada}, que está [x]"
     elif [[ "${n_abertas}" -gt 0 && "${n_feitas}" -eq 0 ]]; then
+        coerencia_baton="coerente"
         verde "③ ponto de entrada ${tarefa_citada} está em aberto ([ ])"
     elif [[ "${n_feitas}" -gt 0 && "${n_abertas}" -gt 0 ]]; then
+        coerencia_baton="ambigua"
         amarelo "③ id '${tarefa_citada}' aparece ${n_feitas}× como [x] e ${n_abertas}× como [ ] — reusado"
         printf '   entre blocos, então o portão não decide. Confira na mão QUAL bloco a linha 🎬 cita.\n'
     else
+        coerencia_baton="nao_achada"
         amarelo "③ tarefa ${tarefa_citada} citada na linha 🎬 não achada como checkbox — confira na mão"
     fi
 fi
@@ -232,7 +255,7 @@ chaves_novas_do_registro() {
         }'
 }
 chaves=""
-if [[ "${MODO}" == "inicio" ]]; then
+if [[ "${MODO}" != "fechamento" ]]; then
     :
 elif ! grep -qE '^#+ .*Registro de sessões' "${PLAN}"; then
     amarelo "④ este PLAN não tem seção 'Registro de sessões' — confira na mão"
@@ -264,7 +287,7 @@ fi
 # ⚠️ ORDEM DO RITUAL: o apontamento é escrito DEPOIS de o usuário validar o commit e ANTES de
 # commitar — por isso este item pode ser conferido aqui.
 log_do_escopo="${LOG_DE_APONTAMENTO_DIR}/${SLUG}.md"
-if [[ "${MODO}" == "inicio" ]]; then
+if [[ "${MODO}" != "fechamento" ]]; then
     :
 elif [[ -z "${chaves}" ]]; then
     amarelo "⑤ sem linha nova no registro de sessões, não há chave de sessão a conferir (ver ④)"
@@ -303,7 +326,7 @@ fi
 #   (b) ACEITE ETERNO — o grep varria o PLAN inteiro, então uma linha de aceite de um bloco antigo
 #       deixava o item verde para sempre. Agora o aceite tem de ser NOVO NESTA SESSÃO (vir no diff),
 #       exatamente como o item ② faz com a linha 🎬 — que é o único mecanismo já provado.
-if [[ "${MODO}" != "inicio" ]]; then
+if [[ "${MODO}" == "fechamento" ]]; then
     contrato_novo=0
     checkboxes_novos=$(grep -cE '^\+ *- \[ \] ' <<<"${diff_do_plan}" || true)
     if grep -qE '^\+.*###[[:space:]]*(📋[[:space:]]*)?Tarefas' <<<"${diff_do_plan}" \
@@ -312,7 +335,10 @@ if [[ "${MODO}" != "inicio" ]]; then
        || [[ "${checkboxes_novos}" -ge 2 ]]; then
         contrato_novo=1
     fi
-    if [[ "${contrato_novo}" -eq 1 ]] && grep -q '⚙️' <<<"${linha_baton}"; then
+    # '⚙' SEM o seletor de variação U+FE0F (corrigido 2026-10-19): o padrão antigo, '⚙️', exigia o
+    # seletor, e um baton escrito "⚙ Executor" — sem ele, como modelos às vezes escrevem — deixava o
+    # ⑥ cego, aprovando contrato sem aceite. Este padrão casa as duas grafias. Caso 40 do autoteste.
+    if [[ "${contrato_novo}" -eq 1 ]] && grep -q '⚙' <<<"${linha_baton}"; then
         if grep -qE '^\+\*\*Aceite:\*\* .+, [0-9]{4}-[0-9]{2}-[0-9]{2}' <<<"${diff_do_plan}"; then
             verde "⑥ contrato novo com aceite registrado NESTA sessão"
         else
@@ -342,9 +368,93 @@ if [[ "${MODO}" != "inicio" ]]; then
     fi
 fi
 
+# --- Estado do escopo em JSON (só no --estado) ---------------------------------------------------
+# Lê só o que o `start` e o `escopos` precisam: a linha do índice, o cabeçalho de parâmetros, o
+# "🔎 Agora", a seção do bloco ativo e o §8. Campo que este PLAN não tem (dialeto antigo) sai como
+# null — nunca inventado.
+json_str() {   # "$1" como string JSON; vazio vira null
+    local s="$1"
+    if [[ -z "${s}" ]]; then printf 'null'; return; fi
+    s=${s//\\/\\\\}; s=${s//\"/\\\"}; s=${s//$'\t'/\\t}; s=${s//$'\r'/}; s=${s//$'\n'/\\n}
+    printf '"%s"' "${s}"
+}
+apara() { sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//'; }
+campo_do_agora() {   # o texto depois de `- **<rótulo>:**`, sem os asteriscos de negrito
+    grep -m1 -E "^- \*\*$1:\*\*" "${PLAN}" | sed -E "s/^- \*\*$1:\*\* *//; s/\*\*//g" | apara
+}
+emite_estado_json() {
+    local escopo="" estado_indice="" branch papel="" ponto="" texto_baton coerencia
+    local secao feitas="null" abertas="null" proxima="" gates="null" g lista="" log existe="false"
+    if [[ -n "${LINHA_INDICE}" ]]; then
+        escopo=$(awk -F'|' '{print $3}' <<<"${LINHA_INDICE}" | apara)
+        estado_indice=$(awk -F'|' '{print $4}' <<<"${LINHA_INDICE}" | apara)
+    fi
+    branch=$(grep -m1 -E '^\| *\*\*Branch de trabalho\*\* *\|' "${PLAN}" | awk -F'|' '{print $3}' \
+             | tr -d '`' | apara)
+    # Papel só quando a linha cita UM dos dois — o template traz os dois, como placeholder.
+    if grep -q '⚙' <<<"${linha_baton}" && ! grep -q '🧠' <<<"${linha_baton}"; then
+        papel="executor"
+    elif grep -q '🧠' <<<"${linha_baton}" && ! grep -q '⚙' <<<"${linha_baton}"; then
+        papel="planejador"
+    fi
+    if grep -q '\*\*Ponto de entrada:\*\*' <<<"${linha_baton}"; then
+        ponto=$(sed -E 's/.*\*\*Ponto de entrada:\*\* *//; s/\*\*//g' <<<"${linha_baton}" | apara)
+    fi
+    texto_baton=$(sed -E 's/^- \*\*🎬 Próximo:\*\* *//; s/\*\*//g' <<<"${linha_baton}" | apara)
+    case "${linhas_baton}" in
+        0) coerencia="sem_baton" ;;
+        1) coerencia="${coerencia_baton}" ;;
+        *) coerencia="duplicado" ;;
+    esac
+    # Seção do bloco ativo: do `## 🎯 Bloco ativo` até o próximo `## `.
+    if grep -q '^## 🎯 Bloco ativo' "${PLAN}"; then
+        secao=$(awk '/^## 🎯 Bloco ativo/ {d = 1; next} d && /^## / {exit} d {print}' "${PLAN}")
+        feitas=$(grep -cE '^ *- \[x\] ' <<<"${secao}")
+        abertas=$(grep -cE '^ *- \[ \] ' <<<"${secao}")
+        proxima=$(grep -m1 -E '^ *- \[ \] ' <<<"${secao}" | sed -E 's/^ *- \[ \] +//; s/\*\*//g')
+        while IFS= read -r g; do
+            [[ -n "${g}" ]] && lista+="${lista:+, }$(json_str "${g}")"
+        done < <(grep -E '^ *- 🔁' <<<"${secao}" | sed -E 's/^ *- +//; s/\*\*//g')
+        gates="[${lista}]"
+    fi
+    log="${LOG_DE_APONTAMENTO_DIR}/${SLUG}.md"
+    [[ -f "${log}" ]] && existe="true"
+    cat <<JSON
+{
+  "slug": $(json_str "${SLUG}"),
+  "plan": $(json_str "${PLAN}"),
+  "escopo": $(json_str "${escopo}"),
+  "estado_no_indice": $(json_str "${estado_indice}"),
+  "branch_de_trabalho": $(json_str "${branch}"),
+  "ultima_atualizacao": $(json_str "$(campo_do_agora 'Última atualização')"),
+  "bloco_ativo": $(json_str "$(campo_do_agora 'Bloco ativo')"),
+  "blockers": $(json_str "$(campo_do_agora 'Blockers')"),
+  "baton": {
+    "linhas": ${linhas_baton},
+    "texto": $(json_str "${texto_baton}"),
+    "papel": $(json_str "${papel}"),
+    "ponto_de_entrada": $(json_str "${ponto}"),
+    "tarefa_citada": $(json_str "${tarefa_citada}"),
+    "coerencia": $(json_str "${coerencia}")
+  },
+  "tarefas_do_bloco_ativo": {
+    "concluidas": ${feitas},
+    "abertas": ${abertas},
+    "proxima_aberta": $(json_str "${proxima}"),
+    "gates": ${gates}
+  },
+  "sessoes_no_registro": $(grep -cE "${REGEX_LINHA_REGISTRO}" "${PLAN}"),
+  "apontamento": { "log": $(json_str "${log}"), "existe": ${existe} }
+}
+JSON
+}
+
 echo "----------------------------------------------------------------------"
+if [[ "${MODO}" == "estado" ]]; then
+    emite_estado_json >&3
+fi
 if [[ "${houve_vermelho}" -ne 0 ]]; then
-    if [[ "${MODO}" == "inicio" ]]; then
+    if [[ "${MODO}" != "fechamento" ]]; then
         echo "🔴 BATON PODRE — NÃO execute e NÃO adivinhe a próxima tarefa. Mostre a Tiago o que a"
         echo "   linha 🎬 diz × o que o Board diz, e pergunte. É sintoma de sessão anterior que"
         echo "   gravou a troca de papel só na prosa."
@@ -353,7 +463,7 @@ if [[ "${houve_vermelho}" -ne 0 ]]; then
     echo "🔴 CONFERÊNCIA REPROVADA — não commite. Vermelho é PARADA, não ressalva no relatório."
     exit 1
 fi
-if [[ "${MODO}" == "inicio" ]]; then
+if [[ "${MODO}" != "fechamento" ]]; then
     echo "✅ Baton coerente com o Board. Siga o papel que a linha 🎬 manda."
     exit 0
 fi

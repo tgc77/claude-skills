@@ -1,10 +1,10 @@
 # PLAN — <ESCOPO/ÉPICO>
 
-> **Fonte única de verdade viva deste escopo.** Ler o cabeçalho "🔎 Agora" + o bloco ativo no início de
-> toda sessão. Atualizar in-place ao fim do turno + gerar relatório (quando <SEU_NOME> pedir ou ao
-> fechar um bloco inteiro). Detalhe denso → relatórios **nesta mesma pasta**. Memória → só ponteiros.
-> **Cada fato mora aqui uma vez.** Regras, papéis e ritual → [`AGENTS.md`](../../../AGENTS.md)
-> (protocolo permanente, agnóstico de escopo).
+> **Fonte única de verdade viva deste escopo.** Lido só sob `/sessao start <slug>`: o cabeçalho
+> "🔎 Agora" + o bloco ativo. Atualizar in-place ao fim da sessão + gerar relatório (quando <SEU_NOME>
+> pedir ou ao fechar um bloco inteiro). Detalhe denso → relatórios **nesta mesma pasta**. Memória → só
+> ponteiros. **Cada fato mora aqui uma vez.** Papéis, ritual e portão → skill `sessao`; índice e
+> regras do projeto → [`AGENTS.md`](../../../AGENTS.md).
 
 **Escopo:** <2-3 linhas: qual é o problema/entrega, por que importa, e o que prova que acabou.>
 **Fora de escopo:** <o que explicitamente NÃO se toca nesta frente>.

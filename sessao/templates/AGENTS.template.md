@@ -1,318 +1,49 @@
 # AGENTS.md — <NOME_DO_PROJETO>
 
-Instruções do agente para este repositório — **como trabalhar**. Este arquivo é **permanente e
-agnóstico de escopo**: vale para qualquer feature, correção ou investigação conduzida pelo sistema de
-controle de sessões. O **quê** (slug, descrição, board, branch, ambiente, guardrails específicos)
-vive no `PLAN.md` de cada escopo, em `docs/sessoes/<escopo>/PLAN.md`. Escopos ativos e arquivados
-estão na tabela **🎯 Escopos de trabalho**, logo abaixo.
-
-> 🤝 **Este arquivo é a fonte única para qualquer agente.** O Codex o lê nativamente; o Claude Code o
-> lê através de um `CLAUDE.md` de uma linha (`@AGENTS.md`), porque ele lê `CLAUDE.md` e não
-> `AGENTS.md`. Por isso **o índice de escopos mora aqui**, e não no `CLAUDE.md` — senão só uma das
-> ferramentas o enxergaria. ⛔ **Nunca crie `AGENTS.override.md`:** no Codex ele *substitui* este
-> arquivo em vez de somar, apagando o protocolo inteiro do contexto.
-
 <1-2 linhas sobre o que é o projeto + link para o README/documentação técnica.>
 
-> **Um escopo = uma pasta.** `docs/sessoes/<escopo>/` contém o `PLAN.md` daquele escopo e seus
-> relatórios. Escopos não se misturam: fechar um não mexe no outro, e um escopo novo não herda o
-> estado do anterior — só este protocolo.
+<!-- sessao:inicio — bloco gerenciado pela skill `sessao`. Não edite à mão: para atualizar, rode `/sessao update`. -->
+## 🧭 Controle de Sessões
 
----
+Este repositório usa a skill `sessao`. **O protocolo — papéis, ritual de fim de sessão, portão — mora
+na skill, não neste arquivo**, e só vale quando o usuário a invoca.
 
-## 🎯 Escopos de trabalho (um escopo = uma pasta)
+- **Ativação só explícita:** `/sessao start <slug>` no Claude Code; `$sessao start <slug>` ou
+  `@sessao start <slug>` no Codex. Os demais subcomandos (`escopos`, `init`, `handoff`, `end`,
+  `update`, `help`) fazem só o que pedem e não equivalem a um `start`.
+- **Fora disso, todo pedido é avulso:** não leia `docs/sessoes/**` por conta própria, não deduza escopo
+  pela branch nem pela tabela de escopos e não rode ritual de sessão.
+- A tabela **🎯 Escopos de trabalho** abaixo é só um índice: diz onde mora o PLAN de cada slug.
+- **🛑 Questionamento aberto = registro congelado — vale em qualquer sessão, com ou sem a skill.**
+  Quando o usuário questiona, discorda ou pede para validar algo, pare de registrar: nada entra em
+  PLAN, `AGENTS.md`, relatório, memória ou commit até ele concordar com tudo, não só com a parte que
+  pareceu resolvida. Silêncio não é aval, e responder às perguntas do agente não é aceitar um plano.
+  Mostre a evidência crua, a conclusão e as opções, e pergunte. Se já registrou antes do aval, diga
+  isso na primeira frase e ofereça desfazer.
+<!-- sessao:fim -->
 
-Cada frente de trabalho tem seu próprio `PLAN.md` (fonte única de verdade daquele escopo) e seus
-relatórios, em `docs/sessoes/<escopo>/`. **Leia o PLAN do escopo da sessão — só dele.** Se mais de um
-estiver ativo e a intenção não estiver clara, pergunte a <SEU_NOME> qual é.
+## 🎯 Escopos de trabalho
 
-| Slug        | Escopo (o que é)                | Estado   | PLAN                                                    |
-|-------------|---------------------------------|----------|---------------------------------------------------------|
-| `<slug>`    | <descrição curta da frente>     | 🟡 Ativo | [`docs/sessoes/<slug>/PLAN.md`](docs/sessoes/<slug>/PLAN.md) |
+| Slug     | Escopo (o que é)            | Estado   | PLAN                                                         |
+|----------|-----------------------------|----------|--------------------------------------------------------------|
+| `<slug>` | <descrição curta da frente> | 🟡 Ativo | [`docs/sessoes/<slug>/PLAN.md`](docs/sessoes/<slug>/PLAN.md) |
 
-**Legenda:** 🟡 Ativo · 🟢 Concluído · 🔴 Bloqueado/pausado.
-
-> **Slug é o identificador; escopo é a descrição.** Um escopo tem **um** nome — sem apelidos. O slug é
-> o nome da pasta, o argumento do comando e o label do apontamento (`<work-log>/<slug>.md`), então
-> precisa ser único **entre projetos**, não só aqui.
-
-**Trocar de escopo:** o escopo é **argumento**, não estado — `start <slug> [nota]`, `end <slug>`
-(invoque a skill: `/sessao` no Claude Code, `$sessao` ou `@sessao` no Codex). Omitindo o slug, vale:
-único 🟡 ativo → branch atual casando com a "Branch de trabalho" do PLAN → pergunta. O subcomando
-`escopos` lista todos com estado, branch e baton, sem alterar nada. **Um escopo por vez em cada
-working tree** — paralelo de verdade só com `git worktree`, e isso vale **entre ferramentas também**:
-Claude Code e Codex na mesma árvore ao mesmo tempo colidem em arquivos e commits.
-
-**Escopo novo:** o subcomando `init` cria só `docs/sessoes/<novo-slug>/PLAN.md` e acrescenta uma linha
-nesta tabela. Este `AGENTS.md` e [`docs/sessoes/template-relatorio.md`](docs/sessoes/template-relatorio.md)
-são reusados, nunca copiados. Escopo terminado vira 🟢 Concluído aqui — a pasta permanece como histórico.
-
-> ⚠️ `docs/sessoes/**` e este índice são **documentação, não código da feature**: mantenha-os na branch
-> base e mergeie cedo. O PLAN é versionado — em branch errada, a sessão lê estado errado.
-
----
-
-## ⚠️ Leitura obrigatória no início de cada sessão
-
-**Cada sessão começa com o contexto zerado** — a continuidade vive nos arquivos, não na conversa.
-
-1. **Identifique o escopo** da sessão e **diga qual assumiu**, nesta ordem: slug passado no comando →
-   único 🟡 ativo na tabela **🎯 Escopos de trabalho** acima → escopo cuja "Branch de trabalho" é a branch
-   atual → **pergunte** a <SEU_NOME>. Nunca chute, e **nunca opere dois escopos na mesma sessão**.
-2. **LEIA o cabeçalho ("🔎 Agora") + o bloco ativo** do `PLAN.md` **daquele escopo** — a **fonte única
-   de verdade** dele. Não precisa ler o PLAN inteiro, e não leia o PLAN de outro escopo.
-3. Resuma para <SEU_NOME> **onde paramos + o próximo passo**, sem reler relatórios antigos. Relatórios
-   só sob demanda, para reconstruir um detalhe.
-4. **Seu papel vem do baton `🎬 Próximo` do cabeçalho Agora — não pergunte se ele existe.** Se diz
-   **⚙️ Executor**, esta é sessão de Executor: **comece a executar** do ponto de entrada à risca (não
-   pare pra perguntar o papel). Se diz **🧠 Planejador**, entre planejando. Só pergunte se o baton faltar.
-   ⚠️ **Antes de obedecer, confira se ele não está podre — um comando:**
-   `scripts/conferencia_saida.sh <slug> --inicio`. Se o baton manda executar tarefa já `[x]` (ou cita
-   bloco 🟢/inexistente), **não execute, não adivinhe a próxima tarefa e não replaneje por conta
-   própria**: mostre o que a linha `🎬` diz × o que o Board diz e **pergunte**. É o sintoma clássico de
-   sessão anterior que gravou a troca de papel só na prosa — e é o que faz uma sessão refazer trabalho
-   pronto.
-5. **Gates (🔁) não são retrabalho.** O Executor reestabelece os gates por-sessão do ponto de entrada
-   (reverificar DoR, rearmar carga/probe/shells, exportar variáveis de ambiente) — processos vivos não
-   sobrevivem entre sessões; os *resultados* já feitos estão persistidos (`[x]` + relatório).
-   Reestabelecer setup ≠ refazer trabalho.
-6. **Obedeça aos guardrails do escopo** (seção 🚧 no topo do `PLAN.md`) — são específicos daquela frente
-   e **sobrepõem** qualquer hábito geral.
-
-> **Regra de ouro (invariante anti-duplicação):** cada fato mora em **um** arquivo; o resto aponta
-> (link), nunca copia. Regras de trabalho → **este arquivo**. Estado e plano → `PLAN.md` do escopo.
-> Detalhe denso → relatórios do escopo. Ganchos → memória. **Nunca** suba detalhe de relatório para o
-> PLAN. Atualize **in-place**, não acrescente linhas duplicadas.
-
----
-
-## 🧠⚙️ Protocolo de dois papéis (planner / executor)
-
-Planejar usa um **modelo forte**; executar usa um **modelo mais barato**. <SEU_NOME> troca o modelo
-entre as sessões. Saiba qual papel você exerce.
-
-### 🧠 Planejador (modelo forte) — atua na **fronteira de bloco**
-
-- Detalha o próximo bloco até ficar **"executor-ready"** e **replaneja** os blocos futuros (rolling-wave).
-- Resolve decisões de design; escreve o **Contrato de execução** (DoR, DoD verificável, comandos/valores
-  conhecidos, regras de escalonamento, evidência a capturar).
-- Calibra o detalhe ao executor: **decisões e restrições, não keystrokes.** **Não implementa.**
-
-- **Todo critério de aceite é MEDIDO no estado atual antes de virar alvo — nenhum é deduzido.** Rode o
-  comando do critério **no commit do handoff** e escreva o valor observado ao lado do alvo. Se o
-  baseline já reprova o critério, há duas saídas honestas: **mudar o alvo**, ou tornar a correção
-  **tarefa explícita do bloco**. Alvo escrito por raciocínio ("o código novo será vetorizado, logo o
-  grep dará 0") **nasce falso**: é inatingível dentro do contrato, e quem paga é o Executor, que trava
-  numa medição que nunca poderia bater. Vale para grep, contagem de teste, diff, tempo — qualquer
-  medida. E **grep de código mede a chamada** (`\.foo(`), não a palavra solta: senão comentário correto
-  reprova código correto.
-
-- **Bloco que muda comportamento descrito em documento de INTERFACE carrega a atualização dele como
-  tarefa nomeada.** Documento de interface é o que **sai da equipe**: o que vai ao chefe/negócio, ao
-  DBA, o README do escopo, um contrato publicado. Ele **não emite erro ao envelhecer** — nenhum teste
-  quebra, nenhum grep acusa — e a próxima pessoa entrega a um terceiro um arquivo que afirma o que já
-  não é verdade. Por isso não é lembrete no fim: é **tarefa do bloco, com o arquivo nomeado**.
-
-> ✅ **DoD do planejamento ("executor-ready"):** tarefas atômicas e ordenadas; cada uma com checagem
-> de pronto verificável; comandos/paths/valores conhecidos preenchidos **e medidos**; decisões
-> resolvidas (ou marcadas como ponto de escalonamento); DoR satisfeito; risco/segurança anotados;
-> **documento de interface afetado listado como tarefa**.
-
-### ⚙️ Executor (modelo barato) — atua **dentro do bloco**
-
-- Executa o bloco ativo **à risca**, marcando os checkboxes na hora. Desvios pequenos (retry, fix
-  óbvio) ele resolve.
-- **NÃO toma decisão de design.** Se a realidade divergir do plano (DoD inalcançável, estado
-  inesperado, ambiguidade) → **PARA, registra em Blockers/Decisões do PLAN e escala ao Planejador.**
-- **Auto-verifica contra a DoD** antes de declarar o bloco concluído.
-- **Critério de aceite que não bateu = PARADA — mesmo que a intenção pareça cumprida.** Se qualquer
-  critério mede diferente do alvo, o bloco **não fecha 🟢**: registre o que mediu (comando + saída
-  crua), grave o baton `🧠 Planejador` com o motivo e **pare**. Nunca ajuste o alvo, e **nunca releia o
-  critério pela intenção que você enxerga nele** ("o alvo era 0 para garantir código vetorizado, e o
-  meu é vetorizado, então vale") — julgar se um critério errado ainda serve é do 🧠. **Registrar o
-  achado com transparência não substitui a parada.**
-- **Fecha o próprio bloco:** ao satisfazer toda a DoD, dispara o ritual de fim de turno por si
-  (relatório + PLAN) — sem esperar pedido — e só então passa o baton. ⚠️ **O commit NÃO é
-  auto-disparado:** ele, o `push` e o apontamento esperam a validação do usuário (passo 6).
-- **E fecha a própria SESSÃO quando PARA no meio do bloco.** Parar não dispensa registrar: o Executor
-  auto-dispara o **registro da sessão** (a 2ª metade do ritual — PLAN in-place com o motivo, **linha
-  nova no §8**, baton, e então validação → apontamento → portão → commit), **sem** relatório, porque o
-  bloco não fechou. **Sessão que não deixa linha no §8 não existe para a próxima** — e o portão só
-  pega a falta se houver commit para ele guardar.
-- **O baton é a linha `🎬 Próximo:` do cabeçalho 🔎 Agora — não é a prosa em volta dela.** Escrever
-  "baton → 🧠 Planejador" no resumo da sessão, no relatório ou na mensagem de commit e **deixar a linha
-  `🎬` com o papel e o ponto de entrada antigos** entrega à sessão seguinte um bloco já fechado como se
-  fosse tarefa aberta — ela entra como Executor e refaz o que já está feito. Atualize **aquela linha**,
-  in-place, antes do commit de fechamento; o resto do cabeçalho é resumo, ela é a fonte de verdade.
-  ⚠️ **Regra que se auto-atesta mede a intenção de quem executa, não o arquivo** — esta aqui já falhou
-  duas vezes estando escrita, em sessões que relataram tudo com honestidade. Por isso ela virou o
-  portão `scripts/conferencia_saida.sh`, que **reprova o commit** se a linha `🎬` não tiver sido
-  reescrita nesta sessão (item ⓪ do ritual de fim de turno).
-- **Fronteira de papel = PARADA de sessão:** nunca vira Planejador na mesma sessão. Ao fechar o bloco,
-  ou ao topar com algo que exija (re)planejar, grava `🎬 Próximo: 🧠 Planejador` junto do motivo,
-  **dispara o registro da sessão** (§8 + apontamento + portão + commit, com validação) e para.
-  **Não** promove o próximo bloco de rascunho a detalhado, **não** escreve contrato novo.
-
-### Tipo de bloco
-
-- 🔧 **Mecânico** — passos conhecíveis → Executor sozinho. Onde o split mais rende.
-- 🔬 **Descoberta** — a execução produz o conhecimento → Planejador conduz a 1ª passada; Executor
-  repete/escala depois. Não escreva contrato fechado para o que ainda não foi descoberto.
-
----
-
-## 🧾 Ritual de fim de turno
-
-**Este ritual tem DUAS METADES, e elas têm gatilhos diferentes.** Confundi-las já custou trabalho
-perdido, então a distinção vem antes dos passos:
-
-| Metade | O que é | Quando dispara |
-|---|---|---|
-| **Relatório** (passo 1) | o detalhe denso do bloco | **só quando o bloco fecha**, ou <SEU_NOME> pedir |
-| **Registro da sessão** (passos 2–6) | PLAN in-place · **linha no §8** · baton · validação → apontamento → portão → commit | em **TODA** sessão que termina, tenha fechado bloco ou não |
-
-Três portas levam aqui: **bloco fechou** (Executor auto-dispara, com relatório) · **<SEU_NOME> pediu o
-`end`** (sem relatório) · **PARADA no meio do bloco** (Executor auto-dispara, **sem** relatório).
-
-> ⚠️ **PARADA no meio do bloco TAMBÉM fecha a sessão pelo ritual — só que sem relatório.** Quando o
-> Executor bate numa condição terminal que não é o fechamento (critério que não bateu, decisão de
-> design ausente, estado inesperado, autorização faltando, limite técnico), ele **auto-dispara o
-> registro da sessão sem esperar pedido**: PLAN in-place com o motivo, **linha nova no §8**, baton
-> `🧠 Planejador`, e então validação → apontamento → portão → commit.
-> **Por que isto está escrito:** em 2026-09-04 uma sessão de Executor parou por critério não batido e
-> registrou tudo com honestidade dentro do bloco — mas **não deixou linha no §8 nem entrada no
-> apontamento**, porque o passo que as grava só era alcançado por `end` e `handoff`, e uma PARADA não
-> chega a nenhum dos dois. Sem commit, o **portão também não rodou**: nada falhou, só faltou, e a
-> sessão seguinte teve de preencher retroativamente. Mesma classe de falha silenciosa de quando o
-> apontamento era indexado por **relatório** (todo `handoff` sumia) — ali o índice errado era o
-> artefato, aqui era o **subcomando**. **O índice certo é um só: a sessão terminou.**
-
-> ⚠️ **O apontamento (passo 4) não é exclusivo do `end` e não depende de relatório.** Toda sessão que
-> termina grava a sua entrada — inclusive `handoff`, PARADA e sessão de validação, que **nunca** geram
-> relatório porque não fecham bloco. Um `handoff` é uma sessão inteira de trabalho (mediu baselines,
-> resolveu desenho, corrigiu contrato) e precisa aparecer no apontamento do dia como qualquer outra.
-
-1. **Gere** `docs/sessoes/<escopo>/RELATORIO_<bloco>_<AAAA-MM-DD>.md` pelo template
-   [`docs/sessoes/template-relatorio.md`](docs/sessoes/template-relatorio.md) — guarda o detalhe
-   (comandos, saídas, números) que permite resgatar uma ação de sessões anteriores com precisão.
-2. **Atualize o `PLAN.md` do escopo** (in-place): cabeçalho "Agora"; **baton `🎬 Próximo`** (papel +
-   ponto de entrada da próxima sessão); Board; checkboxes do bloco ativo; Registro de sessões (1 linha
-   + link, **acrescentada no fim** — o §8 é append-only, porque a posição da linha entra na chave do
-   apontamento). Se o bloco fechou: **Planejador** promove o próximo de rascunho a detalhado e replaneja o
-   resto; **Executor** só marca 🟢, grava o baton `🧠 Planejador` com o motivo e para.
-3. Se o **escopo inteiro** fechou, marque-o 🟢 na tabela de escopos **deste arquivo** — a pasta
-   fica como histórico. Atualize ponteiros de memória só se algo de alto nível mudou.
-4. **Registre o apontamento no `resumo-trabalho` — SÓ DEPOIS de o usuário validar o commit (passo 6).**
-   O label **é o slug** do escopo, e o log é `<work-log>/<slug>.md` — `<work-log>` é
-   `$SESSAO_WORKLOG_DIR`, ou `~/.claude/work-log` se ela não estiver definida (global, append-only —
-   **não** entra no commit; log novo nasce com `# Label: <slug>` na 1ª linha). ⛔ **Validou ⇒ escreve automaticamente; não validou ⇒ não escreve nada.**
-   O log é append-only e mora fora do repo: apontamento gravado sobre trabalho que o usuário rejeitou
-   vira histórico falso que nenhum `git reset` desfaz.
-   **🔑 INVARIANTE: uma sessão que termina = UMA entrada. O índice é a SESSÃO, não o relatório.** Toda
-   sessão que chega a `end` **ou** a `handoff` grava a sua: fechou bloco, parou no meio, fez handoff ou
-   só validou. **Relatório é matéria-prima quando existe, não é a condição para registrar** — quando não
-   existe, a fonte é a **linha do §8 + a entrada do §7 + os commits** daquela sessão. Horário do
-   cabeçalho = quando a sessão **aconteceu**, não quando você escreve.
-   **Chave da sessão — sai da linha dela no §8, nunca da memória:** tabela com coluna de número → o
-   número (`11`); tabela sem ela (a deste template) → `<AAAA-MM-DD>#<k>`, com k = posição da linha
-   entre as de mesma data, contando de cima (`2026-09-24#2` é a 2ª sessão do dia). Grave-a logo abaixo
-   do cabeçalho da entrada, **logo depois dos dois-pontos**: `**Sessão:** 2026-09-24#2 · B5 (⚙️ Executor)`,
-   junto de `**Relatório-fonte:** <caminho>` (ou `— sessão sem relatório`). **Idempotência:** chave já
-   presente no log ⇒ não grave de novo.
-   *Por que este invariante existe:* enquanto o passo era indexado por **relatório**, toda sessão sem
-   relatório **sumia do apontamento** — pedia-se o resumo do dia e faltava metade do trabalho, **sem
-   nenhum sinal de erro**, porque o passo "rodava com sucesso" por não ter o que coletar.
-   ⚠️ **Pedido de resumo dentro de um escopo é DAQUELE escopo:** "gere os apontamentos de hoje" resolve
-   para `gerar <slug>` — **um** arquivo. Nunca varra `<work-log>/*.md` nem use `gerar dia`: "hoje"
-   é filtro de **data dentro do escopo**, não o universo de busca, e misturar labels entrega ao card do
-   GitLab trabalho de outra frente.
-5. **✅ Conferência de saída — antes do commit, sempre.** Mecânica, não subjetiva; qualquer item
-   vermelho é **PARADA**, nunca "ressalva no relatório":
-   ⓪ **RODE O PORTÃO E COLE A SAÍDA CRUA no resumo da sessão — obrigatório, não é opcional:**
-   `scripts/conferencia_saida.sh <slug> <commit em que esta sessão começou>` (o commit sai de
-   `git rev-parse HEAD` no início; se esqueceu, é o último commit da sessão anterior). Ele reprova com
-   **exit 1** se a linha `🎬` falta ou está duplicada (①), se o **parágrafo** do baton `🎬` continua
-   **intacto** desde o início da sessão (②), se o ponto de entrada citado já está `[x]` (③), se o
-   registro de sessões não ganhou linha nova (④), se alguma linha nova do §8 não tem a **sua** chave
-   `**Sessão:**` no log (⑤), ou se **esta sessão escreveu contrato de bloco e passou o baton para ⚙️
-   sem a linha `**Aceite:** <quem>, <AAAA-MM-DD> (bloco <id>)`** (⑥).
-   ⏱️ **Rode-o no passo 6, depois da validação e do apontamento** — antes disso o item ⑤ reprova por
-   um motivo falso, já que o log ainda não foi (nem deve ter sido) escrito. **Declarar que conferiu não substitui rodar:** os itens 2) e 5) abaixo já estavam
-   escritos quando o defeito passou — duas vezes, em sessões que relataram tudo com honestidade.
-   Os itens 1)–9) abaixo seguem **na mão** (numerados à parte de propósito: ①-⑥ são os do portão);
-   o portão cobre os seis decidíveis por comando.
-   1) todo critério de aceite **medido** (comando + saída) e batendo — um só que não bata impede o 🟢;
-   2) a **linha** `🎬 Próximo` diz o papel e o ponto de entrada certos **para depois desta sessão**, e
-   não contradiz o Board (bloco 🟢 ou tarefa `[x]` citada como ponto de entrada = baton podre);
-   3) cabeçalho, Board, registro de sessões e mensagem de commit **batem com a linha `🎬`** — ela vence;
-   4) todo bloco 🟢 tem todas as tarefas `[x]`;
-   5) a chave da sessão sai **do arquivo**: com coluna de número, **último valor da própria tabela + 1**
-   (nunca o número do relatório, série própria que quase nunca coincide); sem ela, `<data>#<k>`;
-   6) tudo escrito **in-place**, sem 2ª cópia de campo que já existia;
-   7) `git status` sem arquivos alheios ao escopo/sessão;
-   8) **documento de interface não envelheceu** — se a sessão mudou comportamento que algum documento
-   voltado a terceiro descreve (chefe/negócio, DBA, README do escopo), ele foi **atualizado nesta
-   sessão** ou a pendência está escrita com dono. É o item cuja falha **ninguém descobre lendo
-   código nem rodando teste**;
-   9) **nenhuma decisão pendente foi selada por fora** — decisão do usuário que ficou sem resposta não
-   vira premissa do contrato, "recomendação" no fim da mensagem nem tarefa do Executor: ou foi
-   respondida, ou o bloco não fecha. É irmão do ⑥ do portão — o ⑥ pega a **falta** de aceite; este
-   pega o aceite obtido sobre um plano **incompleto**, que nenhum comando enxerga.
-6. **Commit — SOMENTE com validação explícita do usuário.** Apresente o que foi feito e **pergunte se
-   pode commitar**; sem o "ok", tudo fica no working tree. Com o "ok": escreva o apontamento (passo 4),
-   rode o portão (passo 5) e então commite o relatório + PLAN + demais mudanças, em **cada** repo
-   tocado, na branch de trabalho declarada no PLAN do escopo.
-   **`push` é pedido à parte, também com validação** — inclusive quando o commit se destina a deploy.
-
----
+**Legenda:** 🟡 Ativo · 🟢 Concluído · 🔴 Bloqueado/pausado. Escopo concluído continua na tabela; a
+pasta dele fica como histórico.
 
 ## 📐 Convenções
 
-- **Trate o usuário por "<SEU_NOME>".** Não exponha mecânica interna do agente nos relatórios; use
-  links reais.
-- **Estimativas são guia, não SLA.** **Idioma:** <idioma>.
-- **Escopos:** um escopo = uma pasta `docs/sessoes/<slug>/`. Escopo novo = `/sessao init` cria só o
-  `PLAN.md` na pasta nova e soma uma linha no índice; este protocolo e o template de relatório são
-  **reusados, nunca copiados**. Escopo concluído vira 🟢 na tabela de escopos acima — a pasta fica.
+- **Trate o usuário por "<SEU_NOME>".** **Idioma:** <idioma>.
 - **Política de commit:** <ex.: Conventional Commits; nunca na main, sempre na branch de trabalho do
-  escopo>. **Commit e push exigem validação explícita do usuário — sem exceção, nem para deploy.**
-- **Repos irmãos** (uma sessão pode tocar mais de um; commite em cada, e diga em qual está mexendo):
+  escopo>. Commit e push exigem validação explícita do usuário — sem exceção, nem para deploy.
+- **Repos irmãos** (uma sessão pode tocar mais de um; commite em cada um e diga em qual está mexendo):
   - <`../repo-irmao` — para que serve>.
 
 ## 🚧 Guardrails permanentes (independem de escopo)
 
-- **🛑 QUESTIONAMENTO ABERTO = REGISTRO CONGELADO (inviolável, não editar/remover).** Quando o usuário
-  questiona, discorda ou pede para validar algo, **para de escrever imediatamente**: nada entra em
-  `PLAN.md`, `AGENTS.md`, relatório, memória ou commit até ele **concordar com tudo** — não com a parte
-  que pareceu resolvida. Concordar com um ponto não libera os outros; silêncio não é aval.
-  **Por quê:** registrar é o que transforma hipótese em verdade oficial do projeto; o PLAN é lido por
-  sessões futuras como fato estabelecido. Enquanto há questionamento aberto, a análise **ainda não é**
-  conclusão: é proposta.
-  **No lugar:** apresentar a **evidência crua** (diff, saída de comando, trecho de arquivo) + a
-  conclusão + as opções, e **perguntar**. Mudanças ficam no working tree, sem commit.
-  **Não vale como desculpa:** "era só documentar", "é reversível", "o ritual de `end` manda commitar" —
-  o ritual não sobrepõe esta regra.
-  **PLANO TAMBÉM É REGISTRO.** Selar um bloco — escrever o contrato no `PLAN.md`, gravar o baton e
-  commitar — exige as duas coisas: (a) **todas as decisões pendentes resolvidas**, nenhuma empurrada
-  como "recomendação" no fim da mensagem nem deixada para o Executor decidir; e (b) o **plano mostrado
-  ao usuário e ACEITO por ele**, com a linha `**Aceite:** <quem>, <AAAA-MM-DD> (bloco <id>)` no
-  bloco. ⚠️ **O `(bloco <id>)` não é enfeite:** num PLAN que acumula blocos a linha sem ele não diz
-  a qual bloco pertence, e dois blocos aceitos pela mesma pessoa no mesmo dia geram linhas byte a
-  byte idênticas — o item ⑥ procura linha *acrescentada* no diff, não vê nada e reprova um aceite
-  que existe.
-  ⚠️ **Responder às perguntas do agente NÃO é aceitar o plano.** Perguntei 3 coisas e recebi 3
-  respostas? Isso fecha as 3 perguntas — não abre o commit. Conferido **mecanicamente** pelo item ⑥
-  do [`scripts/conferencia_saida.sh`](scripts/conferencia_saida.sh), porque a regra já falhou estando
-  escrita aqui, na memória e na skill: prosa auto-atestada não segura.
-  **Se já registrou antes do aval:** dizer na primeira frase, oferecer
-  o `git reset --soft` e esperar.
-  **Exceção única:** trabalho mecânico já contratado num bloco executor-ready (marcar checkbox, gerar
-  relatório de bloco fechado). Conclusão nova, reenquadramento de causa raiz, mudança de contrato,
-  criação/cancelamento de bloco e reordenação de Board **nunca** são mecânicos.
 - <regras de segurança que valem sempre — ex.: segredos referenciados por chave, nunca por valor;
   produção não é laboratório; config entra pelo git, não por edição viva; ações destrutivas exigem
   ordem explícita>.
 
-> Guardrails **específicos** de uma frente de trabalho (ambiente, cluster, `KUBECONFIG`, dados de
-> teste) **não** entram aqui — vão na seção 🚧 do `PLAN.md` daquele escopo, senão o próximo escopo
-> herda restrição que não é dele.
+> Guardrails de uma frente de trabalho (ambiente, cluster, `KUBECONFIG`, dados de teste) vão na seção
+> 🚧 do `PLAN.md` daquele escopo, não aqui — senão o próximo escopo herda restrição que não é dele.

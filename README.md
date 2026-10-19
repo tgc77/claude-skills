@@ -72,8 +72,10 @@ ferramenta lê e escreve nele.
 
 ## Skill `sessao`
 
-> Referência completa: [`sessao/SKILL.md`](sessao/SKILL.md) (o protocolo — **fonte canônica**) e
-> [`sessao/HELP.md`](sessao/HELP.md) (o guia que `/sessao help` mostra).
+> Referência: [`sessao/SKILL.md`](sessao/SKILL.md) (o roteador e as regras invioláveis),
+> [`sessao/subcomandos/`](sessao/subcomandos/) e [`sessao/referencia/`](sessao/referencia/) — juntos, o
+> protocolo e a **fonte canônica**. [`sessao/HELP.md`](sessao/HELP.md) é o índice que `/sessao help`
+> mostra; [`sessao/HISTORICO.md`](sessao/HISTORICO.md) guarda o porquê de cada regra.
 
 ### A ideia
 
@@ -97,7 +99,7 @@ PLAN. O `start` lê essa linha e age sem perguntar.
 ```
 <repo>/
 ├── CLAUDE.md                  ← uma linha: `@AGENTS.md` (o Claude Code não lê AGENTS.md)
-├── AGENTS.md                  ← protocolo permanente + índice de escopos (lido pelo Codex e, via import, pelo Claude)
+├── AGENTS.md                  ← índice de escopos + regras do projeto + bloco gerenciado (lido pelo Codex e, via import, pelo Claude)
 ├── scripts/
 │   └── conferencia_saida.sh   ← LANÇADOR do portão: acha a skill e roda o portão dela
 └── docs/sessoes/
@@ -107,9 +109,12 @@ PLAN. O `start` lê essa linha e age sem perguntar.
         └── RELATORIO_<bloco>_<AAAA-MM-DD>.md
 ```
 
-**O protocolo é permanente; o plano é por escopo.** Uma frente de trabalho nova é só uma pasta nova
-com um `PLAN.md` e uma linha no índice — nada na raiz é recriado. ⛔ **Nunca** use `AGENTS.override.md`:
-no Codex ele *substitui* o `AGENTS.md` em vez de somar, e apagaria o protocolo inteiro do contexto.
+**O protocolo mora na skill; o plano é por escopo.** O `AGENTS.md` do projeto guarda só o índice, as
+regras do próprio projeto e um **bloco gerenciado** curto (entre `<!-- sessao:inicio` e
+`<!-- sessao:fim -->`), que declara a ativação explícita e que o `/sessao update` mantém igual ao
+template — cópia de protocolo congela na versão do dia em que foi feita. Uma frente de trabalho nova é
+só uma pasta nova com um `PLAN.md` e uma linha no índice. ⛔ **Nunca** use `AGENTS.override.md`: no
+Codex ele *substitui* o `AGENTS.md` em vez de somar.
 
 O **slug** é o identificador único do escopo: nome da pasta, argumento dos comandos e label do
 apontamento. Sem apelidos, em kebab-case, e **único entre projetos** (o log é global): prefira
@@ -117,27 +122,33 @@ apontamento. Sem apelidos, em kebab-case, e **único entre projetos** (o log é 
 
 ### Subcomandos
 
-Sintaxe: `/sessao <subcomando> [<slug>] [<texto livre>]`. O escopo é **argumento, não estado**; sem
-slug, ele é resolvido por: único escopo 🟡 ativo → branch atual casando com a do PLAN → pergunta.
+Sintaxe: `/sessao <subcomando> [<slug>] [<texto livre>]`. O escopo é **argumento, não estado**, e nunca
+é deduzido: o `start` exige o slug escrito; `handoff` e `end` operam o escopo do `start` da sessão ou o
+slug passado; sem slug, o agente lista os escopos e pergunta.
 
 | Subcomando | O que faz | Altera o repo? |
 |---|---|---|
 | `escopos [<slug>]` | Lista os escopos (slug, descrição, estado, branch, bloco ativo, baton, última atualização) e avisa inconsistências de identidade. | Não |
 | `help` | Mostra o [`HELP.md`](sessao/HELP.md). | Não |
 | `init` | Abre um escopo: instala o sistema num repo virgem, ou só cria a pasta do escopo novo num repo já instalado. Levanta os dados **com você**, confirma a estrutura antes de criar e commita só com o seu ok. | Sim |
-| `start <slug> [nota]` | Início de sessão: lê só o cabeçalho + o bloco ativo, confere se o baton não está podre (`--inicio`) e assume o papel que ele manda. A nota pode pedir só um briefing ("onde paramos?") ou impor diretivas ("só as tarefas de código, sem commit"). | Conforme o papel |
+| `start <slug> [nota]` | Início de sessão: lê o estado do escopo pelo portão (`--estado`, em JSON) e o bloco ativo, confere se o baton não está podre e assume o papel que ele manda. A nota pode pedir só um briefing ("onde paramos?") ou impor diretivas ("só as tarefas de código, sem commit"). | Conforme o papel |
 | `handoff` | Planejador → Executor: deixa o bloco executor-ready, mede os critérios, mostra o plano e, com o seu **aceite**, grava baton, apontamento, portão e commit. | Sim |
 | `end` | Fim de sessão (ver abaixo). O Executor o dispara sozinho quando o bloco fecha ou quando para no meio dele. | Sim |
+| `update` | Põe o projeto em dia com a skill: sincroniza o bloco gerenciado do `AGENTS.md` (`scripts/bloco_agents.sh`), troca a cópia antiga do portão pelo lançador e confere o `CLAUDE.md`. | Sim |
 
 ### Ciclo de vida
 
-```
-/sessao init       → estrutura + PLAN com B1 detalhado e o resto em rascunho; baton 🧠
-/sessao handoff    → B1 executor-ready + aceite seu; baton ⚙️ Executor
-/sessao start      → Executor executa B1 em loop até uma condição terminal
-   └─ bloco fechou → auto-end: relatório + PLAN + baton 🧠 Planejador; pede o ok do commit
-/sessao start      → Planejador detalha B2, replaneja o resto → handoff
-   … até fechar o escopo (🟢 no índice; a pasta fica como histórico)
+```mermaid
+flowchart TD
+    init["/sessao init<br/>estrutura + PLAN com B1 detalhado"] -->|"baton 🧠"| handoff
+    handoff["/sessao handoff<br/>B1 executor-ready + o seu aceite"] -->|"baton ⚙️"| exec
+    exec["/sessao start &lt;slug&gt;<br/>o Executor executa o bloco em loop"] --> term{"condição<br/>terminal"}
+    term -->|"bloco fechou"| fecha["auto-end: relatório + registro<br/>pede o seu ok para commitar"]
+    term -->|"parada no meio"| para["registro sem relatório<br/>pede o seu ok para commitar"]
+    fecha -->|"último bloco"| fim["escopo 🟢 no índice<br/>a pasta fica como histórico"]
+    fecha -->|"baton 🧠"| plan["/sessao start &lt;slug&gt;<br/>o Planejador detalha o próximo bloco"]
+    para -->|"baton 🧠"| plan
+    plan --> handoff
 ```
 
 ### Como uma sessão fecha
@@ -167,6 +178,7 @@ arquivo. O portão mede o arquivo, e **vermelho é PARADA**, não ressalva no re
 ```bash
 scripts/conferencia_saida.sh <slug> <commit em que a sessão começou>   # fechamento: itens ①-⑥
 scripts/conferencia_saida.sh <slug> --inicio                           # início: o baton está coerente?
+scripts/conferencia_saida.sh <slug> --estado                           # o --inicio + o estado do escopo em JSON
 ```
 
 | Item | Reprova (exit 1) quando |
@@ -179,7 +191,13 @@ scripts/conferencia_saida.sh <slug> --inicio                           # início
 | ⑥ | a sessão escreveu contrato de bloco e passou o baton para ⚙️ **sem** uma linha `**Aceite:** <quem>, <data> (bloco <id>)` nova |
 
 Outros nove itens da Conferência de saída seguem na mão (critérios de aceite medidos, documento de
-interface atualizado, nenhuma decisão pendente selada por fora etc.) — ver o `SKILL.md`.
+interface atualizado, nenhuma decisão pendente selada por fora etc.) — ver
+[`sessao/referencia/conferencia.md`](sessao/referencia/conferencia.md).
+
+O `--estado` devolve no stdout, em JSON, o que o `start` e o `escopos` precisam — PLAN, branch, bloco
+ativo, baton (papel, ponto de entrada, coerência com os checkboxes), próxima tarefa aberta, gates 🔁,
+blockers e se o log de apontamento existe —, para o modelo não ter de interpretar o PLAN sozinho. Sai
+com exit 1 se o baton estiver podre, como o `--inicio`.
 
 O projeto recebe um **lançador**, não uma cópia do portão: ele procura a skill em `$SESSAO_SKILL_DIR`
 → `~/.claude/skills/sessao` → `~/.codex/skills/sessao` → `<repo>/.agents/skills/sessao`. Assim toda
@@ -239,12 +257,10 @@ chefia trabalho de outra frente, em outro repo.
 
 ## Como as duas se integram
 
-```
-/sessao end | handoff | PARADA          /resumo-trabalho gerar <slug>
-            │                                        ▲
-            ▼   (só depois do seu ok)                │
-   <work-log>/<slug>.md  ────────────────────────────┘
-   (uma entrada por sessão, com **Sessão:** <chave>)
+```mermaid
+flowchart LR
+    sessao["/sessao end · handoff · parada no meio do bloco"] -->|"só depois do seu ok"| log[("&lt;work-log&gt;/&lt;slug&gt;.md<br/>uma entrada por sessão<br/>com a linha Sessão: &lt;chave&gt;")]
+    log --> resumo["/resumo-trabalho gerar &lt;slug&gt;"]
 ```
 
 - **O label é o slug.** Não há campo separado, nem apelido: o escopo `deploy-airflow-prod` escreve em
@@ -272,21 +288,24 @@ chefia trabalho de outra frente, em outro repo.
 .
 ├── README.md                         ← este arquivo
 ├── sessao/
-│   ├── SKILL.md                      ← o protocolo (fonte canônica)
-│   ├── HELP.md                       ← guia de uso (/sessao help)
+│   ├── SKILL.md                      ← o roteador: ativação, subcomando → arquivo, regras invioláveis
+│   ├── subcomandos/                  ← um arquivo por subcomando, lido sob demanda
+│   ├── referencia/                   ← protocolo, conferência de saída, apontamentos, layout, deploy
+│   ├── HISTORICO.md                  ← o porquê de cada regra (não é carregado para operar)
+│   ├── HELP.md                       ← índice de uso (/sessao help)
 │   ├── README.md                     ← resumo da skill
 │   ├── agents/openai.yaml            ← bloqueia invocação implícita no Codex
 │   ├── scripts/
-│   │   ├── conferencia_saida.sh      ← o portão
+│   │   ├── conferencia_saida.sh      ← o portão (fechamento, --inicio, --estado)
 │   │   ├── conferencia_saida.shim.sh ← o lançador instalado nos projetos
-│   │   └── autoteste_portao.sh       ← testa o portão contra os templates
+│   │   ├── bloco_agents.sh           ← sincroniza o bloco gerenciado do AGENTS.md (`update`)
+│   │   └── autoteste_portao.sh       ← testa portão, --estado e bloco gerenciado contra os templates
 │   └── templates/
-│       ├── AGENTS.template.md        ← protocolo permanente do projeto
-│       ├── CLAUDE.template.md        ← o `@AGENTS.md` de uma linha
+│       ├── AGENTS.template.md        ← índice + regras do projeto + bloco gerenciado
+│       ├── CLAUDE.template.md        ← o `@AGENTS.md`
 │       ├── PLAN.template.md          ← o PLAN de um escopo
 │       ├── template-relatorio.md     ← gabarito de relatório de bloco
-│       ├── BOOTSTRAP.md              ← prompts para montar o sistema sem a skill
-│       └── README.md                 ← o modelo explicado + instalação manual
+│       └── README.md                 ← o que o `init` copia para o projeto
 └── resumo-trabalho/
     ├── SKILL.md
     └── templates/template-apontamentos.md
@@ -294,18 +313,23 @@ chefia trabalho de outra frente, em outro repo.
 
 ## Manutenção
 
-- **O `SKILL.md` de cada skill é a fonte canônica.** `HELP.md`, templates e este README seguem o que ele
-  diz; se divergirem, o `SKILL.md` vence — e a divergência é bug a corrigir no mesmo commit.
-- **Mexeu no portão ou nos templates? Rode o autoteste** antes de commitar:
+- **A fonte canônica de cada skill é o `SKILL.md` e os arquivos que ele manda ler** (na `sessao`,
+  `subcomandos/` e `referencia/`). Cada regra mora em um desses arquivos só; `HELP.md`, templates e
+  este README apontam para eles. Se divergirem, a fonte canônica vence — e a divergência é bug a
+  corrigir no mesmo commit.
+- **Mexeu numa regra? Leia antes o caso que a criou** em `sessao/HISTORICO.md`, e registre lá o novo.
+- **Mexeu no portão, no `bloco_agents.sh` ou nos templates? Rode o autoteste** antes de commitar:
 
   ```bash
   ~/.claude/skills/sessao/scripts/autoteste_portao.sh   # exit 0 = íntegro; exit 1 = regressão
   ```
 
   Ele monta repositórios descartáveis a partir dos templates, num `HOME` falso, e afirma que cada item
-  do portão dispara quando deve e fica verde quando deve (32 casos). Existe porque, em 2026-08-24, o
-  portão e o `PLAN.template.md` falavam dialetos diferentes e o portão aprovava sem conferir quase
-  nada — com exit 0.
+  do portão dispara quando deve e fica verde quando deve, que o `--estado` devolve JSON correto e que o
+  bloco gerenciado é sincronizado sem tocar no resto do `AGENTS.md` (40 casos). Existe porque, em
+  2026-08-24, o portão e o `PLAN.template.md` falavam dialetos diferentes e o portão aprovava sem
+  conferir quase nada — com exit 0.
+- **Mudou o bloco gerenciado do `AGENTS.template.md`?** Rode `/sessao update` em cada projeto instalado.
 - **Código que parece morto e não é:** o suporte ao layout legado (PLAN na raiz, índice no `CLAUDE.md`,
   registro de sessões numerado) é deliberado — os escopos legados não serão migrados. Está marcado
   como tal nos scripts e coberto pelo autoteste; removê-lo é retirada de suporte, não limpeza.

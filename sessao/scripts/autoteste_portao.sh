@@ -541,6 +541,116 @@ grep -q '✅ ④' <<<"${saida}" && ok "④ enxergou a linha do §8 do PLAN novo"
 grep -q '🔴 ⑥ SEM ACEITE' <<<"${saida}" && ok "⑥ avaliou e cobrou o aceite" || nok "⑥ não rodou no PLAN não rastreado"
 [[ "${codigo}" -ne 0 ]] && ok "exit != 0" || nok "exit 0"
 
+# ------------------------------------------------------------------------------------------------
+# BLOCO GERENCIADO DO AGENTS.md (`bloco_agents.sh`, 2026-10-19). O script reescreve arquivo de
+# projeto: o que ele NÃO pode fazer é mexer fora do bloco, ou escrever num AGENTS.md sem marcadores
+# (protocolo copiado de antes do bloco), cuja migração é feita com o usuário.
+BLOCO="${SKILL_SCRIPTS}/bloco_agents.sh"
+fora_do_bloco() { awk '/^<!-- sessao:inicio/ {d = 1} !d {print} /^<!-- sessao:fim -->$/ {d = 0}' "$1"; }
+mkdir -p "${TMP}/bloco"
+cd "${TMP}/bloco" || exit 2
+
+titulo "33. Bloco gerenciado DESATUALIZADO ⇒ --verificar reprova; --aplicar corrige só o bloco"
+cp "${SKILL_TEMPLATES}/AGENTS.template.md" AGENTS.md
+printf '\nlinha do projeto que não pode mudar\n' >> AGENTS.md
+sed -i 's/^- \*\*Ativação só explícita:\*\*/- **Ativação (texto velho):**/' AGENTS.md
+cp AGENTS.md antes.md
+saida="$("${BLOCO}" --verificar AGENTS.md 2>&1)"; codigo=$?
+[[ "${codigo}" -eq 1 ]] && grep -q 'DESATUALIZADO' <<<"${saida}" && ok "--verificar acusou o bloco velho" \
+    || nok "--verificar não acusou o bloco velho (exit ${codigo})"
+"${BLOCO}" --aplicar AGENTS.md >/dev/null 2>&1; codigo=$?
+[[ "${codigo}" -eq 0 ]] && ok "--aplicar saiu com 0" || nok "--aplicar saiu com ${codigo}"
+"${BLOCO}" --verificar AGENTS.md >/dev/null 2>&1 && ok "depois do --aplicar, o bloco está em dia" \
+    || nok "--aplicar não deixou o bloco em dia"
+[[ "$(fora_do_bloco antes.md)" == "$(fora_do_bloco AGENTS.md)" ]] && ok "nada fora do bloco mudou" \
+    || nok "--aplicar alterou conteúdo fora do bloco"
+
+titulo "34. AGENTS.md SEM marcadores (protocolo copiado) ⇒ exit 1 e nada é escrito"
+printf '# AGENTS.md antigo\n\n## 🧾 Ritual de fim de turno\n\ntexto do protocolo copiado\n' > AGENTS.md
+cp AGENTS.md antes.md
+"${BLOCO}" --verificar AGENTS.md >/dev/null 2>&1; codigo=$?
+[[ "${codigo}" -eq 1 ]] && ok "--verificar: exit 1" || nok "--verificar saiu com ${codigo}"
+"${BLOCO}" --aplicar AGENTS.md >/dev/null 2>&1; codigo=$?
+[[ "${codigo}" -eq 1 ]] && ok "--aplicar: exit 1" || nok "--aplicar saiu com ${codigo}"
+cmp -s antes.md AGENTS.md && ok "arquivo intacto — a migração é com o usuário" \
+    || nok "--aplicar escreveu num AGENTS.md sem marcadores"
+
+titulo "35. Marcadores DUPLICADOS ⇒ malformado, exit 1 e nada é escrito"
+{ cat "${SKILL_TEMPLATES}/AGENTS.template.md"; printf '<!-- sessao:fim -->\n'; } > AGENTS.md
+cp AGENTS.md antes.md
+saida="$("${BLOCO}" --aplicar AGENTS.md 2>&1)"; codigo=$?
+[[ "${codigo}" -eq 1 ]] && grep -q 'duplicados ou fora de ordem' <<<"${saida}" \
+    && ok "recusou os marcadores duplicados" || nok "aceitou marcadores duplicados (exit ${codigo})"
+cmp -s antes.md AGENTS.md && ok "arquivo intacto" || nok "escreveu num arquivo malformado"
+
+titulo "36. AGENTS.md recém-criado do template ⇒ bloco em dia, exit 0"
+cp "${SKILL_TEMPLATES}/AGENTS.template.md" AGENTS.md
+"${BLOCO}" --verificar AGENTS.md >/dev/null 2>&1 && ok "o bloco do template passa no próprio --verificar" \
+    || nok "o template não passa no próprio --verificar"
+
+# ------------------------------------------------------------------------------------------------
+# --estado (2026-10-19): o estado do escopo em JSON para o `start` e o `escopos`. O stdout tem de ser
+# SÓ o JSON — é ele que o agente lê —, e o baton podre continua sendo exit 1, como no --inicio.
+titulo "37. --estado com baton SAUDÁVEL ⇒ JSON válido, campos certos, exit 0"
+montar
+escrever_contrato; baton_para '⚙️ Executor · **Ponto de entrada:** T1 — primeira tarefa'
+json="$(HOME="${TMP}/lar" ./scripts/conferencia_saida.sh teste --estado 2>/dev/null)"; codigo=$?
+[[ "${codigo}" -eq 0 ]] && ok "exit 0" || nok "exit ${codigo}"
+python3 - "${json}" <<'PY' && ok "papel, ponto de entrada, coerência, tarefas, gates e índice corretos" \
+    || { nok "JSON inválido ou com campo errado"; printf '%s\n' "${json}" | sed 's/^/      /'; }
+import json, sys
+d = json.loads(sys.argv[1])
+assert d["slug"] == "teste" and d["plan"] == "docs/sessoes/teste/PLAN.md", d
+assert d["escopo"] == "escopo de teste" and d["estado_no_indice"] == "🟡 Ativo", d
+b = d["baton"]
+assert b["linhas"] == 1 and b["papel"] == "executor" and b["tarefa_citada"] == "T1", b
+assert b["coerencia"] == "coerente" and b["ponto_de_entrada"].startswith("T1"), b
+t = d["tarefas_do_bloco_ativo"]
+assert t["concluidas"] == 0 and t["abertas"] == 3, t
+assert t["proxima_aberta"].startswith("T1"), t
+assert len(t["gates"]) == 1 and "T0" in t["gates"][0], t
+assert d["sessoes_no_registro"] == 0 and d["apontamento"]["existe"] is False, d
+PY
+
+titulo "38. --estado com baton PODRE ⇒ exit 1, e o JSON ainda sai, com coerência \"podre\""
+montar
+escrever_contrato; concluir_t1; baton_para '⚙️ Executor · **Ponto de entrada:** T1 — primeira tarefa'
+json="$(HOME="${TMP}/lar" ./scripts/conferencia_saida.sh teste --estado 2>/dev/null)"; codigo=$?
+[[ "${codigo}" -eq 1 ]] && ok "exit 1" || nok "exit ${codigo} — baton podre passou no --estado"
+python3 - "${json}" <<'PY' && ok "coerência \"podre\" e próxima tarefa aberta = T2" \
+    || { nok "o JSON não refletiu o baton podre"; printf '%s\n' "${json}" | sed 's/^/      /'; }
+import json, sys
+d = json.loads(sys.argv[1])
+assert d["baton"]["coerencia"] == "podre", d["baton"]
+assert d["tarefas_do_bloco_ativo"]["proxima_aberta"].startswith("T2"), d["tarefas_do_bloco_ativo"]
+PY
+
+titulo "39. --estado no layout LEGADO ⇒ stdout só com JSON; linhas ✅/🔴 no stderr"
+montar_legado
+escrever_contrato; baton_para '🧠 Planejador · **Ponto de entrada:** T1 — primeira tarefa'
+json="$(HOME="${TMP}/lar" ./scripts/conferencia_saida.sh teste --estado 2>"${TMP}/estado.err")"; codigo=$?
+[[ "${codigo}" -eq 0 ]] && ok "exit 0" || nok "exit ${codigo}"
+python3 - "${json}" <<'PY' && ok "stdout é JSON puro, com PLAN na raiz e papel planejador" \
+    || { nok "stdout não é JSON puro"; printf '%s\n' "${json}" | sed 's/^/      /'; }
+import json, sys
+d = json.loads(sys.argv[1])
+assert d["plan"] == "PLAN.md" and d["escopo"] == "escopo legado", d
+assert d["baton"]["papel"] == "planejador", d["baton"]
+PY
+grep -q '✅ ①' "${TMP}/estado.err" && ok "as linhas humanas foram para o stderr" \
+    || nok "as linhas humanas não apareceram no stderr"
+P=docs/sessoes/teste/PLAN.md
+
+titulo "40. ⑥ com '⚙' SEM o seletor de variação U+FE0F ⇒ continua exigindo o aceite"
+# Até 2026-10-19 o ⑥ procurava '⚙️' (com U+FE0F): um baton "⚙ Executor" deixava o item cego.
+montar
+escrever_contrato; baton_para $'\xe2\x9a\x99 Executor · **Ponto de entrada:** T1 — primeira tarefa'
+linha_de_sessao; apontamento
+saida="$(rodar "${BASE}")"; codigo=$?
+grep -q '🔴 ⑥ SEM ACEITE' <<<"${saida}" && ok "⑥ disparou com '⚙' sem U+FE0F" \
+    || nok "⑥ cego ao '⚙' sem o seletor de variação"
+[[ "${codigo}" -ne 0 ]] && ok "exit != 0" || nok "exit 0 — contrato sem aceite aprovado"
+
 echo "------------------------------------------------------------------------"
 if [[ "${falhas}" -ne 0 ]]; then
     echo "🔴 AUTOTESTE REPROVADO — ${falhas} verificação(ões) falharam."
@@ -548,9 +658,11 @@ if [[ "${falhas}" -ne 0 ]]; then
     echo "   qualquer projeto: um portão que não dispara é pior que nenhum, porque dá verde."
     exit 1
 fi
-echo "✅ AUTOTESTE APROVADO — 32 casos. Cobre: os 6 itens nos dialetos dos templates; os QUATRO"
-echo "   gatilhos do ⑥ isolados um a um; o modo --inicio (baton podre pega, baton são passa); os"
-echo "   três ramos do ①; a chave de sessão do ⑤ (nº legado × <data>#<k>, retroativo, 2ª sessão do"
-echo "   dia, duas linhas numa sessão, DD/MM/AAAA, limite #1≠#12); o gate 🔁; o lançador falhando"
-echo "   fechado; o legado por índice E por fallback; o ② medindo o PARÁGRAFO do baton; o falso"
-echo "   negativo do ⑥ diagnosticado, não afrouxado; e o PLAN de escopo novo ainda fora do git."
+echo "✅ AUTOTESTE APROVADO — 40 casos. Cobre: os 6 itens nos dialetos dos templates; os QUATRO"
+echo "   gatilhos do ⑥ isolados um a um, e o ⑥ com '⚙' sem U+FE0F; o modo --inicio (baton podre"
+echo "   pega, baton são passa); os três ramos do ①; a chave de sessão do ⑤ (nº legado × <data>#<k>,"
+echo "   retroativo, 2ª sessão do dia, duas linhas numa sessão, DD/MM/AAAA, limite #1≠#12); o gate 🔁;"
+echo "   o lançador falhando fechado; o legado por índice E por fallback; o ② medindo o PARÁGRAFO do"
+echo "   baton; o falso negativo do ⑥ diagnosticado, não afrouxado; o PLAN de escopo novo fora do git;"
+echo "   o --estado (JSON, baton podre, stdout limpo, legado); e o bloco gerenciado do AGENTS.md"
+echo "   (desatualizado, sem marcadores, malformado, em dia)."
