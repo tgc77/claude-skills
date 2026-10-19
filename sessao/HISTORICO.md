@@ -120,6 +120,14 @@ Dois blocos aceitos pela mesma pessoa no mesmo dia geravam linhas `**Aceite:**` 
 o diff tratava a segunda como contexto e o ⑥ reprovava um aceite que existia. → `(bloco <id>)`
 obrigatório na linha de aceite.
 
+## 2026-09-16 — Decisão pedida por rótulo
+
+No fim da T1 do escopo `dag-amortizacao-refactor`, o agente pediu a reordenação "T3 antes de T2" sem
+dizer que a T3 era levantar o plano de execução da query base (`DBMS_XPLAN`) e a T2 era escolher a
+janela de comparação. O usuário não tinha como decidir sem abrir o PLAN. → Regra "identificador
+sozinho não é contexto". Nasceu no `AGENTS.md` de três repositórios da SEFAZ; desde a 3.1.0 mora na
+skill, no `SKILL.md` (regras invioláveis) e no bloco gerenciado do `AGENTS.template.md`.
+
 ## 2026-09-24 — 2ª sessão do dia aprovada sem registro
 
 O ⑤ aprovava se houvesse qualquer entrada de hoje no log, então a 2ª sessão do dia que não registrou
@@ -144,3 +152,18 @@ carrega um bloco gerenciado curto, sincronizado pelo `update` (`scripts/bloco_ag
 subcomando; os incidentes vieram para este arquivo; e o portão ganhou o `--estado`, com o estado do
 escopo em JSON (como o `openspec status --json`). No mesmo dia, o ⑥ deixou de exigir o seletor de
 variação U+FE0F no `⚙️`: um baton "⚙ Executor" o deixava cego.
+
+## 2026-10-19 — Comportamento entregue sem registro vivo
+
+A mesma análise achou que o `PLAN.md` guarda bem a execução (tarefas, baton, registro), mas o que o
+sistema passava a **fazer** depois de cada bloco não tinha registro vivo: ficava espalhado em relatórios,
+documentos de interface e no código, e o item 8 da Conferência era a única defesa, conferida na mão.
+Aqui o valor está na ferramenta (validar o delta e fundi-lo nas specs ao arquivar), então a escolha foi
+**integrar** o OpenSpec, e não replicá-lo. → Módulo OpenSpec: todo escopo novo nasce com ele; o
+contrato de cada bloco declara a sua change ou "não se aplica — <motivo>" — inclusive em repositório
+de infra, porque o critério é o bloco, não o tipo de repositório —; e o item ⑦ do portão cobra a
+declaração, a validação e o archive. Sem `tasks.md` nem fase `apply`: as tarefas ficam no PLAN, numa
+lista só. A telemetria do OpenSpec fica **sempre desligada**, em qualquer trabalho: não traz função a
+quem usa, faz uma chamada de rede por comando e, na mesma chave, desliga o aviso de versão nova — e o
+CLI só deve mudar de versão depois do autoteste. Onde está: `referencia/openspec.md`, o ⑦ do portão e
+`scripts/openspec_ambiente.sh`.

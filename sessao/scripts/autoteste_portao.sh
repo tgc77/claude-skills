@@ -48,6 +48,9 @@ montar() {
     cp "${SKILL_SCRIPTS}/conferencia_saida.sh" scripts/
     chmod +x scripts/conferencia_saida.sh
     cp "${SKILL_TEMPLATES}/PLAN.template.md" docs/sessoes/teste/PLAN.md
+    # Escopo com o módulo OpenSpec (o template o liga) e bloco que declara "não se aplica": é o caso
+    # comum, e deixa o ⑦ verde nos casos que testam os outros itens. Os casos 41-51 o variam.
+    declarar_openspec_em docs/sessoes/teste/PLAN.md 'não se aplica — cenário do autoteste, sem mudança de comportamento'
     {
         printf '| Slug | Escopo | Estado | PLAN |\n|---|---|---|---|\n'
         printf '| `teste` | escopo de teste | 🟡 Ativo | [PLAN](docs/sessoes/teste/PLAN.md) |\n'
@@ -72,6 +75,7 @@ montar_legado() {
     cp "${SKILL_SCRIPTS}/conferencia_saida.sh" scripts/
     chmod +x scripts/conferencia_saida.sh
     cp "${SKILL_TEMPLATES}/PLAN.template.md" PLAN.md
+    sem_modulo_openspec_em PLAN.md   # PLAN legado é anterior à 3.1.0: não tem o módulo OpenSpec
     if [[ -n "${SEM_INDICE:-}" ]]; then
         # Repo legado MONO-ESCOPO: CLAUDE.md tem o protocolo, mas nenhuma tabela de escopos —
         # a tabela é conceito do modelo multi-escopo. Aqui o PLAN só resolve pelo FALLBACK.
@@ -122,6 +126,29 @@ io.open(f,'w',encoding='utf-8').write(s)
 PY
 }
 concluir_t1() { sed -i 's/^- \[ \] \*\*T1 —/- [x] **T1 —/' "${P}"; }
+# Reescreve a declaração OpenSpec do contrato (a linha e as continuações); texto vazio a remove.
+declarar_openspec_em() { python3 - "$1" "$2" <<'PY2'
+import io,re,sys
+f, texto = sys.argv[1], sys.argv[2]
+s = io.open(f, encoding='utf-8').read()
+novo = ('- **OpenSpec:** ' + texto + '\n') if texto else ''
+s, n = re.subn(r'^- \*\*OpenSpec:\*\*.*\n(?:  .*\n)*', lambda m: novo, s, count=1, flags=re.M)
+assert n == 1, 'declaração OpenSpec não achada no PLAN'
+io.open(f, 'w', encoding='utf-8').write(s)
+PY2
+}
+declarar_openspec() { declarar_openspec_em "${P}" "$1"; }
+# PLAN de antes da 3.1.0: sem o parâmetro **OpenSpec** no cabeçalho e sem a declaração no contrato.
+sem_modulo_openspec_em() { python3 - "$1" <<'PY2'
+import io,re,sys
+f = sys.argv[1]
+s = io.open(f, encoding='utf-8').read()
+s, n1 = re.subn(r'^\| \*\*OpenSpec\*\* .*\n', '', s, count=1, flags=re.M)
+s, n2 = re.subn(r'^- \*\*OpenSpec:\*\*.*\n(?:  .*\n)*', '', s, count=1, flags=re.M)
+assert n1 == 1 and n2 == 1, (n1, n2)
+io.open(f, 'w', encoding='utf-8').write(s)
+PY2
+}
 linha_de_sessao() { printf '| %s | B1 | sessão de teste | — |\n' "${HOJE}" >> "${P}"; }
 aceite()          { printf '\n**Aceite:** Fulano, %s\n' "${HOJE}" >> "${P}"; }
 # Chave da sessão no dialeto do template: `<data>#<k>`, k = posição da linha entre as de mesma data no §8.
@@ -651,6 +678,305 @@ grep -q '🔴 ⑥ SEM ACEITE' <<<"${saida}" && ok "⑥ disparou com '⚙' sem U+
     || nok "⑥ cego ao '⚙' sem o seletor de variação"
 [[ "${codigo}" -ne 0 ]] && ok "exit != 0" || nok "exit 0 — contrato sem aceite aprovado"
 
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+# ITEM ⑦ — MÓDULO OPENSPEC — casos 41-51 (2026-10-19)
+# Todo escopo novo nasce com o parâmetro **OpenSpec**, e cada bloco declara no contrato a sua change
+# ou "não se aplica — <motivo>". O ⑦ cobra a declaração e, havendo change, que ela exista, valide e
+# seja arquivada quando o bloco conclui. Os casos 41-50 usam um `openspec` de mentira, que responde
+# ao `validate` conforme o cenário: o teste fica previsível e roda sem rede. O 51 usa o OpenSpec real,
+# quando instalado, para pegar mudança no formato da resposta depois de uma atualização do CLI.
+mkdir -p "${TMP}/bin"
+cat > "${TMP}/bin/openspec" <<'SH'
+#!/usr/bin/env bash
+# `openspec` de mentira: o `validate` responde conforme o cenário gravado em $STUB_OPENSPEC_RESPOSTA.
+[[ "$1" == "validate" ]] || exit 0
+item() { printf '{"items":[{"id":"%s","type":"change","valid":%s,"issues":[%s]}]}\n' "$2" "$1" "$3"; }
+case "$(cat "${STUB_OPENSPEC_RESPOSTA}" 2>/dev/null)" in
+    valido)   item true "$2" '' ;;
+    ingles)   item false "$2" '{"level":"WARNING","path":"cap/spec.md","message":"ADDED \"R\" should contain SHALL or MUST (RFC 2119 best practice for English specs)"}'; exit 1 ;;
+    invalido) item false "$2" '{"level":"ERROR","path":"cap/spec.md","message":"ADDED \"R\" must include at least one scenario"}'; exit 1 ;;
+    *)        echo "isto não é JSON"; exit 1 ;;
+esac
+SH
+chmod +x "${TMP}/bin/openspec"
+OPENSPEC_DO_CASO="${TMP}/bin/openspec"
+# O portão com o `openspec` que o caso escolher: o de mentira (padrão), um caminho inexistente ou o real.
+rodar7() {
+    HOME="${TMP}/lar" SESSAO_OPENSPEC_BIN="${OPENSPEC_DO_CASO}" STUB_OPENSPEC_RESPOSTA="${TMP}/stub.resposta" \
+        ./scripts/conferencia_saida.sh teste "$1" 2>&1
+}
+responde()        { printf '%s\n' "$1" > "${TMP}/stub.resposta"; }
+abrir_change()    { mkdir -p "openspec/changes/$1"; printf 'schema: sessao\ncreated: %s\n' "${HOJE}" > "openspec/changes/$1/.openspec.yaml"; }
+arquivar_change() { mkdir -p openspec/changes/archive; mv "openspec/changes/$1" "openspec/changes/archive/${HOJE}-$1"; }
+mostra()          { printf '%s\n' "${saida}" | sed 's/^/      /'; }
+sessao_executor_completa() {
+    escrever_contrato; baton_para '⚙️ Executor · **Ponto de entrada:** T1 — primeira tarefa'
+    linha_de_sessao; aceite; apontamento
+}
+
+titulo "41. Escopo de antes da 3.1.0 (sem o parâmetro **OpenSpec**) ⇒ ⑦ em silêncio, exit 0"
+montar
+sem_modulo_openspec_em "${P}"
+garantir_sandbox; git add -A; git commit -qm "commit-base do cenario 41"; BASE_41="$(git rev-parse HEAD)"
+sessao_executor_completa
+saida="$(rodar7 "${BASE_41}")"; codigo=$?
+if grep -q '⑦' <<<"${saida}"; then nok "o ⑦ falou num escopo sem o módulo"; mostra; else ok "⑦ em silêncio"; fi
+[[ "${codigo}" -eq 0 ]] && ok "exit 0" || { nok "exit ${codigo} — escopo antigo travado pelo ⑦"; mostra; }
+json="$(HOME="${TMP}/lar" ./scripts/conferencia_saida.sh teste --estado 2>/dev/null)"
+python3 - "${json}" <<'PY' && ok "--estado: módulo desligado, campos nulos" || { nok "--estado errado sem o módulo"; printf '%s\n' "${json}" | sed 's/^/      /'; }
+import json, sys
+o = json.loads(sys.argv[1])["openspec"]
+assert o == {"modulo": False, "declaracao": None, "change": None, "situacao": None, "motivo": None}, o
+PY
+
+titulo "42. Módulo ativo, contrato com a declaração ainda de modelo e baton ⚙️ ⇒ ⑦ vermelho"
+montar
+sessao_executor_completa; declarar_openspec '<change `<id>` | não se aplica — <motivo>>'
+saida="$(rodar7 "${BASE}")"; codigo=$?
+grep -q '🔴 ⑦ o contrato do bloco ativo não declara o OpenSpec' <<<"${saida}" \
+    && ok "⑦ cobrou a declaração (o modelo do template não vale)" || { nok "⑦ aceitou o modelo do template"; mostra; }
+[[ "${codigo}" -ne 0 ]] && ok "exit != 0" || nok "exit 0 — contrato sem declaração aprovado"
+
+titulo "43. Contrato sem declaração com baton 🧠 ⇒ ⑦ amarelo: só é cobrada quando o baton passa ao ⚙️"
+montar
+declarar_openspec ''; baton_para '🧠 Planejador · **Ponto de entrada:** planejar o B1'
+linha_de_sessao; apontamento
+saida="$(rodar7 "${BASE}")"; codigo=$?
+grep -q '⚠️  ⑦ contrato ainda sem a declaração OpenSpec' <<<"${saida}" && ok "⑦ avisou sem travar" || { nok "⑦ não avisou"; mostra; }
+[[ "${codigo}" -eq 0 ]] && ok "exit 0" || { nok "exit ${codigo} — travou o Planejador no meio do contrato"; mostra; }
+
+titulo "44. 'não se aplica' sem motivo ou declaração fora do formato ⇒ vermelho; com motivo ⇒ verde"
+montar
+sessao_executor_completa
+declarar_openspec 'não se aplica'
+saida="$(rodar7 "${BASE}")"; codigo=$?
+grep -q "🔴 ⑦ 'não se aplica' sem o motivo" <<<"${saida}" && [[ "${codigo}" -ne 0 ]] \
+    && ok "sem motivo: vermelho" || { nok "aceitou 'não se aplica' sem motivo"; mostra; }
+declarar_openspec 'talvez num bloco futuro'
+saida="$(rodar7 "${BASE}")"; codigo=$?
+grep -q '🔴 ⑦ declaração OpenSpec fora do formato' <<<"${saida}" && [[ "${codigo}" -ne 0 ]] \
+    && ok "fora do formato: vermelho" || { nok "aceitou declaração fora do formato"; mostra; }
+declarar_openspec 'não se aplica — bloco só de medição, não muda comportamento'
+saida="$(rodar7 "${BASE}")"; codigo=$?
+grep -q '✅ ⑦ OpenSpec não se aplica a este bloco: bloco só de medição' <<<"${saida}" \
+    && ok "com motivo: verde, e o motivo aparece" || { nok "motivo não reconhecido"; mostra; }
+[[ "${codigo}" -eq 0 ]] && ok "exit 0" || { nok "exit ${codigo}"; mostra; }
+
+titulo "45. change declarada que não existe ⇒ vermelho, com o comando para criá-la"
+montar
+sessao_executor_completa; declarar_openspec 'change `bloqueio-login`'
+saida="$(rodar7 "${BASE}")"; codigo=$?
+grep -q '🔴 ⑦ a change `bloqueio-login` não existe' <<<"${saida}" && ok "acusou a change inexistente" || { nok "change inexistente passou"; mostra; }
+grep -q 'openspec new change bloqueio-login --schema sessao' <<<"${saida}" && ok "disse como criar" || nok "não disse como criar"
+[[ "${codigo}" -ne 0 ]] && ok "exit != 0" || nok "exit 0"
+
+titulo "46. change aberta: válida ⇒ verde; inválida ⇒ vermelho, com a pendência que o OpenSpec apontou"
+montar
+sessao_executor_completa; declarar_openspec 'change `bloqueio-login`'; abrir_change bloqueio-login
+responde valido
+saida="$(rodar7 "${BASE}")"; codigo=$?
+grep -q '✅ ⑦ change `bloqueio-login` válida' <<<"${saida}" && [[ "${codigo}" -eq 0 ]] \
+    && ok "válida: verde, exit 0" || { nok "change válida reprovada"; mostra; }
+responde invalido
+saida="$(rodar7 "${BASE}")"; codigo=$?
+grep -q '🔴 ⑦ a change `bloqueio-login` não passa na validação' <<<"${saida}" && ok "inválida: vermelho" || { nok "change inválida passou"; mostra; }
+grep -q 'ERROR cap/spec.md: ADDED "R" must include at least one scenario' <<<"${saida}" \
+    && ok "repassou a pendência do OpenSpec" || { nok "não mostrou o que corrigir"; mostra; }
+[[ "${codigo}" -ne 0 ]] && ok "exit != 0" || nok "exit 0"
+
+titulo "47. Só o aviso de SHALL/MUST (spec em português) NÃO reprova; saída ilegível reprova"
+montar
+sessao_executor_completa; declarar_openspec 'change `bloqueio-login`'; abrir_change bloqueio-login
+responde ingles
+saida="$(rodar7 "${BASE}")"; codigo=$?
+grep -q '✅ ⑦ change `bloqueio-login` válida' <<<"${saida}" && [[ "${codigo}" -eq 0 ]] \
+    && ok "aviso de palavra-chave em inglês ignorado" || { nok "spec em português reprovada pelo SHALL/MUST"; mostra; }
+responde lixo
+saida="$(rodar7 "${BASE}")"; codigo=$?
+grep -q "🔴 ⑦ a saída do 'openspec validate bloqueio-login' não pôde ser lida" <<<"${saida}" && [[ "${codigo}" -ne 0 ]] \
+    && ok "saída ilegível: vermelho (falha fechada)" || { nok "saída ilegível passou"; mostra; }
+
+titulo "48. Bloco concluído com a change aberta ⇒ vermelho mandando arquivar; arquivada ⇒ verde"
+montar
+escrever_contrato; declarar_openspec 'change `bloqueio-login`'; abrir_change bloqueio-login; responde valido
+sed -i 's/^- \[ \] /- [x] /' "${P}"
+baton_para '🧠 Planejador · **Ponto de entrada:** planejar o B2'; linha_de_sessao; apontamento
+saida="$(rodar7 "${BASE}")"; codigo=$?
+grep -q '🔴 ⑦ bloco concluído com a change `bloqueio-login` ainda aberta' <<<"${saida}" \
+    && ok "cobrou o archive" || { nok "bloco concluído com a change aberta passou"; mostra; }
+grep -q 'openspec archive bloqueio-login -y' <<<"${saida}" && ok "disse como arquivar" || nok "não disse como arquivar"
+[[ "${codigo}" -ne 0 ]] && ok "exit != 0" || nok "exit 0"
+arquivar_change bloqueio-login
+saida="$(rodar7 "${BASE}")"; codigo=$?
+grep -q '✅ ⑦ change `bloqueio-login` arquivada' <<<"${saida}" && [[ "${codigo}" -eq 0 ]] \
+    && ok "arquivada: verde, exit 0" || { nok "change arquivada reprovada"; mostra; }
+
+titulo "49. Sem o CLI do OpenSpec ⇒ vermelho (falha fechada); change com skip_specs ⇒ vermelho"
+montar
+sessao_executor_completa; declarar_openspec 'change `bloqueio-login`'; abrir_change bloqueio-login; responde valido
+OPENSPEC_DO_CASO="${TMP}/nao-existe"
+saida="$(rodar7 "${BASE}")"; codigo=$?
+OPENSPEC_DO_CASO="${TMP}/bin/openspec"
+grep -q '🔴 ⑦ a change `bloqueio-login` não pode ser validada: falta o CLI' <<<"${saida}" && [[ "${codigo}" -ne 0 ]] \
+    && ok "sem o CLI: vermelho" || { nok "sem o CLI o portão aprovou o que não conferiu"; mostra; }
+printf 'skip_specs: true\n' >> openspec/changes/bloqueio-login/.openspec.yaml
+saida="$(rodar7 "${BASE}")"; codigo=$?
+grep -q '🔴 ⑦ a change `bloqueio-login` tem skip_specs: true' <<<"${saida}" && [[ "${codigo}" -ne 0 ]] \
+    && ok "skip_specs: vermelho, manda declarar 'não se aplica'" || { nok "change vazia com skip_specs passou"; mostra; }
+
+titulo "50. --estado traz a declaração OpenSpec do bloco ativo no JSON"
+montar
+escrever_contrato; declarar_openspec 'change `bloqueio-login`'; abrir_change bloqueio-login
+baton_para '⚙️ Executor · **Ponto de entrada:** T1 — primeira tarefa'
+json="$(HOME="${TMP}/lar" ./scripts/conferencia_saida.sh teste --estado 2>/dev/null)"
+python3 - "${json}" <<'PY' && ok "módulo, declaração, change e situação corretos" || { nok "JSON sem o bloco openspec certo"; printf '%s\n' "${json}" | sed 's/^/      /'; }
+import json, sys
+o = json.loads(sys.argv[1])["openspec"]
+assert o == {"modulo": True, "declaracao": "change", "change": "bloqueio-login", "situacao": "aberta", "motivo": None}, o
+PY
+declarar_openspec 'não se aplica — bloco só de medição, não muda comportamento'
+json="$(HOME="${TMP}/lar" ./scripts/conferencia_saida.sh teste --estado 2>/dev/null)"
+python3 - "${json}" <<'PY' && ok "'não se aplica' sai com o motivo" || { nok "motivo ausente do JSON"; printf '%s\n' "${json}" | sed 's/^/      /'; }
+import json, sys
+o = json.loads(sys.argv[1])["openspec"]
+assert o["declaracao"] == "nao_se_aplica" and o["motivo"].startswith("bloco só de medição"), o
+assert o["change"] is None and o["situacao"] is None, o
+PY
+
+titulo "51. OpenSpec REAL: change em português validada pelo portão, arquivada e fundida nas specs"
+if ! command -v openspec >/dev/null 2>&1 || ! command -v node >/dev/null 2>&1; then
+    printf '  ⚠️  pulado: o openspec ou o node não está instalado — os casos 41-50 cobrem a lógica\n'
+else
+    # HOME e XDG falsos: o CLI real não lê nem grava a configuração do usuário.
+    openspec_real() {
+        HOME="${TMP}/lar" XDG_CONFIG_HOME="${TMP}/lar/.config" XDG_DATA_HOME="${TMP}/lar/.local/share" \
+            OPENSPEC_TELEMETRY=0 NO_COLOR=1 openspec "$@"
+    }
+    montar
+    sessao_executor_completa; declarar_openspec 'change `bloqueio-login`'
+    openspec_real init --tools none --no-animation >/dev/null 2>&1
+    sed -i 's/^schema: .*/schema: sessao/' openspec/config.yaml
+    mkdir -p openspec/schemas && ln -s "$(cd "${SKILL_SCRIPTS}/.." && pwd -P)/openspec-schema" openspec/schemas/sessao
+    openspec_real new change bloqueio-login --schema sessao >/dev/null 2>&1
+    mkdir -p openspec/changes/bloqueio-login/specs/bloqueio-de-login
+    cat > openspec/changes/bloqueio-login/proposal.md <<'MD'
+## Why
+
+Hoje a conta aceita tentativas de senha sem limite. Origem: escopo `teste`, bloco B1.
+
+## What Changes
+
+- A conta é bloqueada por 15 minutos depois de cinco senhas erradas seguidas.
+
+## Capabilities
+
+### New Capabilities
+- `bloqueio-de-login`: quando uma conta é bloqueada por tentativas de senha erradas
+
+## Impact
+
+Serviço de autenticação.
+MD
+    cat > "${TMP}/spec.md" <<'MD'
+## Purpose
+Define quando uma conta é bloqueada por tentativas de senha erradas, para conter ataque de força bruta.
+
+## ADDED Requirements
+
+### Requirement: Bloqueio após cinco senhas erradas
+O login DEVE bloquear a conta por 15 minutos depois de cinco senhas erradas seguidas.
+
+#### Scenario: Quinta senha errada
+- **WHEN** o usuário erra a senha pela quinta vez seguida
+- **THEN** a conta fica bloqueada por 15 minutos
+MD
+    cp "${TMP}/spec.md" openspec/changes/bloqueio-login/specs/bloqueio-de-login/spec.md
+    OPENSPEC_DO_CASO=openspec
+    saida="$(rodar7 "${BASE}")"; codigo=$?
+    grep -q '✅ ⑦ change `bloqueio-login` válida' <<<"${saida}" && [[ "${codigo}" -eq 0 ]] \
+        && ok "spec em português (com DEVE) validada pelo OpenSpec real" || { nok "o OpenSpec real reprovou a spec certa"; mostra; }
+    sed -i '/^#### Scenario:/,$d' openspec/changes/bloqueio-login/specs/bloqueio-de-login/spec.md
+    saida="$(rodar7 "${BASE}")"; codigo=$?
+    grep -q 'must include at least one scenario' <<<"${saida}" && [[ "${codigo}" -ne 0 ]] \
+        && ok "requisito sem cenário: vermelho, com a mensagem do OpenSpec real" || { nok "o formato da resposta do OpenSpec mudou?"; mostra; }
+    cp "${TMP}/spec.md" openspec/changes/bloqueio-login/specs/bloqueio-de-login/spec.md
+    sed -i 's/^- \[ \] /- [x] /' "${P}"; baton_para '🧠 Planejador · **Ponto de entrada:** planejar o B2'
+    saida="$(rodar7 "${BASE}")"
+    grep -q '🔴 ⑦ bloco concluído com a change `bloqueio-login` ainda aberta' <<<"${saida}" \
+        && ok "bloco concluído: cobrou o archive" || { nok "não cobrou o archive"; mostra; }
+    openspec_real archive bloqueio-login -y >/dev/null 2>&1
+    saida="$(rodar7 "${BASE}")"; codigo=$?
+    grep -q '✅ ⑦ change `bloqueio-login` arquivada' <<<"${saida}" && [[ "${codigo}" -eq 0 ]] \
+        && ok "arquivada pelo OpenSpec real: verde" || { nok "o portão não reconheceu o arquivo do OpenSpec real"; mostra; }
+    grep -q 'Bloqueio após cinco senhas erradas' openspec/specs/bloqueio-de-login/spec.md 2>/dev/null \
+        && ok "o delta foi fundido na spec viva" || nok "a spec viva não recebeu o delta"
+    OPENSPEC_DO_CASO="${TMP}/bin/openspec"
+fi
+
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+# AMBIENTE DO OPENSPEC — casos 52-54 (scripts/openspec_ambiente.sh)
+# O schema `sessao` chega ao OpenSpec por symlink para a skill (uma cópia só), a telemetria fica
+# desligada e o repositório de um escopo novo ganha openspec/ com `schema: sessao`. HOME e XDG falsos e
+# um `openspec` de mentira, com estado em arquivo: nada encosta na configuração real do usuário.
+mkdir -p "${TMP}/bin-amb"
+cat > "${TMP}/bin-amb/openspec" <<'SH'
+#!/usr/bin/env bash
+# `openspec` de mentira para o openspec_ambiente.sh: versão em $STUB_VERSAO, telemetria num arquivo.
+case "$1" in
+    --version) echo "${STUB_VERSAO:-1.14.3}" ;;
+    config)    if [[ "$2" == "get" ]]; then cat "${STUB_DIR}/telemetria" 2>/dev/null || echo true
+               else echo "$4" > "${STUB_DIR}/telemetria"; fi ;;
+    init)      mkdir -p openspec/specs openspec/changes/archive
+               printf 'schema: spec-driven\n\n# contexto do projeto (opcional)\n' > openspec/config.yaml ;;
+    schemas)   if [[ -L "${XDG_DATA_HOME}/openspec/schemas/sessao" ]]; then echo '[{"name":"sessao","source":"user"}]'
+               else echo '[]'; fi ;;
+esac
+SH
+chmod +x "${TMP}/bin-amb/openspec"
+amb() {
+    HOME="${TMP}/lar" XDG_DATA_HOME="${TMP}/lar/.local/share" SESSAO_OPENSPEC_BIN="${TMP}/bin-amb/openspec" \
+        STUB_DIR="${TMP}/lar" "${SKILL_SCRIPTS}/openspec_ambiente.sh" "$@" 2>&1
+}
+LINK_FALSO="${TMP}/lar/.local/share/openspec/schemas/sessao"
+
+titulo "52. Ambiente sem o symlink do schema e com a telemetria ligada ⇒ --verificar exit 1, com as duas pendências"
+montar
+saida="$(amb --verificar)"; codigo=$?
+grep -q "🔴 schema 'sessao' não instalado no OpenSpec" <<<"${saida}" && ok "acusou o schema ausente" || { nok "não acusou o schema ausente"; mostra; }
+grep -q '🔴 telemetria do OpenSpec não está desligada' <<<"${saida}" && ok "acusou a telemetria ligada" || { nok "não acusou a telemetria"; mostra; }
+[[ "${codigo}" -eq 1 ]] && ok "exit 1" || nok "exit ${codigo}"
+saida="$(STUB_VERSAO=1.13.0 amb --verificar)"
+grep -q "🔴 CLI do OpenSpec '1.13.0' abaixo do mínimo" <<<"${saida}" && ok "acusou o CLI abaixo do mínimo" || { nok "aceitou CLI velho"; mostra; }
+
+titulo "53. --aplicar liga o schema da skill por symlink e desliga a telemetria; cópia no lugar do link ⇒ vermelho"
+montar
+saida="$(amb --aplicar)"; codigo=$?
+[[ "${codigo}" -eq 0 ]] && ok "exit 0" || { nok "exit ${codigo}"; mostra; }
+[[ -L "${LINK_FALSO}" && "$(readlink -f "${LINK_FALSO}")" == "$(cd "${SKILL_SCRIPTS}/.." && pwd -P)/openspec-schema" ]] \
+    && ok "symlink aponta para o schema da skill" || nok "symlink ausente ou errado"
+[[ "$(cat "${TMP}/lar/telemetria" 2>/dev/null)" == "false" ]] && ok "telemetria desligada pela configuração" || nok "telemetria não foi desligada"
+rm -f "${LINK_FALSO}"; mkdir -p "${LINK_FALSO}"; printf 'name: sessao\n' > "${LINK_FALSO}/schema.yaml"
+saida="$(amb --verificar)"; codigo=$?
+grep -q 'é uma cópia, não um symlink para a skill' <<<"${saida}" && [[ "${codigo}" -eq 1 ]] \
+    && ok "cópia do schema: vermelho (envelheceria)" || { nok "aceitou cópia do schema"; mostra; }
+saida="$(amb --aplicar)"
+[[ -d "${LINK_FALSO}" && ! -L "${LINK_FALSO}" ]] && ok "--aplicar não apagou a cópia por conta própria" || nok "--aplicar mexeu na cópia"
+
+titulo "54. --preparar-repo cria openspec/ com 'schema: sessao'; cópia local do schema no projeto ⇒ vermelho"
+montar
+amb --aplicar >/dev/null
+saida="$(amb --preparar-repo)"; codigo=$?
+[[ "${codigo}" -eq 0 && -d openspec/specs ]] && ok "openspec/ criado" || { nok "openspec/ não criado (exit ${codigo})"; mostra; }
+[[ "$(head -1 openspec/config.yaml)" == "schema: sessao" ]] && ok "config.yaml com schema: sessao" || nok "config.yaml: $(head -1 openspec/config.yaml)"
+grep -q 'contexto do projeto' openspec/config.yaml && ok "o resto do config.yaml ficou" || nok "o config.yaml perdeu conteúdo"
+saida="$(amb --verificar)"; codigo=$?
+grep -q "✅ o OpenSpec resolve o schema 'sessao' pelo symlink da skill" <<<"${saida}" && [[ "${codigo}" -eq 0 ]] \
+    && ok "repositório pronto: exit 0" || { nok "repositório preparado e ainda vermelho"; mostra; }
+mkdir -p openspec/schemas/sessao
+saida="$(amb --verificar)"; codigo=$?
+grep -q 'sobrepõe o schema da skill' <<<"${saida}" && [[ "${codigo}" -eq 1 ]] \
+    && ok "cópia local no projeto: vermelho" || { nok "cópia local no projeto passou"; mostra; }
+
 echo "------------------------------------------------------------------------"
 if [[ "${falhas}" -ne 0 ]]; then
     echo "🔴 AUTOTESTE REPROVADO — ${falhas} verificação(ões) falharam."
@@ -658,11 +984,14 @@ if [[ "${falhas}" -ne 0 ]]; then
     echo "   qualquer projeto: um portão que não dispara é pior que nenhum, porque dá verde."
     exit 1
 fi
-echo "✅ AUTOTESTE APROVADO — 40 casos. Cobre: os 6 itens nos dialetos dos templates; os QUATRO"
+echo "✅ AUTOTESTE APROVADO — 54 casos. Cobre: os 7 itens nos dialetos dos templates; os QUATRO"
 echo "   gatilhos do ⑥ isolados um a um, e o ⑥ com '⚙' sem U+FE0F; o modo --inicio (baton podre"
 echo "   pega, baton são passa); os três ramos do ①; a chave de sessão do ⑤ (nº legado × <data>#<k>,"
 echo "   retroativo, 2ª sessão do dia, duas linhas numa sessão, DD/MM/AAAA, limite #1≠#12); o gate 🔁;"
 echo "   o lançador falhando fechado; o legado por índice E por fallback; o ② medindo o PARÁGRAFO do"
 echo "   baton; o falso negativo do ⑥ diagnosticado, não afrouxado; o PLAN de escopo novo fora do git;"
 echo "   o --estado (JSON, baton podre, stdout limpo, legado); e o bloco gerenciado do AGENTS.md"
-echo "   (desatualizado, sem marcadores, malformado, em dia)."
+echo "   (desatualizado, sem marcadores, malformado, em dia); e o ⑦ do módulo OpenSpec (silêncio no"
+echo "   escopo antigo, declaração cobrada no handoff, motivo, change inexistente, inválida, só com o"
+echo "   aviso de SHALL/MUST, ilegível, não arquivada, sem o CLI, skip_specs, --estado e o OpenSpec real)"
+echo "   e o ambiente dele (schema por symlink, cópia recusada, telemetria, versão mínima, repo preparado)."

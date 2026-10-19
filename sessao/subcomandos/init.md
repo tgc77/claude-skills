@@ -1,14 +1,16 @@
 # `init` — abrir um escopo (instalando o sistema, se ainda não houver)
 
-Leia antes: [`../referencia/layout.md`](../referencia/layout.md) (layout do projeto e regras do slug).
+Leia antes: [`../referencia/layout.md`](../referencia/layout.md) (layout do projeto e regras do slug) e
+[`../referencia/openspec.md`](../referencia/openspec.md) (todo escopo novo nasce com o módulo OpenSpec).
 
 ## 0. Detecte o estado do repo antes de qualquer coisa — `init` nunca sobrescreve instalação existente
 
 - **Repo virgem** (sem `AGENTS.md`/`CLAUDE.md` de controle e sem escopo no índice) → instalação
   completa (passos 1–6).
 - **Repo já instalado** (há índice com escopos, mesmo que nenhum deles em `docs/sessoes/`) → é escopo
-  novo: crie **só** `docs/sessoes/<slug>/PLAN.md` e acrescente a linha do escopo no índice do
-  `AGENTS.md` (em projeto legado que ainda não migrou o índice, no `CLAUDE.md`). Não recrie nem
+  novo: crie **só** `docs/sessoes/<slug>/PLAN.md`, acrescente a linha do escopo no índice do
+  `AGENTS.md` (em projeto legado que ainda não migrou o índice, no `CLAUDE.md`) e prepare o OpenSpec
+  (passo 4). Não recrie nem
   reescreva `AGENTS.md`, `CLAUDE.md` (fora a linha nova) ou o template de relatório. Se o `AGENTS.md`
   ainda tiver o protocolo copiado em vez do bloco gerenciado, ofereça o `update` antes.
 - **Layout legado** (PLAN na raiz) → diga isso e ofereça migrar para o layout canônico antes de abrir o
@@ -28,7 +30,7 @@ que o caso detectado pede.
 - **Valide o slug antes de aceitá-lo** — ele é chave primária, e corrigir depois custa rename:
   kebab-case; ainda não existe na coluna `Slug` do índice deste repo; e não colide globalmente —
   confira `ls "${SESSAO_WORKLOG_DIR:-$HOME/.claude/work-log}"` e, se já houver um `<slug>.md` de outro
-  trabalho, proponha um nome mais distintivo (`aca-amortizacao`, não `amortizacao`).
+  trabalho, proponha um nome mais distintivo (`upgrade-postgres-16`, não `upgrade`).
 - **Não pergunte o label de apontamento** — ele **é** o slug. Quem quer apontar num card já existente
   escolhe o slug igual ao card; não existe segundo campo.
 - **Não pergunte a pasta de relatórios** — ela é `docs/sessoes/<slug>/`.
@@ -53,9 +55,16 @@ Mostre em texto a árvore, o Board e os guardrails. Só crie depois do "ok".
     (`$SESSAO_SKILL_DIR` → `~/.claude/skills/sessao` → `~/.codex/skills/sessao` →
     `<repo>/.agents/skills/sessao`) e falha fechado (exit 2) se não a achar — portão que não roda não
     pode parecer portão que passou.
+- **Sempre, o OpenSpec:** rode `<skill>/scripts/openspec_ambiente.sh --verificar`. Falta symlink ou
+  telemetria desligada → `--aplicar`. **CLI ausente → PARE** e mostre ao usuário a instalação de
+  [`../referencia/openspec.md`](../referencia/openspec.md): instalar ferramenta é decisão dele. Com o
+  ambiente pronto, `--preparar-repo` cria `openspec/` (`openspec init --tools none`, sem arquivos de
+  ferramenta) com `schema: sessao`.
 - **Sempre:** `docs/sessoes/<slug>/PLAN.md`. Detalhe **só o bloco B1**; os demais em uma linha,
   marcados `(rascunho)`. Preencha o cabeçalho de parâmetros (slug, branch, ambiente, namespaces,
-  relatórios) e a seção "🚧 Guardrails deste escopo".
+  relatórios) e a seção "🚧 Guardrails deste escopo". O parâmetro **OpenSpec** vem ligado do template:
+  não o remova. A declaração do contrato do B1 (`change` ou `não se aplica — <motivo>`) é decidida no
+  `handoff`; se o B1 já nasce executor-ready, decida-a aqui.
 - Acrescente a linha do escopo na tabela **🎯 Escopos de trabalho** do `AGENTS.md`, com estado
   🟡 Ativo, neste formato — é por ela que o portão acha o PLAN:
   ``| `<slug>` | <descrição> | 🟡 Ativo | [`docs/sessoes/<slug>/PLAN.md`](docs/sessoes/<slug>/PLAN.md) |``
@@ -68,5 +77,5 @@ Sem baton, o `start` fica adivinhando o papel. B1 🔬 descoberta, ou ainda não
 ## 6. Commite a instalação — com validação do usuário
 
 PLAN não-commitado faz a próxima sessão ler estado do working tree; mas commit é ato que o usuário
-autoriza. Na branch default, use a branch de trabalho declarada no PLAN. Reporte o hash e mostre a
+autoriza. A pasta `openspec/` entra no mesmo commit. Na branch default, use a branch de trabalho declarada no PLAN. Reporte o hash e mostre a
 árvore criada.

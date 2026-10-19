@@ -53,7 +53,9 @@ ln -s ~/.claude/skills/resumo-trabalho ~/.codex/skills/resumo-trabalho
   (`anthropic-skills:*`), não conteúdo deste repositório.
 
 **Requisitos dos scripts:** `bash`, `git`, `grep -E`, `sed` e `awk` (o `mawk` basta) para o portão;
-`python3` e GNU `sed`/`date` também para o autoteste.
+`python3` e GNU `sed`/`date` também para o autoteste. O módulo OpenSpec pede ainda Node ≥ 20.19 e o
+CLI `openspec` ≥ 1.14.3, instalado com a telemetria desligada — o passo a passo, com a conferência de
+assinaturas, está em [`sessao/referencia/openspec.md`](sessao/referencia/openspec.md).
 
 ## Configuração
 
@@ -103,6 +105,7 @@ PLAN. O `start` lê essa linha e age sem perguntar.
 ├── AGENTS.md                  ← índice de escopos + regras do projeto + bloco gerenciado (lido pelo Codex e, via import, pelo Claude)
 ├── scripts/
 │   └── conferencia_saida.sh   ← LANÇADOR do portão: acha a skill e roda o portão dela
+├── openspec/                  ← specs vivas (módulo OpenSpec): specs/ do comportamento e changes/ dos blocos
 └── docs/sessoes/
     ├── template-relatorio.md  ← um por repo, reusado por todo escopo
     └── <slug>/                ← um escopo = uma pasta
@@ -117,9 +120,17 @@ template — cópia de protocolo congela na versão do dia em que foi feita. Uma
 só uma pasta nova com um `PLAN.md` e uma linha no índice. ⛔ **Nunca** use `AGENTS.override.md`: no
 Codex ele *substitui* o `AGENTS.md` em vez de somar.
 
+**Specs vivas (módulo OpenSpec, desde a 3.1.0).** O `PLAN.md` guarda a execução; o que o sistema faz
+fica em `openspec/specs/`, mantido pelo [OpenSpec](https://github.com/Fission-AI/OpenSpec). Todo escopo
+novo nasce com o módulo, e o contrato de cada bloco declara a sua **change** (proposta + delta das
+specs, validada antes do aceite e arquivada quando o bloco conclui) ou "não se aplica — <motivo>". A
+skill usa só o CLI, com a telemetria sempre desligada, e um schema próprio sem lista de tarefas: as
+tarefas continuam no PLAN. Detalhes em
+[`sessao/referencia/openspec.md`](sessao/referencia/openspec.md).
+
 O **slug** é o identificador único do escopo: nome da pasta, argumento dos comandos e label do
 apontamento. Sem apelidos, em kebab-case, e **único entre projetos** (o log é global): prefira
-`aca-amortizacao` a `amortizacao`.
+`upgrade-postgres-16` a `upgrade`.
 
 ### Subcomandos
 
@@ -177,7 +188,7 @@ honestidade: uma checklist que o próprio agente declara ter cumprido mede a int
 arquivo. O portão mede o arquivo, e **vermelho é PARADA**, não ressalva no relatório.
 
 ```bash
-scripts/conferencia_saida.sh <slug> <commit em que a sessão começou>   # fechamento: itens ①-⑥
+scripts/conferencia_saida.sh <slug> <commit em que a sessão começou>   # fechamento: itens ①-⑦
 scripts/conferencia_saida.sh <slug> --inicio                           # início: o baton está coerente?
 scripts/conferencia_saida.sh <slug> --estado                           # o --inicio + o estado do escopo em JSON
 ```
@@ -190,6 +201,7 @@ scripts/conferencia_saida.sh <slug> --estado                           # o --ini
 | ④ | o registro de sessões (§8) não ganhou linha nova |
 | ⑤ | alguma linha nova do §8 não tem a **sua** chave `**Sessão:**` no log de apontamento |
 | ⑥ | a sessão escreveu contrato de bloco e passou o baton para ⚙️ **sem** uma linha `**Aceite:** <quem>, <data> (bloco <id>)` nova |
+| ⑦ | só com o módulo OpenSpec: o contrato do bloco não declara a change nem o motivo de não haver uma; ou a change não existe, não valida, ou segue aberta com o bloco concluído |
 
 Outros nove itens da Conferência de saída seguem na mão (critérios de aceite medidos, documento de
 interface atualizado, nenhuma decisão pendente selada por fora etc.) — ver
@@ -197,7 +209,8 @@ interface atualizado, nenhuma decisão pendente selada por fora etc.) — ver
 
 O `--estado` devolve no stdout, em JSON, o que o `start` e o `escopos` precisam — PLAN, branch, bloco
 ativo, baton (papel, ponto de entrada, coerência com os checkboxes), próxima tarefa aberta, gates 🔁,
-blockers e se o log de apontamento existe —, para o modelo não ter de interpretar o PLAN sozinho. Sai
+blockers, se o log de apontamento existe e a declaração OpenSpec do bloco —, para o modelo não ter de
+interpretar o PLAN sozinho. Sai
 com exit 1 se o baton estiver podre, como o `--inicio`.
 
 O projeto recebe um **lançador**, não uma cópia do portão: ele procura a skill em `$SESSAO_SKILL_DIR`
@@ -288,6 +301,7 @@ flowchart LR
 ```
 .
 ├── README.md                         ← este arquivo
+├── openspec/                         ← specs vivas das próprias skills (specs/) e changes arquivadas
 ├── scripts/
 │   ├── versao.sh                     ← confere VERSION × CHANGELOG × tag e prepara um lançamento
 │   └── autoteste_versao.sh           ← testa o versao.sh num repositório descartável
@@ -296,7 +310,7 @@ flowchart LR
 │   ├── VERSION                       ← a versão atual (SemVer)
 │   ├── CHANGELOG.md                  ← o que mudou em cada versão
 │   ├── subcomandos/                  ← um arquivo por subcomando, lido sob demanda
-│   ├── referencia/                   ← protocolo, conferência de saída, apontamentos, layout, deploy
+│   ├── referencia/                   ← protocolo, conferência de saída, apontamentos, layout, deploy, openspec
 │   ├── HISTORICO.md                  ← o porquê de cada regra (não é carregado para operar)
 │   ├── HELP.md                       ← índice de uso (/sessao help)
 │   ├── README.md                     ← resumo da skill
@@ -305,7 +319,9 @@ flowchart LR
 │   │   ├── conferencia_saida.sh      ← o portão (fechamento, --inicio, --estado)
 │   │   ├── conferencia_saida.shim.sh ← o lançador instalado nos projetos
 │   │   ├── bloco_agents.sh           ← sincroniza o bloco gerenciado do AGENTS.md (`update`)
-│   │   └── autoteste_portao.sh       ← testa portão, --estado e bloco gerenciado contra os templates
+│   │   ├── openspec_ambiente.sh      ← confere e prepara o OpenSpec: CLI, telemetria, schema, repo
+│   │   └── autoteste_portao.sh       ← testa portão, --estado, bloco gerenciado e ambiente do OpenSpec
+│   ├── openspec-schema/              ← o schema `sessao` do OpenSpec (proposta + specs, sem tarefas)
 │   └── templates/
 │       ├── AGENTS.template.md        ← índice + regras do projeto + bloco gerenciado
 │       ├── CLAUDE.template.md        ← o `@AGENTS.md`
@@ -326,7 +342,8 @@ flowchart LR
   este README apontam para eles. Se divergirem, a fonte canônica vence — e a divergência é bug a
   corrigir no mesmo commit.
 - **Mexeu numa regra? Leia antes o caso que a criou** em `sessao/HISTORICO.md`, e registre lá o novo.
-- **Mexeu no portão, no `bloco_agents.sh` ou nos templates? Rode o autoteste** antes de commitar:
+- **Mexeu no portão, no `bloco_agents.sh`, no `openspec_ambiente.sh`, no schema ou nos templates? Rode o
+  autoteste** antes de commitar:
 
   ```bash
   ~/.claude/skills/sessao/scripts/autoteste_portao.sh   # exit 0 = íntegro; exit 1 = regressão
@@ -334,10 +351,18 @@ flowchart LR
 
   Ele monta repositórios descartáveis a partir dos templates, num `HOME` falso, e afirma que cada item
   do portão dispara quando deve e fica verde quando deve, que o `--estado` devolve JSON correto e que o
-  bloco gerenciado é sincronizado sem tocar no resto do `AGENTS.md` (40 casos). Existe porque, em
+  bloco gerenciado é sincronizado sem tocar no resto do `AGENTS.md`; e o ⑦ e o ambiente do OpenSpec
+  (54 casos — o 51 usa o OpenSpec real, se instalado). Existe porque, em
   2026-08-24, o portão e o `PLAN.template.md` falavam dialetos diferentes e o portão aprovava sem
   conferir quase nada — com exit 0.
 - **Mudou o bloco gerenciado do `AGENTS.template.md`?** Rode `/sessao update` em cada projeto instalado.
+- **Mudou um comportamento verificável de uma skill** (portão, lançador, bloco gerenciado, ambiente do
+  OpenSpec)? Este repositório usa o próprio módulo: abra uma change em `openspec/`
+  (`openspec new change <id> --schema sessao`), valide e arquive junto com o código — ver
+  [`sessao/referencia/openspec.md`](sessao/referencia/openspec.md). Os cenários das specs vivas são os
+  casos do autoteste.
+- **Atualizou o CLI do OpenSpec?** Rode o autoteste antes de usar: o portão depende do formato da
+  resposta do CLI, e o caso 51 é o que pega uma mudança nele. Só então suba `OPENSPEC_MINIMO`.
 - **Código que parece morto e não é:** o suporte ao layout legado (PLAN na raiz, índice no `CLAUDE.md`,
   registro de sessões numerado) é deliberado — os escopos legados não serão migrados. Está marcado
   como tal nos scripts e coberto pelo autoteste; removê-lo é retirada de suporte, não limpeza.

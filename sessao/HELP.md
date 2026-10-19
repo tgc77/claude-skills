@@ -25,7 +25,7 @@ branch e não roda ritual.
 | `/sessao start <slug> [nota]` | início de sessão: confere o baton e assume o papel que ele manda | conforme o papel |
 | `/sessao handoff` | 🧠 → ⚙️: bloco executor-ready, critérios medidos, o seu aceite | sim, com o seu ok |
 | `/sessao end` | fim de sessão: registro sempre; relatório só se o bloco fechou ou você pediu | sim, com o seu ok |
-| `/sessao update` | põe o projeto em dia com a skill (bloco gerenciado do `AGENTS.md`, lançador do portão) | sim, com o seu ok |
+| `/sessao update` | põe o projeto em dia com a skill (bloco gerenciado do `AGENTS.md`, lançador do portão, ambiente do OpenSpec) | sim, com o seu ok |
 | `/sessao help` | este guia | não |
 
 ## Ciclo de vida
@@ -69,6 +69,9 @@ branch e não roda ritual.
   o baton no início (`--inicio`) e devolve o estado do escopo em JSON (`--estado`).
 - **Bloco gerenciado** — o trecho do `AGENTS.md` entre `<!-- sessao:inicio` e `<!-- sessao:fim -->`,
   que declara a ativação explícita; o `update` o mantém igual ao template.
+- **Módulo OpenSpec** — todo escopo novo: o contrato de cada bloco declara a sua change (proposta +
+  delta das specs, arquivada quando o bloco conclui) ou "não se aplica — <motivo>". O item ⑦ do portão
+  confere.
 - **Apontamentos** — toda sessão que termina grava uma entrada em `<work-log>/<slug>.md`, só depois do
   seu ok; `/resumo-trabalho gerar <slug>` dá o dia completo.
 
@@ -82,5 +85,6 @@ branch e não roda ritual.
 | como o apontamento é gravado | `referencia/apontamentos.md` |
 | layout do projeto, slug, troca de escopo | `referencia/layout.md` |
 | entrega destinada a deploy | `referencia/deploy.md` |
+| specs vivas: change, validação, archive, ambiente do OpenSpec | `referencia/openspec.md` |
 | por que uma regra existe | `HISTORICO.md` |
 | qual é a versão e o que mudou em cada uma | `VERSION` e `CHANGELOG.md` |

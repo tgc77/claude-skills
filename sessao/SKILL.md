@@ -44,7 +44,7 @@ ler** — não execute de memória nem por este resumo. Sem subcomando, pergunte
 | `start <slug> [nota]` | início de sessão: assume o papel que o baton manda | [`subcomandos/start.md`](subcomandos/start.md) |
 | `handoff` | Planejador → Executor: bloco executor-ready, critérios medidos, aceite | [`subcomandos/handoff.md`](subcomandos/handoff.md) |
 | `end` | fim de sessão; o Executor o dispara sozinho ao fechar o bloco ou ao parar | [`subcomandos/end.md`](subcomandos/end.md) |
-| `update` | põe o projeto em dia com a skill: bloco gerenciado do `AGENTS.md`, lançador do portão | [`subcomandos/update.md`](subcomandos/update.md) |
+| `update` | põe o projeto em dia com a skill: bloco gerenciado do `AGENTS.md`, lançador do portão, ambiente do OpenSpec | [`subcomandos/update.md`](subcomandos/update.md) |
 | `help` | mostra o guia de uso; não altera nada | [`HELP.md`](HELP.md) |
 
 Referências, lidas quando o subcomando manda:
@@ -52,10 +52,11 @@ Referências, lidas quando o subcomando manda:
 | Arquivo | Conteúdo |
 |---|---|
 | [`referencia/protocolo.md`](referencia/protocolo.md) | artefatos, rolling-wave, papéis 🧠/⚙️, quando o Executor para, baton, gates 🔁 |
-| [`referencia/conferencia.md`](referencia/conferencia.md) | ordem do fechamento, portão ①-⑥, itens conferidos na mão |
+| [`referencia/conferencia.md`](referencia/conferencia.md) | ordem do fechamento, portão ①-⑦, itens conferidos na mão |
 | [`referencia/apontamentos.md`](referencia/apontamentos.md) | log do `resumo-trabalho`: uma sessão = uma entrada, chave, idempotência |
 | [`referencia/layout.md`](referencia/layout.md) | layout do projeto, slug, resolução de escopo, branch base |
 | [`referencia/deploy.md`](referencia/deploy.md) | entrega destinada a deploy |
+| [`referencia/openspec.md`](referencia/openspec.md) | módulo OpenSpec: a declaração do bloco, change, validação, archive, ambiente |
 
 O **porquê** de cada regra — os incidentes que a criaram — está em [`HISTORICO.md`](HISTORICO.md). Não
 é preciso lê-lo para operar; leia antes de afrouxar, mover ou remover uma regra. Scripts em `scripts/`,
@@ -75,6 +76,10 @@ templates em `templates/`, ao lado deste arquivo.
   (`--estado`).
 - **bloco gerenciado** — o trecho do `AGENTS.md` entre `<!-- sessao:inicio` e `<!-- sessao:fim -->`,
   igual ao de `templates/AGENTS.template.md`; o `update` o mantém em dia.
+- **change / spec viva** (módulo OpenSpec) — a change é a proposta + o delta de specs de um bloco que
+  muda comportamento; arquivada quando o bloco conclui, ela é fundida em `openspec/specs/`, a spec viva.
+  O contrato de cada bloco declara a sua change ou "não se aplica — <motivo>"
+  ([`referencia/openspec.md`](referencia/openspec.md)).
 
 ## Regras invioláveis (valem em qualquer subcomando)
 
@@ -104,6 +109,16 @@ templates em `templates/`, ao lado deste arquivo.
     **nunca** são mecânicos.
   - A versão curta desta regra está no bloco gerenciado do `AGENTS.md` de cada projeto, e lá ela vale
     também fora da skill.
+- **IDENTIFICADOR SOZINHO NÃO É CONTEXTO — quem pede decisão carrega a substância junto.** Ao levar
+  qualquer pergunta ao usuário, **nunca** cite `T3`, `B2`, `D7` (ou nome de arquivo, flag, evento) como
+  se o rótulo bastasse: escreva, ao lado do id, **o que aquilo é em uma linha** e **o que muda em cada
+  opção**. Vale também no meio da conversa, não só no pedido formal de decisão.
+  - **Por quê:** o id é escrituração interna do `PLAN.md`, não memória do usuário. As sessões são
+    espaçadas e ele não carrega o Board na cabeça; perguntar por rótulo o obriga a abrir o PLAN para
+    entender a própria pergunta, e **decisão tomada sem entender a pergunta é pior que decisão
+    adiada**. O agente acabou de reler o PLAN inteiro; ele, não.
+  - A versão curta desta regra também está no bloco gerenciado do `AGENTS.md`, e lá ela vale fora da
+    skill.
 - **Commit e push só com validação explícita**, pedida a cada vez — sem exceção, nem para deploy.
   Commite só o que é do escopo e da sessão; nada de `git add -A` cego.
 - **Um escopo por sessão e por working tree.** Nunca leia nem opere o PLAN de outro escopo; paralelo

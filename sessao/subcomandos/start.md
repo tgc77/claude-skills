@@ -19,13 +19,15 @@ scripts/conferencia_saida.sh <slug> --estado
 ```
 
 O JSON traz o caminho do PLAN, a branch de trabalho, o bloco ativo, o baton (papel, ponto de entrada,
-tarefa citada e se ela é coerente com os checkboxes), a próxima tarefa aberta do bloco, os gates 🔁 e
-os blockers. **Exit 1 = baton podre** (manda executar tarefa já `[x]`, ou a linha 🎬 falta ou está
+tarefa citada e se ela é coerente com os checkboxes), a próxima tarefa aberta do bloco, os gates 🔁, os
+blockers e a declaração OpenSpec do bloco (`openspec`). **Exit 1 = baton podre** (manda executar tarefa já `[x]`, ou a linha 🎬 falta ou está
 duplicada): **não execute**, não adivinhe a próxima tarefa e não replaneje por conta própria — mostre
 ao usuário o que a linha 🎬 diz × o que o Board diz e pergunte.
 
 Depois leia **só** o cabeçalho "🔎 Agora" e o bloco ativo do PLAN (o contrato: DoR, DoD, critérios,
-escalonamento). Não releia relatórios e nunca leia o PLAN de outro escopo. Os guardrails 🚧 do PLAN
+escalonamento). Se o `openspec` do JSON aponta uma change **aberta**, leia também
+`openspec/changes/<id>/` (proposta e delta): é o comportamento que o bloco entrega e faz parte do
+contrato ([`../referencia/openspec.md`](../referencia/openspec.md)). Não releia relatórios e nunca leia o PLAN de outro escopo. Os guardrails 🚧 do PLAN
 valem para a sessão inteira e sobrepõem hábitos gerais.
 
 Anote `git rev-parse HEAD`: é a ref-base do portão no fechamento.

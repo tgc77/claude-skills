@@ -16,6 +16,7 @@
 | **Ambiente**           | <ambiente/cluster + variáveis obrigatórias (ex.: KUBECONFIG=...)> |
 | **Namespaces / alvos** | <onde se mexe>                                            |
 | **Relatórios**         | `docs/sessoes/<slug>/RELATORIO_<bloco>_<data>.md`         |
+| **OpenSpec**           | ativo — cada bloco declara no contrato a sua change ou "não se aplica" (skill `sessao`, `referencia/openspec.md`) |
 
 ## 🚧 Guardrails deste escopo
 
@@ -67,6 +68,10 @@ serão detalhados/replanejados ao chegar a vez — a ordem pode mudar.
 
 - **DoR (pré-condições):** <o que precisa estar verdadeiro/disponível para começar>.
 - **DoD (pronto quando, verificável):** <de preferência um comando/checagem, não prosa>.
+- **OpenSpec:** <change `<id>` | não se aplica — <motivo>>. O bloco muda um comportamento de que alguém
+  depende (regra de negócio, interface, `values` de chart, versão de imagem, política de cluster)? Então
+  ganha uma change com proposta e delta de specs, validada antes do aceite e arquivada quando o bloco
+  conclui. Se não muda (deploy, medição, investigação), diga por quê. O item ⑦ do portão confere.
 - **Critérios de aceite — MEDIDOS no handoff, não deduzidos:** <um por linha, no formato `comando` →
   **baseline observado hoje** → **alvo**>. O Planejador roda cada comando no commit do handoff e anota o
   que viu; se o baseline já reprova o critério, ou o alvo muda ou a correção vira **tarefa deste bloco**

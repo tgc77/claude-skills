@@ -20,6 +20,10 @@ na skill, não neste arquivo**, e só vale quando o usuário a invoca.
   pareceu resolvida. Silêncio não é aval, e responder às perguntas do agente não é aceitar um plano.
   Mostre a evidência crua, a conclusão e as opções, e pergunte. Se já registrou antes do aval, diga
   isso na primeira frase e ofereça desfazer.
+- **🗣️ Identificador sozinho não é contexto — vale em qualquer sessão, com ou sem a skill.** Ao levar
+  uma pergunta ou decisão ao usuário, escreva ao lado de cada rótulo interno (`T3`, `B2`, `D7`, nome de
+  arquivo, flag, evento) o que ele é, em uma linha, e o que muda em cada opção. O rótulo é controle do
+  PLAN, não memória de quem decide, e decisão tomada sem entender a pergunta é pior que decisão adiada.
 <!-- sessao:fim -->
 
 ## 🎯 Escopos de trabalho

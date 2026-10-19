@@ -25,7 +25,9 @@ Layout da skill:
 - `VERSION` e `CHANGELOG.md` — a versão atual e o que mudou em cada uma (não são carregados para operar);
 - `HELP.md` — o índice que `/sessao help` mostra;
 - `templates/` — o que o `init` copia para o projeto;
-- `scripts/` — portão, lançador, sincronizador do bloco gerenciado e autoteste;
+- `scripts/` — portão, lançador, sincronizador do bloco gerenciado, ambiente do OpenSpec e autoteste;
+- `openspec-schema/` — o schema `sessao` do OpenSpec (proposta + specs, sem tarefas), ligado ao
+  OpenSpec por symlink;
 - `agents/openai.yaml` — bloqueia a invocação implícita no Codex (leve-o junto se mover a skill).
 
 **Esta pasta é a fonte canônica** de tudo acima, versionada no repositório `tgc77/claude-skills`.

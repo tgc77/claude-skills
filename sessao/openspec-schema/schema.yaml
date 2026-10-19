@@ -1,0 +1,52 @@
+name: sessao
+version: 1
+description: >-
+  Specs vivas sob a skill sessao. O bloco que muda um comportamento de que alguém depende ganha uma
+  change com proposta e delta de specs; a execução (tarefas, baton, registro de sessões) continua no
+  PLAN.md do escopo. Sem design.md, sem tasks.md e sem fase apply.
+artifacts:
+  - id: proposal
+    generates: proposal.md
+    description: Por que o bloco muda o comportamento e quais capacidades ele toca
+    template: proposal.md
+    instruction: |
+      Escreva a proposta em português. Os títulos ficam em inglês (`## Why`, `## What Changes`,
+      `## Capabilities`, `## Impact`), porque o OpenSpec os lê. O conteúdo vem do contrato do bloco
+      no PLAN.md; não repita o plano de execução.
+
+      - **Why**: o problema ou a oportunidade, em 1 ou 2 frases, e de onde vem: escopo `<slug>`,
+        bloco `<id>`.
+      - **What Changes**: o que muda no comportamento observável, em lista. Marque quebra de
+        contrato com **QUEBRA**.
+      - **Capabilities**: as capacidades novas (cada uma vira `specs/<capacidade>/spec.md`) e as
+        existentes cujo requisito muda. Antes de listar, rode `openspec list --specs` e reuse o nome
+        exato de uma capacidade que já existe. O nome descreve um comportamento durável
+        (`bloqueio-de-login`), não o trabalho do bloco (`ajusta-login-b3`), em kebab-case.
+      - **Impact**: código, interfaces, dependências e sistemas afetados.
+
+      Tarefas, baton e critérios de aceite moram no PLAN.md, não aqui.
+    requires: []
+
+  - id: specs
+    generates: "specs/**/*.md"
+    description: O delta das specs, isto é, o comportamento que o bloco entrega
+    template: spec.md
+    instruction: |
+      Um arquivo `specs/<capacidade>/spec.md` por capacidade listada na proposta. Spec é contrato de
+      comportamento observável (entradas, saídas, erros, restrições), não plano de implementação.
+
+      O OpenSpec lê os títulos e as palavras-chave em inglês; o texto é em português.
+      - `## ADDED Requirements` para requisito novo. `## MODIFIED Requirements` para requisito que
+        muda: copie o bloco inteiro de `openspec/specs/<capacidade>/spec.md`, com todos os cenários,
+        e edite. `## REMOVED Requirements` leva **Reason** e **Migration**. `## RENAMED Requirements`
+        usa FROM:/TO:.
+      - `### Requirement: <nome>` seguido do texto do requisito, com DEVE ou NÃO DEVE: um
+        comportamento por requisito, em até 500 caracteres.
+      - Cada requisito tem ao menos um `#### Scenario: <nome>` (quatro `#`), com `- **WHEN** …` e
+        `- **THEN** …`, mais `- **AND** …` se precisar.
+      - Capacidade nova começa com `## Purpose`: uma ou duas frases, com 50 caracteres ou mais, sobre
+        para que ela serve. Capacidade existente não leva `## Purpose`.
+
+      Cada cenário é um teste em potencial: escreva-o de modo que alguém consiga conferir.
+    requires:
+      - proposal

@@ -7,6 +7,30 @@ numeração [SemVer](https://semver.org/lang/pt-BR/), com o critério de MAJOR, 
 
 ## [Não lançado]
 
+## [3.1.0] - 2026-10-19
+
+**Ação nos projetos:** rode `/sessao update` em cada repositório que usa a skill: o bloco gerenciado
+ganhou a regra "identificador sozinho não é contexto". Escopo novo passa a exigir o CLI do OpenSpec na
+máquina (instalação em `referencia/openspec.md`); os escopos que já existem seguem sem o módulo.
+
+### Adicionado
+- **Módulo OpenSpec: specs vivas por bloco.** Todo escopo novo nasce com o parâmetro **OpenSpec** no
+  PLAN, e o contrato de cada bloco declara a sua change (proposta + delta das specs, validada antes do
+  aceite e arquivada quando o bloco conclui) ou "não se aplica — <motivo>". Vem com o schema `sessao`
+  (proposta + specs, sem tarefas), ligado ao OpenSpec por symlink, e com `referencia/openspec.md`.
+- Item ⑦ do portão: cobra a declaração e, havendo change, que ela exista, valide e seja arquivada ao
+  concluir o bloco; sem o CLI, falha fechado. O `--estado` ganha o campo `openspec`.
+- `scripts/openspec_ambiente.sh` (`--verificar`, `--aplicar`, `--preparar-repo`): CLI e versão mínima,
+  telemetria sempre desligada, schema ligado à skill e `openspec/` no repositório. O `init` e o
+  `update` o usam.
+- Regra "identificador sozinho não é contexto", no bloco gerenciado e nas regras invioláveis: pergunta
+  ao usuário traz, ao lado de cada rótulo interno, o que ele é e o que muda em cada opção.
+- Casos 41 a 54 do autoteste, um deles com o OpenSpec real.
+
+### Modificado
+- O item 8 da Conferência (documento de interface) aponta para a spec viva nos escopos com o módulo.
+- Os exemplos de slug e de capacidade deixam de usar nomes de um projeto específico.
+
 ## [3.0.0] - 2026-10-19
 
 Terceira geração do Controle de Sessões: o protocolo sai dos repositórios e passa a morar só na skill.
@@ -67,5 +91,6 @@ do mais recente ao mais antigo (os detalhes estão no `git log`):
   não se autopromove).
 - **2026-06-26** — nasce a skill; ela vira a fonte canônica e o kit passa a ser espelho.
 
-[Não lançado]: https://github.com/tgc77/claude-skills/compare/sessao-v3.0.0...HEAD
+[Não lançado]: https://github.com/tgc77/claude-skills/compare/sessao-v3.1.0...HEAD
+[3.1.0]: https://github.com/tgc77/claude-skills/compare/sessao-v3.0.0...sessao-v3.1.0
 [3.0.0]: https://github.com/tgc77/claude-skills/compare/193cfdb...sessao-v3.0.0

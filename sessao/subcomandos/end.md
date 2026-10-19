@@ -4,7 +4,8 @@ Opera o escopo do `start` desta sessão, ou o slug passado (`/sessao end <slug>`
 pergunte. Leia antes: [`../referencia/conferencia.md`](../referencia/conferencia.md),
 [`../referencia/apontamentos.md`](../referencia/apontamentos.md) e
 [`../referencia/protocolo.md`](../referencia/protocolo.md) (fronteira de papel). Commit destinado a
-deploy: [`../referencia/deploy.md`](../referencia/deploy.md).
+deploy: [`../referencia/deploy.md`](../referencia/deploy.md). Bloco com change do OpenSpec:
+[`../referencia/openspec.md`](../referencia/openspec.md).
 
 ## Duas metades, com gatilhos diferentes
 
@@ -41,6 +42,10 @@ O índice do registro é um só: **a sessão terminou.**
    Se o bloco fechou, depende de quem está na sessão: o **🧠 Planejador** promove o próximo bloco de
    rascunho a detalhado e replaneja o resto; o **⚙️ Executor** marca o bloco 🟢, grava o baton
    `🧠 Planejador` com o motivo e **para** — não promove, não detalha, não replaneja.
+   **Bloco fechou e o contrato declara uma change do OpenSpec?** Valide-a e arquive-a
+   (`openspec archive <id> -y`) antes do portão: é o que funde o delta nas specs vivas, e o ⑦ reprova
+   bloco concluído com a change aberta. Se o comportamento entregue diverge do delta, não arquive: é
+   escalonamento ([`openspec.md`](../referencia/openspec.md)).
 3. **Grave o baton** com o papel da próxima sessão e o ponto de entrada: `⚙️ Executor` se o bloco segue
    executor-ready; `🧠 Planejador` se a fronteira exige (re)planejamento (bloco fechou e o próximo está
    em rascunho, ou surgiu decisão de design em aberto).
@@ -51,7 +56,7 @@ O índice do registro é um só: **a sessão terminou.**
    tudo fica no working tree. Questionamento aberto ⇒ pare e pergunte.
 6. **Com o "ok", nesta ordem:** escreva o apontamento ([`apontamentos.md`](../referencia/apontamentos.md))
    → rode o portão ([`conferencia.md`](../referencia/conferencia.md)) → commite.
-   - Só o que é deste escopo e desta sessão; nada de `git add -A` cego. Arquivo modificado alheio à
+   - Só o que é deste escopo e desta sessão (`openspec/` incluído); nada de `git add -A` cego. Arquivo modificado alheio à
      sessão: liste ao usuário e deixe de fora.
    - Sessão que tocou mais de um repo (repos irmãos): commite em cada um.
    - Na branch default, use a branch de trabalho declarada no PLAN.

@@ -35,6 +35,10 @@
 # Saída: uma linha por item, ✅ / ⚠️ / 🔴. Qualquer 🔴 ⇒ exit 1 ⇒ NÃO COMMITE.
 # ⚠️ = item não aplicável a este PLAN (formato diferente); confira na mão.
 #
+# O item ⑦ (2026-10-19) só existe em escopo com o módulo OpenSpec — o parâmetro `**OpenSpec**` no
+# cabeçalho do PLAN — e chama o CLI `openspec` (ou o que SESSAO_OPENSPEC_BIN apontar) e o `node`.
+# Ver referencia/openspec.md.
+#
 set -o pipefail
 
 # Índice de escopos: AGENTS.md primeiro (lido nativamente por Codex E, via `@AGENTS.md`, pelo Claude
@@ -56,12 +60,17 @@ readonly REGEX_LINHA_BATON='^- \*\*🎬 Próximo:\*\*'
 # 22 e 23 do autoteste. Se for remover um dia, remova os casos junto e combine antes — não é
 # limpeza, é retirada de suporte.
 readonly REGEX_LINHA_REGISTRO='^\| *([0-9]+ *\| *)?([0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{2}/[0-9]{2}/[0-9]{4}) *\|'
+# Módulo OpenSpec (item ⑦): o parâmetro do cabeçalho que liga o módulo e a declaração do contrato.
+readonly REGEX_MODULO_OPENSPEC='^\| *\*\*OpenSpec\*\* *\| *ativo'
+readonly REGEX_DECLARACAO_OPENSPEC='^ *- \*\*OpenSpec:\*\*'
+readonly OPENSPEC_BIN="${SESSAO_OPENSPEC_BIN:-openspec}"
 
 houve_vermelho=0
 
 verde()    { printf '✅ %s\n' "$1"; }
 amarelo()  { printf '⚠️  %s\n' "$1"; }
 vermelho() { printf '🔴 %s\n' "$1"; houve_vermelho=1; }
+apara()    { sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//'; }
 
 if [[ $# -ne 2 ]]; then
     echo "uso: $0 <slug> <ref-base>   |   $0 <slug> --inicio   |   $0 <slug> --estado" >&2
@@ -368,6 +377,137 @@ if [[ "${MODO}" == "fechamento" ]]; then
     fi
 fi
 
+# --- ⑦ Módulo OpenSpec: o bloco ativo declara a sua change, e ela está em ordem ----------------
+# POR QUE ESTE ITEM EXISTE
+# Até a 3.0.0 o que o sistema FAZ não tinha registro vivo: o PLAN guarda a execução (tarefas, baton,
+# registro), e o comportamento entregue ficava espalhado em relatórios e no código. A única defesa
+# era o item 8 da Conferência (documento de interface), conferido na mão. Com o módulo, cada bloco
+# declara no contrato se muda um comportamento de que alguém depende. Se muda, uma change do OpenSpec
+# (proposta + delta de specs) é validada antes da execução e arquivada quando o bloco conclui, o que
+# funde o delta nas specs vivas; se não muda, o contrato diz por quê. A decisão nunca some em
+# silêncio — é ela que este item mede.
+#
+# Só existe em escopo com o parâmetro `| **OpenSpec** | ativo` no cabeçalho do PLAN, isto é, todo
+# escopo que o `init` cria a partir da 3.1.0. Escopo anterior, sem o parâmetro, não tem o item:
+# silêncio, como o ⑥ quando não há contrato novo. A validação é a estrita do OpenSpec MENOS o aviso de
+# SHALL/MUST: as specs são escritas em português, com DEVE, e o próprio OpenSpec chama aquela regra de
+# "boa prática para specs em inglês". Sem o CLI ou o node, change declarada é vermelho: o portão falha
+# fechado em vez de aprovar o que não conseguiu conferir. Casos 41 a 50 do autoteste.
+secao_do_bloco_ativo() { awk '/^## 🎯 Bloco ativo/ {d = 1; next} d && /^## / {exit} d {print}' "${PLAN}"; }
+papel_do_baton() {   # executor | planejador | nada (o template traz os dois, como placeholder)
+    if grep -q '⚙' <<<"${linha_baton}" && ! grep -q '🧠' <<<"${linha_baton}"; then
+        echo "executor"
+    elif grep -q '🧠' <<<"${linha_baton}" && ! grep -q '⚙' <<<"${linha_baton}"; then
+        echo "planejador"
+    fi
+}
+# Pendências da change no modo estrito, uma por linha (exit 1), ou nada (exit 0). Exit 2 = a saída do
+# CLI não pôde ser lida. A saída é capturada antes do `node`: com pipefail, o exit 1 do validate
+# estrito (que reprova até pelo aviso de SHALL/MUST) contaminaria o resultado do filtro.
+valida_change_openspec() {
+    local json
+    json=$(OPENSPEC_TELEMETRY=0 NO_COLOR=1 "${OPENSPEC_BIN}" validate "$1" --type change --strict --json \
+           --no-interactive 2>/dev/null)
+    printf '%s' "${json}" | node -e '
+        let s = "";
+        process.stdin.on("data", d => s += d).on("end", () => {
+            let item;
+            try { item = (JSON.parse(s).items || [])[0]; } catch (e) { process.exit(2); }
+            if (!item) process.exit(2);
+            const ingles = /should contain SHALL or MUST \(RFC 2119 best practice for English specs\)/;
+            const contam = (item.issues || []).filter(i =>
+                i.level === "ERROR" || (i.level === "WARNING" && !ingles.test(i.message)));
+            for (const i of contam) console.log(`${i.level} ${i.path}: ${i.message}`);
+            process.exit(contam.length ? 1 : 0);
+        });'
+}
+secao_ativa=$(secao_do_bloco_ativo)
+modulo_openspec=0
+grep -qE "${REGEX_MODULO_OPENSPEC}" "${PLAN}" && modulo_openspec=1
+declaracao_openspec=""   # change | nao_se_aplica | ausente | fora_do_formato — só com o módulo
+change_openspec=""; motivo_openspec=""; situacao_change=""   # situação: aberta | arquivada | inexistente
+if [[ "${modulo_openspec}" -eq 1 ]]; then
+    linha_decl=$(grep -m1 -E "${REGEX_DECLARACAO_OPENSPEC}" <<<"${secao_ativa}" \
+                 | sed -E 's/^ *- \*\*OpenSpec:\*\* *//')
+    if [[ -z "${linha_decl}" || "${linha_decl}" == "<"* ]]; then
+        declaracao_openspec="ausente"
+    elif [[ "${linha_decl}" =~ ^change\ \`([a-z0-9][a-z0-9-]*)\` ]]; then
+        declaracao_openspec="change"
+        change_openspec="${BASH_REMATCH[1]}"
+    elif [[ "${linha_decl}" == "não se aplica"* ]]; then
+        declaracao_openspec="nao_se_aplica"
+        motivo_openspec=$(sed -E 's/^não se aplica[[:space:]—–:-]*//' <<<"${linha_decl}" | apara)
+    else
+        declaracao_openspec="fora_do_formato"
+    fi
+    if [[ -n "${change_openspec}" ]]; then
+        if [[ -d "openspec/changes/${change_openspec}" ]]; then
+            situacao_change="aberta"
+        elif compgen -G "openspec/changes/archive/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-${change_openspec}" \
+             >/dev/null; then
+            situacao_change="arquivada"
+        else
+            situacao_change="inexistente"
+        fi
+    fi
+fi
+if [[ "${MODO}" == "fechamento" && "${modulo_openspec}" -eq 1 ]]; then
+    bloco_concluido=0
+    if [[ "$(grep -cE '^ *- \[x\] ' <<<"${secao_ativa}")" -gt 0 \
+          && "$(grep -cE '^ *- \[ \] ' <<<"${secao_ativa}")" -eq 0 ]]; then
+        bloco_concluido=1
+    fi
+    case "${declaracao_openspec}" in
+        ausente)
+            if [[ "$(papel_do_baton)" == "executor" || "${bloco_concluido}" -eq 1 ]]; then
+                vermelho "⑦ o contrato do bloco ativo não declara o OpenSpec — escreva nele uma das duas:"
+                printf '     - **OpenSpec:** change `<id>`              (o bloco muda comportamento de que alguém depende)\n'
+                printf '     - **OpenSpec:** não se aplica — <motivo>   (não muda)\n'
+            else
+                amarelo "⑦ contrato ainda sem a declaração OpenSpec — ela é cobrada quando o baton passar ao ⚙️"
+            fi ;;
+        fora_do_formato)
+            vermelho "⑦ declaração OpenSpec fora do formato: '${linha_decl:0:80}'"
+            printf '   Use "change `<id>`" ou "não se aplica — <motivo>".\n' ;;
+        nao_se_aplica)
+            if [[ ${#motivo_openspec} -ge 10 && "${motivo_openspec}" != "<"* ]]; then
+                verde "⑦ OpenSpec não se aplica a este bloco: ${motivo_openspec:0:90}"
+            else
+                vermelho "⑦ 'não se aplica' sem o motivo — diga por que o bloco não muda comportamento especificado"
+            fi ;;
+        change)
+            id="${change_openspec}"
+            case "${situacao_change}" in
+                inexistente)
+                    vermelho "⑦ a change \`${id}\` não existe (nem em openspec/changes/, nem arquivada)"
+                    printf '   Crie com: openspec new change %s --schema sessao   (referencia/openspec.md)\n' "${id}" ;;
+                arquivada)
+                    verde "⑦ change \`${id}\` arquivada — o delta já está nas specs vivas" ;;
+                aberta)
+                    if ! command -v "${OPENSPEC_BIN}" >/dev/null 2>&1 || ! command -v node >/dev/null 2>&1; then
+                        vermelho "⑦ a change \`${id}\` não pode ser validada: falta o CLI do OpenSpec ou o node"
+                        printf '   O portão falha fechado. Instalação: referencia/openspec.md.\n'
+                    elif grep -qE '^skip_specs: *true' "openspec/changes/${id}/.openspec.yaml" 2>/dev/null; then
+                        vermelho "⑦ a change \`${id}\` tem skip_specs: true — bloco que não muda spec declara"
+                        printf '   "não se aplica — <motivo>" no contrato, em vez de abrir uma change vazia.\n'
+                    else
+                        pendencias=$(valida_change_openspec "${id}"); rc_validacao=$?
+                        if [[ ${rc_validacao} -eq 2 ]]; then
+                            vermelho "⑦ a saída do 'openspec validate ${id}' não pôde ser lida — confira a versão do CLI"
+                        elif [[ ${rc_validacao} -ne 0 ]]; then
+                            vermelho "⑦ a change \`${id}\` não passa na validação:"
+                            printf '%s\n' "${pendencias}" | sed 's/^/     /'
+                        elif [[ "${bloco_concluido}" -eq 1 ]]; then
+                            vermelho "⑦ bloco concluído com a change \`${id}\` ainda aberta — arquive antes do commit:"
+                            printf '     openspec archive %s -y      (funde o delta nas specs vivas)\n' "${id}"
+                        else
+                            verde "⑦ change \`${id}\` válida — arquive quando o bloco concluir"
+                        fi
+                    fi ;;
+            esac ;;
+    esac
+fi
+
 # --- Estado do escopo em JSON (só no --estado) ---------------------------------------------------
 # Lê só o que o `start` e o `escopos` precisam: a linha do índice, o cabeçalho de parâmetros, o
 # "🔎 Agora", a seção do bloco ativo e o §8. Campo que este PLAN não tem (dialeto antigo) sai como
@@ -378,7 +518,6 @@ json_str() {   # "$1" como string JSON; vazio vira null
     s=${s//\\/\\\\}; s=${s//\"/\\\"}; s=${s//$'\t'/\\t}; s=${s//$'\r'/}; s=${s//$'\n'/\\n}
     printf '"%s"' "${s}"
 }
-apara() { sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//'; }
 campo_do_agora() {   # o texto depois de `- **<rótulo>:**`, sem os asteriscos de negrito
     grep -m1 -E "^- \*\*$1:\*\*" "${PLAN}" | sed -E "s/^- \*\*$1:\*\* *//; s/\*\*//g" | apara
 }
@@ -391,12 +530,7 @@ emite_estado_json() {
     fi
     branch=$(grep -m1 -E '^\| *\*\*Branch de trabalho\*\* *\|' "${PLAN}" | awk -F'|' '{print $3}' \
              | tr -d '`' | apara)
-    # Papel só quando a linha cita UM dos dois — o template traz os dois, como placeholder.
-    if grep -q '⚙' <<<"${linha_baton}" && ! grep -q '🧠' <<<"${linha_baton}"; then
-        papel="executor"
-    elif grep -q '🧠' <<<"${linha_baton}" && ! grep -q '⚙' <<<"${linha_baton}"; then
-        papel="planejador"
-    fi
+    papel=$(papel_do_baton)
     if grep -q '\*\*Ponto de entrada:\*\*' <<<"${linha_baton}"; then
         ponto=$(sed -E 's/.*\*\*Ponto de entrada:\*\* *//; s/\*\*//g' <<<"${linha_baton}" | apara)
     fi
@@ -408,7 +542,7 @@ emite_estado_json() {
     esac
     # Seção do bloco ativo: do `## 🎯 Bloco ativo` até o próximo `## `.
     if grep -q '^## 🎯 Bloco ativo' "${PLAN}"; then
-        secao=$(awk '/^## 🎯 Bloco ativo/ {d = 1; next} d && /^## / {exit} d {print}' "${PLAN}")
+        secao="${secao_ativa}"
         feitas=$(grep -cE '^ *- \[x\] ' <<<"${secao}")
         abertas=$(grep -cE '^ *- \[ \] ' <<<"${secao}")
         proxima=$(grep -m1 -E '^ *- \[ \] ' <<<"${secao}" | sed -E 's/^ *- \[ \] +//; s/\*\*//g')
@@ -444,7 +578,14 @@ emite_estado_json() {
     "gates": ${gates}
   },
   "sessoes_no_registro": $(grep -cE "${REGEX_LINHA_REGISTRO}" "${PLAN}"),
-  "apontamento": { "log": $(json_str "${log}"), "existe": ${existe} }
+  "apontamento": { "log": $(json_str "${log}"), "existe": ${existe} },
+  "openspec": {
+    "modulo": $([[ "${modulo_openspec}" -eq 1 ]] && echo true || echo false),
+    "declaracao": $(json_str "${declaracao_openspec}"),
+    "change": $(json_str "${change_openspec}"),
+    "situacao": $(json_str "${situacao_change}"),
+    "motivo": $(json_str "${motivo_openspec}")
+  }
 }
 JSON
 }

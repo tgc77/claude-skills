@@ -63,8 +63,8 @@ abrir um segundo escopo no mesmo repo. O suporte ao legado nos scripts (PLAN na 
 
 1. **Um escopo, um nome — sem apelidos.** Nome que precisa mudar é **rename**, não um segundo nome.
 2. **Único globalmente**, não só no repo, porque o log de apontamento é global (`<work-log>/<slug>.md`).
-   Prefira nomes distintivos (`aca-amortizacao`, `poc-benchmark`) a genéricos (`amortizacao`,
-   `benchmark`), que colidem com outro projeto no dia seguinte.
+   Prefira nomes distintivos (`upgrade-postgres-16`, `poc-cache-redis`) a genéricos (`upgrade`,
+   `poc`), que colidem com outro projeto no dia seguinte.
 3. **slug == nome da pasta** (`docs/sessoes/<slug>/`) **== label do `resumo-trabalho`**. Uma string
    só, sem campo separado de label.
 4. **kebab-case**, sem espaço nem acento — ele é nome de pasta e de arquivo.

@@ -9,7 +9,8 @@ relatório.
 ## 🔒 Ordem canônica do fechamento — a validação do usuário é o eixo
 
 1. Prepare tudo no working tree: `PLAN.md` in-place (cabeçalho, Board, checkboxes, **linha 🎬**, linha
-   nova no §8) e o relatório, se houver.
+   nova no §8), o relatório, se houver, e — se o bloco concluiu com uma change do OpenSpec — o
+   `openspec archive <id> -y` ([`openspec.md`](openspec.md)).
 2. Apresente ao usuário o que foi feito e **peça validação para commitar**.
 3. **Sem o "ok": PARA.** Nada de commit, nada de push, nada de escrever no `work-log`.
 4. Com o "ok": escreva o apontamento em `<work-log>/<slug>.md` ([`apontamentos.md`](apontamentos.md))
@@ -39,6 +40,7 @@ anterior. O portão sai com **exit 1** quando:
 | ④ | o registro de sessões (§8) não ganhou linha nova |
 | ⑤ | alguma linha nova do §8 não tem a **sua** chave `**Sessão:**` no log de apontamento |
 | ⑥ | a sessão escreveu contrato de bloco e passou o baton para ⚙️ **sem** uma linha `**Aceite:** <quem>, <AAAA-MM-DD> (bloco <id>)` nova no PLAN |
+| ⑦ | só em escopo com o módulo OpenSpec: o contrato do bloco ativo não traz a linha `- **OpenSpec:**` com a change ou com o motivo de não haver uma (cobrado com o baton no ⚙️ ou com o bloco concluído); ou a change declarada não existe, não valida, tem `skip_specs`, continua aberta com o bloco concluído, ou não há CLI para validá-la ([`openspec.md`](openspec.md)) |
 
 **Declarar que conferiu não substitui rodar.** Exit 2 é erro de uso ou portão que não rodou (o
 lançador não achou a skill) — nunca é aprovação.
@@ -51,7 +53,7 @@ lançador. Cópia integral fica congelada na versão do dia em que foi copiada.
 commitar. Ele monta repositórios descartáveis a partir dos templates e afirma que cada item dispara
 quando deve e fica verde quando deve.
 
-## Os itens que seguem na mão (o portão cobre só ①-⑥)
+## Os itens que seguem na mão (o portão cobre só ①-⑦)
 
 1. **Critérios de aceite — cada um MEDIDO** (comando + saída crua) e batendo com o alvo. Um só que não
    bata ⇒ o bloco **não** fecha: nada de 🟢, nada de "fechado com ressalva", nada de reinterpretar o
@@ -76,7 +78,9 @@ quando deve e fica verde quando deve.
 8. **Documento de interface não envelheceu.** Se a sessão mudou comportamento que algum documento
    voltado a terceiro descreve (chefe ou negócio, DBA, README do escopo, contrato publicado), ele foi
    atualizado nesta sessão, ou a pendência está escrita com dono. É o único item cuja falha ninguém
-   descobre lendo código nem rodando teste.
+   descobre lendo código nem rodando teste. Com o módulo OpenSpec, o comportamento tem fonte única em
+   `openspec/specs/` e o ⑦ confere a change; este item continua para os documentos voltados a terceiros
+   que descrevem o mesmo comportamento — o que puder, aponte para a spec em vez de repeti-la.
 9. **Nenhuma decisão pendente foi selada por fora.** Decisão do usuário que ficou sem resposta não
    vira premissa do contrato, "recomendação" no fim da mensagem nem tarefa do Executor: ou foi
    respondida, ou o bloco não fecha. O ⑥ pega a **falta** de aceite; este pega o aceite obtido sobre um
