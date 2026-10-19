@@ -276,8 +276,8 @@ apontamento em ponto de partida, não em aviso.
    resolve para o MR/issue de **mesmo número no projeto do card** — repo ERRADO. Portanto: nunca
    escreva `!1`/`#4` soltos; use sempre `grupo/projeto!1` (ou `grupo/projeto#4`), ou a URL completa
    do MR. O `grupo/projeto` é o do repo onde o MR/issue realmente está (o "projeto" da entrada do
-   log), não o do card. Ex.: MR !1 do `sfz-cobranca-cnpg-clusters-chart` → escrever
-   `<grupo>/sfz-cobranca-cnpg-clusters-chart!1`. Se não souber o caminho de grupo do projeto,
+   log), não o do card. Ex.: MR !1 do `api-pagamentos` → escrever
+   `<grupo>/api-pagamentos!1`. Se não souber o caminho de grupo do projeto,
    pergunte ou use a URL completa — não deixe a referência curta.
 7. **Entrega:** sempre dentro de fence de 4 crases (` ```` `) — ou `~~~` se o conteúdo tiver blocos de
    código internos — pra colar markdown cru no GitLab sem render no terminal. GitLab Flavored

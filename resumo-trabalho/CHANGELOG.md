@@ -6,6 +6,11 @@ numeração [SemVer](https://semver.org/lang/pt-BR/), com o critério de MAJOR, 
 
 ## [Não lançado]
 
+## [1.0.1] - 2026-10-19
+
+### Modificado
+- O exemplo de referência cruzada de MR deixa de usar o nome de um repositório específico.
+
 ## [1.0.0] - 2026-10-19
 
 Primeira versão numerada. O conteúdo é o mesmo do commit `0edce24` (2026-09-25) e nada muda no
@@ -28,5 +33,6 @@ Marcos, do mais recente ao mais antigo (os detalhes estão no `git log`):
 - **2026-07-22** — regra do leitor não técnico: explicar antes, sem cortar detalhe.
 - **2026-07-18** — a skill entra no repositório, junto com a integração com a `sessao`.
 
-[Não lançado]: https://github.com/tgc77/claude-skills/compare/resumo-trabalho-v1.0.0...HEAD
+[Não lançado]: https://github.com/tgc77/claude-skills/compare/resumo-trabalho-v1.0.1...HEAD
+[1.0.1]: https://github.com/tgc77/claude-skills/compare/resumo-trabalho-v1.0.0...resumo-trabalho-v1.0.1
 [1.0.0]: https://github.com/tgc77/claude-skills/releases/tag/resumo-trabalho-v1.0.0
