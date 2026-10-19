@@ -1,4 +1,4 @@
-# 📘 Help — skill `sessao` (Controle de Sessões v2)
+# 📘 Help — skill `sessao`
 
 > Mostrado por `/sessao help` (no Codex, `$sessao help` ou `@sessao help`). É um **índice**: as regras
 > completas estão nos arquivos citados abaixo. Se este guia e eles divergirem, eles vencem.
@@ -83,3 +83,4 @@ branch e não roda ritual.
 | layout do projeto, slug, troca de escopo | `referencia/layout.md` |
 | entrega destinada a deploy | `referencia/deploy.md` |
 | por que uma regra existe | `HISTORICO.md` |
+| qual é a versão e o que mudou em cada uma | `VERSION` e `CHANGELOG.md` |

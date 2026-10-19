@@ -5,7 +5,7 @@ projetos longos com I.A. sem perder o fio entre sessões — e sem perder o regi
 
 | Skill | Para que serve | Como é acionada |
 |---|---|---|
-| [`sessao`](sessao/) | **Controle de Sessões v2.** Organiza um projeto de escopo definido em blocos, com um `PLAN.md` por escopo como fonte única de verdade, um protocolo Planejador/Executor e um portão executável que impede fechar a sessão com registro inconsistente. | **Só explícita:** `/sessao <sub>` (Claude Code), `$sessao` ou `@sessao` (Codex). |
+| [`sessao`](sessao/) | **Controle de Sessões.** Organiza um projeto de escopo definido em blocos, com um `PLAN.md` por escopo como fonte única de verdade, um protocolo Planejador/Executor e um portão executável que impede fechar a sessão com registro inconsistente. | **Só explícita:** `/sessao <sub>` (Claude Code), `$sessao` ou `@sessao` (Codex). |
 | [`resumo-trabalho`](resumo-trabalho/) | **Apontamentos.** Mantém um log de trabalho por card do GitLab, fora de qualquer repo, e gera o resumo no modelo "Apontamentos" (markdown GitLab, pt-BR), escrito para ser lido pela chefia. | Por comando (`/resumo-trabalho <sub>`) ou por pedido em linguagem natural ("resumo do card X", "apontamentos"). |
 
 Elas se encontram num ponto só: **o slug de um escopo do `sessao` é o label de um log do
@@ -23,6 +23,7 @@ completo com um comando.
 - [Como as duas se integram](#como-as-duas-se-integram)
 - [Estrutura do repositório](#estrutura-do-repositório)
 - [Manutenção](#manutenção)
+- [Versionamento](#versionamento)
 
 ---
 
@@ -287,8 +288,13 @@ flowchart LR
 ```
 .
 ├── README.md                         ← este arquivo
+├── scripts/
+│   ├── versao.sh                     ← confere VERSION × CHANGELOG × tag e prepara um lançamento
+│   └── autoteste_versao.sh           ← testa o versao.sh num repositório descartável
 ├── sessao/
 │   ├── SKILL.md                      ← o roteador: ativação, subcomando → arquivo, regras invioláveis
+│   ├── VERSION                       ← a versão atual (SemVer)
+│   ├── CHANGELOG.md                  ← o que mudou em cada versão
 │   ├── subcomandos/                  ← um arquivo por subcomando, lido sob demanda
 │   ├── referencia/                   ← protocolo, conferência de saída, apontamentos, layout, deploy
 │   ├── HISTORICO.md                  ← o porquê de cada regra (não é carregado para operar)
@@ -308,6 +314,8 @@ flowchart LR
 │       └── README.md                 ← o que o `init` copia para o projeto
 └── resumo-trabalho/
     ├── SKILL.md
+    ├── VERSION
+    ├── CHANGELOG.md
     └── templates/template-apontamentos.md
 ```
 
@@ -335,5 +343,52 @@ flowchart LR
   como tal nos scripts e coberto pelo autoteste; removê-lo é retirada de suporte, não limpeza.
 - **Commits** no padrão `<skill>: <o que mudou e por quê>`, em pt-BR (ex.: `sessao: o ⑤ confere a
   chave de cada sessão nova`). Mudança que atravessa as duas skills ou o repositório: `repo: …`.
+  **Todo commit que muda uma skill acrescenta uma linha na seção `## [Não lançado]` do CHANGELOG
+  dela** — ver [Versionamento](#versionamento).
 - O antigo espelho `~/workspace/playbook-controle-sessoes/` foi **aposentado** em 2026-09-24. Este
   repositório é a única fonte.
+
+## Versionamento
+
+Cada skill tem a sua própria versão, no padrão [SemVer](https://semver.org/lang/pt-BR/)
+(`MAJOR.MINOR.PATCH`), porque elas mudam em ritmos diferentes:
+
+| Onde | O quê |
+|---|---|
+| `<skill>/VERSION` | a versão atual, e nada mais |
+| `<skill>/CHANGELOG.md` | o que mudou em cada versão, no formato [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) |
+| tag `<skill>-v<versão>` | o commit que lançou a versão (ex.: `sessao-v3.0.0`) |
+
+**Quando subir cada número.** O critério é o que muda para quem usa a skill:
+
+- **MAJOR** — quebra algo de que os projetos ou o uso já dependem: subcomando que some ou muda a forma
+  de chamar; escopo existente que passa a reprovar no portão sem ter mudado; formato incompatível de
+  arquivo (`PLAN.md`, work-log, bloco gerenciado, lançador).
+- **MINOR** — capacidade nova que não quebra o que existe: subcomando novo, modo novo do portão, item
+  do portão que só vale para escopo novo, texto novo no bloco gerenciado. Exigir uma ferramenta nova
+  só para usar a capacidade nova também é MINOR.
+- **PATCH** — correção sem mudar o contrato, inclusive de um defeito que fazia o portão aprovar o que
+  devia reprovar.
+
+Quando a versão pede ação nos projetos (rodar `/sessao update`, instalar uma ferramenta), o CHANGELOG
+diz isso numa linha **Ação nos projetos:**, logo abaixo do título da versão.
+
+**No dia a dia,** todo commit que muda uma skill acrescenta a sua linha em `## [Não lançado]`, sob
+*Adicionado*, *Modificado*, *Removido* ou *Corrigido*. **Para lançar:**
+
+```bash
+scripts/versao.sh lancar sessao minor   # põe "## [3.1.0] - <hoje>" sobre o "Não lançado" e grava o VERSION
+git add sessao && git commit -m "release: sessao 3.1.0"
+git tag -a sessao-v3.1.0 -m "sessao 3.1.0"
+git push origin master sessao-v3.1.0
+```
+
+O `lancar` não commita, não cria tag e não faz push: cada um desses passos segue a regra de sempre e
+precisa da validação do Tiago. `scripts/versao.sh verificar` confere que VERSION, CHANGELOG e tag
+concordam e que nenhuma skill mudou desde a última tag sem entrada no CHANGELOG. Rode antes de cada
+push. `scripts/autoteste_versao.sh` testa o próprio verificador.
+
+**Antes de 2026-10-19 não havia número.** A primeira versão numerada da `sessao` é a 3.0.0: o
+repositório já a chamava de "controle de sessões v2" desde o primeiro commit, e a reestruturação de
+2026-10-19 quebrou o contrato dessa v2. A `resumo-trabalho` começa na 1.0.0. O que veio antes está
+resumido no fim de cada CHANGELOG.

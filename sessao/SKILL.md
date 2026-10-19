@@ -1,7 +1,7 @@
 ---
 name: sessao
 description: >-
-  Monta e opera o sistema de Controle de Sessões (v2) para projetos de escopo definido — protocolo
+  Monta e opera o sistema de Controle de Sessões para projetos de escopo definido — protocolo
   na skill + índice de escopos no AGENTS.md + um PLAN.md por escopo (docs/sessoes/SLUG/) + protocolo
   planner/executor + rolling-wave. Skill de invocação exclusivamente explícita: use somente quando
   Tiago escrever $sessao, @sessao ou /sessao. Nunca a acione por contexto do repositório ou por um
@@ -9,7 +9,7 @@ description: >-
   explicitamente; os demais subcomandos executam somente sua própria função.
 ---
 
-# Skill: sessao — Controle de Sessões (v2)
+# Skill: sessao — Controle de Sessões
 
 Sistema para tocar um projeto de escopo definido com agentes de I.A., com cada sessão enxuta de
 contexto e sem perda de continuidade, mesmo que cada sessão comece do zero e modelos diferentes assumam

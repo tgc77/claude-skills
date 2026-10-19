@@ -1,4 +1,4 @@
-# sessao — skill de Controle de Sessões (v2)
+# sessao — skill de Controle de Sessões
 
 Skill que monta e opera o sistema de controle de sessões: **protocolo na skill** + **índice de escopos
 e um bloco gerenciado no `AGENTS.md`** + **um `PLAN.md` por escopo** (`docs/sessoes/<slug>/`) +
@@ -22,6 +22,7 @@ Layout da skill:
 - `subcomandos/` — um arquivo por subcomando, lido sob demanda;
 - `referencia/` — protocolo, conferência de saída, apontamentos, layout, deploy;
 - `HISTORICO.md` — o porquê de cada regra (não é carregado para operar);
+- `VERSION` e `CHANGELOG.md` — a versão atual e o que mudou em cada uma (não são carregados para operar);
 - `HELP.md` — o índice que `/sessao help` mostra;
 - `templates/` — o que o `init` copia para o projeto;
 - `scripts/` — portão, lançador, sincronizador do bloco gerenciado e autoteste;
