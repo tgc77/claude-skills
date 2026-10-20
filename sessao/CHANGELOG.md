@@ -7,6 +7,8 @@ numeração [SemVer](https://semver.org/lang/pt-BR/), com o critério de MAJOR, 
 
 ## [Não lançado]
 
+## [3.1.1] - 2026-10-20
+
 ### Corrigido
 - `HELP.md`, `referencia/protocolo.md` e `referencia/layout.md` descrevem o bloco gerenciado inteiro: a
   ativação explícita e as duas regras que valem em qualquer sessão. O layout do projeto mostra a pasta
@@ -99,6 +101,7 @@ do mais recente ao mais antigo (os detalhes estão no `git log`):
   não se autopromove).
 - **2026-06-26** — nasce a skill; ela vira a fonte canônica e o kit passa a ser espelho.
 
-[Não lançado]: https://github.com/tgc77/claude-skills/compare/sessao-v3.1.0...HEAD
+[Não lançado]: https://github.com/tgc77/claude-skills/compare/sessao-v3.1.1...HEAD
+[3.1.1]: https://github.com/tgc77/claude-skills/compare/sessao-v3.1.0...sessao-v3.1.1
 [3.1.0]: https://github.com/tgc77/claude-skills/compare/sessao-v3.0.0...sessao-v3.1.0
 [3.0.0]: https://github.com/tgc77/claude-skills/compare/193cfdb...sessao-v3.0.0
