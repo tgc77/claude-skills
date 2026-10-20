@@ -361,10 +361,10 @@ escopo, por exemplo.
 Linguagem natural equivalente também vale ("vou trabalhar no card X", "anota isso no card X", "resumo
 do card X").
 
-**"Resumo do dia" sem card não é `gerar dia`.** O alvo é resolvido nesta ordem: label ativo da conversa
-(ou o slug do escopo do `sessao` que a sessão operou) → escopo do repo atual (índice do `AGENTS.md`) →
-só então, e com pedido explícito, o agregado. "Hoje" filtra a data **dentro** do card, nunca amplia a
-busca. O motivo é concreto: o apontamento é colado num card específico, e misturar labels entrega à
+**"Resumo do dia" sem card não é `gerar dia`.** O alvo é o label ativo da conversa (ou o slug do
+escopo do `sessao` que a sessão operou); sem ele, o agente pergunta o card — não o deduz pelo
+repositório nem pelo índice de escopos, como a `sessao` também não deduz. O agregado só sai com pedido
+explícito. "Hoje" filtra a data **dentro** do card, nunca amplia a busca. O motivo é concreto: o apontamento é colado num card específico, e misturar labels entrega à
 chefia trabalho de outra frente, em outro repo.
 
 ### Regras do resumo
@@ -483,9 +483,10 @@ flowchart LR
   registro de sessões numerado) é deliberado — os escopos legados não serão migrados. Está marcado
   como tal nos scripts e coberto pelo autoteste; removê-lo é retirada de suporte, não limpeza.
 - **Commits** no padrão `<skill>: <o que mudou e por quê>`, em pt-BR (ex.: `sessao: o ⑤ confere a
-  chave de cada sessão nova`). Mudança que atravessa as duas skills ou o repositório: `repo: …`.
-  Lançamento de versão: `release: <skill> <versão>`. **Todo commit que muda uma skill acrescenta uma
-  linha na seção `## [Não lançado]` do CHANGELOG dela** — ver [Versionamento](#versionamento).
+  chave de cada sessão nova`). Mudança que atravessa as duas skills ou o repositório: `repo: …`. O
+  lançamento de uma versão é um commit à parte, `release: <skill> <versão>`. **Todo commit que muda
+  uma skill acrescenta uma linha na seção `## [Não lançado]` do CHANGELOG dela** — ver
+  [Versionamento](#versionamento).
 - O antigo espelho `~/workspace/playbook-controle-sessoes/` foi **aposentado** em 2026-09-24. Este
   repositório é a única fonte.
 
@@ -514,9 +515,13 @@ Cada skill tem a sua própria versão, no padrão [SemVer](https://semver.org/la
 Quando a versão pede ação nos projetos (rodar `/sessao update`, instalar uma ferramenta), o CHANGELOG
 diz isso numa linha **Ação nos projetos:**, no começo da seção da versão.
 
+**Lançar é dar número ao que está em `## [Não lançado]`:** o `VERSION` sobe, as entradas ganham o
+título da versão com a data, e a tag marca o commit no git. É o que diz a quem usa a skill qual versão
+tem instalada e o que mudou desde a anterior. Correção também se lança: é o PATCH.
+
 **No dia a dia,** todo commit que muda uma skill acrescenta a sua linha em `## [Não lançado]`, sob
-*Adicionado*, *Modificado*, *Removido* ou *Corrigido*. **Para lançar** (`<nível>` é `major`, `minor`
-ou `patch`):
+*Adicionado*, *Modificado*, *Removido* ou *Corrigido*. Para lançar, depois de commitar as mudanças
+(`<nível>` é `major`, `minor` ou `patch`):
 
 ```bash
 scripts/versao.sh lancar <skill> <nível>   # grava o VERSION e abre "## [<versão>] - <hoje>" logo abaixo do "## [Não lançado]"
@@ -525,8 +530,11 @@ git tag -a <skill>-v<versão> -m "<skill> <versão>"
 git push origin master <skill>-v<versão>
 ```
 
-O `lancar` não commita, não cria tag e não faz push: ele imprime estes três comandos com a versão nova
-preenchida, e cada um segue a regra de sempre — o agente só o roda com a sua validação explícita.
+O lançamento é sempre um commit à parte, que só mexe no `VERSION` e no CHANGELOG, e a tag vai nele.
+Assim o prefixo de cada commit de mudança continua dizendo o que mudou, `git show <skill>-v<versão>`
+mostra só o lançamento e `git log --grep '^release:'` lista todas as versões. O `lancar` não commita,
+não cria tag e não faz push: ele imprime estes três comandos com a versão nova preenchida, e cada um
+segue a regra de sempre — o agente só o roda com a sua validação explícita.
 `scripts/versao.sh verificar` confere que VERSION, CHANGELOG e tag concordam e que nenhuma skill mudou
 desde a última tag sem entrada no CHANGELOG. Rode antes de cada push. `scripts/autoteste_versao.sh`
 testa o próprio verificador.

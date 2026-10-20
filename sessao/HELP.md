@@ -68,9 +68,10 @@ branch e não roda ritual.
 - **Portão** — `scripts/conferencia_saida.sh`: confere o registro antes do commit (vermelho é parada),
   o baton no início (`--inicio`) e devolve o estado do escopo em JSON (`--estado`).
 - **Bloco gerenciado** — o trecho do `AGENTS.md` entre `<!-- sessao:inicio` e `<!-- sessao:fim -->`,
-  que declara a ativação explícita; o `update` o mantém igual ao template.
+  com a ativação explícita e duas regras que valem em qualquer sessão (questionamento aberto = registro
+  congelado; identificador sozinho não é contexto); o `update` o mantém igual ao template.
 - **Módulo OpenSpec** — todo escopo novo: o contrato de cada bloco declara a sua change (proposta +
-  delta das specs, arquivada quando o bloco conclui) ou "não se aplica — <motivo>". O item ⑦ do portão
+  delta das specs, arquivada quando o bloco conclui) ou `não se aplica — <motivo>`. O item ⑦ do portão
   confere.
 - **Apontamentos** — toda sessão que termina grava uma entrada em `<work-log>/<slug>.md`, só depois do
   seu ok; `/resumo-trabalho gerar <slug>` dá o dia completo.

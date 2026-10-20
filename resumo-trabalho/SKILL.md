@@ -7,8 +7,8 @@ description: >-
   Use quando o usuário definir um label/card ("/resumo-trabalho label X", "vou trabalhar no card X"),
   pedir para registrar/anotar o que foi feito, ou pedir um resumo ("/resumo-trabalho gerar X", "resumo
   do card X", "resumo do dia", "apontamentos"). Pedido sem card NÃO é agregado do dia: resolve para o
-  label/escopo ativo da conversa (o slug do escopo da skill `sessao` é o label) — "hoje" filtra data
-  dentro daquele alvo, nunca o universo de busca. Funciona entre projetos diferentes: o log é global
+  label/escopo ativo da conversa (o slug do escopo da skill `sessao` é o label) e, sem ele, pergunta o
+  card — "hoje" filtra data dentro daquele alvo, nunca o universo de busca. Funciona entre projetos diferentes: o log é global
   (não fica dentro de um repo), então sessões em repos distintos no mesmo dia/card alimentam o mesmo
   resumo.
 ---
@@ -40,10 +40,10 @@ mais de um dia.
   PLAN (o nº da sessão, ou `<AAAA-MM-DD>#<k>`) e é o que torna a entrada idempotente. Fora essas duas
   linhas, as entradas são iguais às manuais — `gerar` as trata do mesmo jeito (e não copia as linhas de
   rastreio para o resumo).
-  **Consequência para o `gerar`:** num repo com escopo ativo, o alvo do resumo **já está determinado** —
-  é o slug. Não pergunte o card e não varra o diretório: leia o arquivo daquele slug. Se um dia sair
-  incompleto, a causa provável é sessão que não chegou a `end`/`handoff` (nada foi registrado) — cheque
-  isso em vez de compensar agregando outros labels.
+  **Consequência para o `gerar`:** numa conversa que operou um escopo da `sessao`, o alvo do resumo
+  **já está determinado** — é o slug dele. Não pergunte o card e não varra o diretório: leia o arquivo
+  daquele slug. Se um dia sair incompleto, a causa provável é sessão que não chegou a `end`/`handoff`
+  (nada foi registrado) — cheque isso em vez de compensar agregando outros labels.
 
 ## Sintaxe (args após `/resumo-trabalho`; primeiro token = subcomando)
 
@@ -66,11 +66,12 @@ card X" = `registrar X ...`; "resumo do card X" = `gerar X`; "resumo de ontem do
 > Pedido sem card resolve **nesta ordem**, e só o último caso é agregado:
 > 1. **Label/escopo ativo nesta conversa** (definido por `label X`, por um `registrar` anterior, ou pelo
 >    escopo da skill `sessao` que esta sessão operou — o slug do escopo **é** o label) → `gerar <esse label>`.
-> 2. **Sem label ativo, mas o repo atual tem escopo do Controle de Sessões** → é o slug daquele escopo
->    (leia o índice de escopos do `AGENTS.md` — ou do `CLAUDE.md`, em projeto legado; se houver mais de
->    um 🟡 ativo, **pergunte** qual).
-> 3. **Só então**, e apenas se o usuário pedir **explicitamente** o agregado de **todos** os cards
->    ("resumo de tudo que fiz hoje, todos os cards", "agregado do dia") → `gerar dia`.
+> 2. **Sem label nem escopo ativo nesta conversa → pergunte o card.** Não deduza pelo repositório, pela
+>    branch nem pelo índice de escopos do `AGENTS.md`, nem quando houver um escopo só: a `sessao` é de
+>    ativação explícita, e o bloco gerenciado do `AGENTS.md` proíbe deduzir escopo pela tabela. Listar
+>    os slugs do índice como opções na pergunta pode; escolher um deles, não.
+> 3. **Só com pedido explícito** do agregado de **todos** os cards ("resumo de tudo que fiz hoje, todos
+>    os cards", "agregado do dia") → `gerar dia`.
 >
 > **Por que esta ordem:** "hoje" é filtro de **data dentro do alvo**, nunca o universo de busca.
 > Ler "tudo que foi feito hoje" como `gerar dia` faz o resumo de um card trazer trabalho de **outro
@@ -78,7 +79,7 @@ card X" = `registrar X ...`; "resumo do card X" = `gerar X`; "resumo de ontem do
 > chefia trabalho que não pertence àquele card. **Caso real (17/08/2026):** logo após o `/sessao end` do
 > escopo `airflow-es-remote-logging`, o pedido "apontamentos de tudo que foi feito hoje" foi lido como
 > `gerar dia`; a varredura de `${SESSAO_WORKLOG_DIR:-~/.claude/work-log}/*.md` trouxe `aca-amortizacao`, frente sem relação
-> nenhuma com a sessão. **Havendo escopo ativo, ele vence — sempre.**
+> nenhuma com a sessão. **Havendo label ou escopo ativo nesta conversa, ele vence — sempre.**
 
 **Trabalho diário num card que dura vários dias:** o fluxo normal é `registrar` ao longo de cada dia
 que você mexe no card (quantas vezes quiser) e, no fim daquele dia, `gerar <card-id>` — que por
@@ -246,7 +247,8 @@ apontamento em ponto de partida, não em aviso.
 
 1. Resolva o(s) label(s) e a data alvo. **Resolver o alvo é o passo 1 de verdade — não comece lendo
    arquivo.** Se o pedido veio sem card, aplique a ordem de resolução do aviso da seção "Sintaxe"
-   (label ativo → escopo do repo → só então agregado) e **diga em 1 linha qual alvo assumiu**:
+   (label ou escopo ativo nesta conversa → senão, pergunte o card; agregado só com pedido explícito) e
+   **diga em 1 linha qual alvo assumiu**:
    - `gerar <card-id>` → leia `${SESSAO_WORKLOG_DIR:-~/.claude/work-log}/<label-slug>.md`. Sem argumento extra, filtre só as
      entradas com data de **hoje**. Com `completo`, use todas as datas. Com uma data explícita
      (`AAAA-MM-DD`), filtre só as entradas daquele dia.
@@ -289,9 +291,10 @@ apontamento em ponto de partida, não em aviso.
 - Label é **obrigatório** em todo `registrar`. Sem label ativo nem informado, pergunte — nunca crie um
   label genérico ou adivinhe o card por conta própria.
 - **`gerar` também exige alvo resolvido, e "hoje" nunca é o alvo.** Pedido de resumo sem card resolve
-  por **label ativo → escopo do repo → pergunta**; `gerar dia` (varredura de `${SESSAO_WORKLOG_DIR:-~/.claude/work-log}/*.md`)
-  **só** com pedido explícito de agregar **todos** os cards. Havendo escopo ativo, ele **vence sempre** —
-  misturar labels entrega ao card do GitLab trabalho que não é dele. Ver o aviso da seção "Sintaxe".
+  por **label ou escopo ativo nesta conversa → pergunta**, nunca pelo índice de escopos do repositório;
+  `gerar dia` (varredura de `${SESSAO_WORKLOG_DIR:-~/.claude/work-log}/*.md`) **só** com pedido explícito
+  de agregar **todos** os cards. Havendo label ou escopo ativo, ele **vence sempre** — misturar labels
+  entrega ao card do GitLab trabalho que não é dele. Ver o aviso da seção "Sintaxe".
 - O modelo do resumo vive só em `templates/template-apontamentos.md` desta skill.
 - **Nunca** referencie MR/issue por número curto (`!1`, `#4`) no resumo — sempre `grupo/projeto!N` ou
   URL completa, apontando pro repo onde o MR/issue de fato está (o card costuma viver em outro projeto).

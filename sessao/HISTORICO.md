@@ -160,10 +160,20 @@ sistema passava a **fazer** depois de cada bloco não tinha registro vivo: ficav
 documentos de interface e no código, e o item 8 da Conferência era a única defesa, conferida na mão.
 Aqui o valor está na ferramenta (validar o delta e fundi-lo nas specs ao arquivar), então a escolha foi
 **integrar** o OpenSpec, e não replicá-lo. → Módulo OpenSpec: todo escopo novo nasce com ele; o
-contrato de cada bloco declara a sua change ou "não se aplica — <motivo>" — inclusive em repositório
+contrato de cada bloco declara a sua change ou `não se aplica — <motivo>` — inclusive em repositório
 de infra, porque o critério é o bloco, não o tipo de repositório —; e o item ⑦ do portão cobra a
 declaração, a validação e o archive. Sem `tasks.md` nem fase `apply`: as tarefas ficam no PLAN, numa
 lista só. A telemetria do OpenSpec fica **sempre desligada**, em qualquer trabalho: não traz função a
 quem usa, faz uma chamada de rede por comando e, na mesma chave, desliga o aviso de versão nova — e o
 CLI só deve mudar de versão depois do autoteste. Onde está: `referencia/openspec.md`, o ⑦ do portão e
 `scripts/openspec_ambiente.sh`.
+
+## 2026-10-20 — Resumo que deduzia o escopo pelo índice
+
+Uma auditoria do README achou duas regras em contradição. Desde a 3.0.0, o bloco gerenciado do
+`AGENTS.md` proíbe deduzir escopo pela tabela de escopos; a `resumo-trabalho`, num pedido de resumo sem
+card e sem label ativo, ainda escolhia o escopo do repositório por essa mesma tabela — e escolhia
+sozinha quando havia um escopo só. Com as duas carregadas na mesma sessão, o agente teria de escolher a
+qual obedecer. → Sem label nem escopo ativo na conversa, a `resumo-trabalho` pergunta o card: pode
+listar os slugs do índice como opções, mas não escolhe por eles. Onde está: `resumo-trabalho/SKILL.md`,
+aviso da seção "Sintaxe".

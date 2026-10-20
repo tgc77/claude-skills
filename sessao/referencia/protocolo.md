@@ -7,7 +7,7 @@
 | Artefato | Papel (o único) | Entra no contexto |
 |---|---|---|
 | **Skill `sessao`** | o protocolo: papéis, ritual de fechamento, portão | quando invocada |
-| **`AGENTS.md`** (raiz do repo) | índice de escopos, regras do projeto e o **bloco gerenciado** (ativação explícita). O `CLAUDE.md` só o importa (`@AGENTS.md`) | sempre (automático) |
+| **`AGENTS.md`** (raiz do repo) | índice de escopos, regras do projeto e o **bloco gerenciado** (ativação explícita, questionamento aberto e identificador sozinho não é contexto). O `CLAUDE.md` só o importa (`@AGENTS.md`) | sempre (automático) |
 | **`docs/sessoes/<slug>/PLAN.md`** | fonte única de verdade do escopo: parâmetros, guardrails, "🔎 Agora" com o baton, Board, bloco ativo, blocos futuros em rascunho, decisões, registro de sessões (§8) | no `start`: só o cabeçalho + o bloco ativo |
 | **`RELATORIO_<bloco>_<data>.md`** | detalhe denso (problema → causa → solução → evidência), um por bloco fechado ou quando pedido | quase nunca: só para resgatar um detalhe |
 | **Memória** (onde a ferramenta tiver) | ponteiros de alto nível entre sessões | índice sempre; detalhe sob demanda |

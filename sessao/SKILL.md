@@ -78,7 +78,7 @@ templates em `templates/`, ao lado deste arquivo.
   igual ao de `templates/AGENTS.template.md`; o `update` o mantém em dia.
 - **change / spec viva** (módulo OpenSpec) — a change é a proposta + o delta de specs de um bloco que
   muda comportamento; arquivada quando o bloco conclui, ela é fundida em `openspec/specs/`, a spec viva.
-  O contrato de cada bloco declara a sua change ou "não se aplica — <motivo>"
+  O contrato de cada bloco declara a sua change ou `não se aplica — <motivo>`
   ([`referencia/openspec.md`](referencia/openspec.md)).
 
 ## Regras invioláveis (valem em qualquer subcomando)

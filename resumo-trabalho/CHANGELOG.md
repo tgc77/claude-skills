@@ -6,6 +6,12 @@ numeração [SemVer](https://semver.org/lang/pt-BR/), com o critério de MAJOR, 
 
 ## [Não lançado]
 
+### Corrigido
+- Pedido de resumo sem card, numa conversa sem label nem escopo ativo, pergunta o card em vez de
+  escolher o escopo pelo índice do `AGENTS.md` do repositório. A escolha contradizia a ativação
+  explícita da `sessao`, que o bloco gerenciado do `AGENTS.md` também exige. O agente ainda pode listar
+  os escopos do índice como opções na pergunta.
+
 ## [1.0.1] - 2026-10-19
 
 ### Modificado

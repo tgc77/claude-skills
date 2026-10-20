@@ -15,6 +15,7 @@ cada frente nova:
 ├── AGENTS.md                  ← índice de escopos + regras do projeto + bloco gerenciado da skill
 ├── scripts/
 │   └── conferencia_saida.sh   ← LANÇADOR do portão: acha a skill e roda o portão dela
+├── openspec/                  ← specs vivas (módulo OpenSpec): specs/ do comportamento e changes/ dos blocos
 └── docs/sessoes/
     ├── template-relatorio.md  ← um por repo, reusado por todo escopo
     └── <slug>/                ← um escopo = uma pasta
@@ -26,7 +27,7 @@ cada frente nova:
 
 | Na skill `sessao` | No `AGENTS.md` do projeto | No `PLAN.md` do escopo |
 |---|---|---|
-| Papéis 🧠/⚙️, DoD do planejamento, ritual de fechamento, portão | O **bloco gerenciado** (ativação explícita + questionamento aberto), mantido pelo `update` | Escopo, objetivo, Board, blocos, contrato de execução |
+| Papéis 🧠/⚙️, DoD do planejamento, ritual de fechamento, portão | O **bloco gerenciado** (ativação explícita, questionamento aberto e identificador sozinho não é contexto), mantido pelo `update` | Escopo, objetivo, Board, blocos, contrato de execução |
 | Regras de slug, layout e resolução de escopo | O **índice de escopos** (slug → PLAN, com estado) | Slug e descrição daquele escopo |
 | Integração com o `resumo-trabalho` | Convenções de commit, idioma, tratamento do usuário, repos irmãos | Branch de trabalho do escopo |
 | | Guardrails **permanentes** do projeto (segredos, produção, ações destrutivas) | Ambiente, `KUBECONFIG`, namespaces e guardrails **daquele** escopo |

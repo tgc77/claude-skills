@@ -7,6 +7,14 @@ numeração [SemVer](https://semver.org/lang/pt-BR/), com o critério de MAJOR, 
 
 ## [Não lançado]
 
+### Corrigido
+- `HELP.md`, `referencia/protocolo.md` e `referencia/layout.md` descrevem o bloco gerenciado inteiro: a
+  ativação explícita e as duas regras que valem em qualquer sessão. O layout do projeto mostra a pasta
+  `openspec/`, e o `README.md` da skill lista o `referencia/openspec.md` entre as referências.
+- A forma `não se aplica — <motivo>` aparece como código no `SKILL.md`, no `HELP.md`, no
+  `HISTORICO.md` e na entrada da 3.1.0: fora de código, o `<motivo>` era lido como tag HTML e sumia da
+  página renderizada.
+
 ## [3.1.0] - 2026-10-19
 
 **Ação nos projetos:** rode `/sessao update` em cada repositório que usa a skill: o bloco gerenciado
@@ -16,7 +24,7 @@ máquina (instalação em `referencia/openspec.md`); os escopos que já existem 
 ### Adicionado
 - **Módulo OpenSpec: specs vivas por bloco.** Todo escopo novo nasce com o parâmetro **OpenSpec** no
   PLAN, e o contrato de cada bloco declara a sua change (proposta + delta das specs, validada antes do
-  aceite e arquivada quando o bloco conclui) ou "não se aplica — <motivo>". Vem com o schema `sessao`
+  aceite e arquivada quando o bloco conclui) ou `não se aplica — <motivo>`. Vem com o schema `sessao`
   (proposta + specs, sem tarefas), ligado ao OpenSpec por symlink, e com `referencia/openspec.md`.
 - Item ⑦ do portão: cobra a declaração e, havendo change, que ela exista, valide e seja arquivada ao
   concluir o bloco; sem o CLI, falha fechado. O `--estado` ganha o campo `openspec`.

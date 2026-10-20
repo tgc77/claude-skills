@@ -20,7 +20,7 @@ Layout da skill:
 
 - `SKILL.md` — o roteador: ativação, subcomando → arquivo, regras invioláveis;
 - `subcomandos/` — um arquivo por subcomando, lido sob demanda;
-- `referencia/` — protocolo, conferência de saída, apontamentos, layout, deploy;
+- `referencia/` — protocolo, conferência de saída, apontamentos, layout, deploy, openspec;
 - `HISTORICO.md` — o porquê de cada regra (não é carregado para operar);
 - `VERSION` e `CHANGELOG.md` — a versão atual e o que mudou em cada uma (não são carregados para operar);
 - `HELP.md` — o índice que `/sessao help` mostra;
