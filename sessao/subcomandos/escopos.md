@@ -11,7 +11,7 @@ listar não é `start`.
 
    | Slug | Escopo | Estado | Branch | Bloco ativo | 🎬 Próximo | Última atualização |
    |---|---|---|---|---|---|---|
-   | `<slug>` | <descrição curta> | 🟡/🟢/🔴 | `<branch>` | `<bloco>` | ⚙️/🧠 + ponto de entrada | <data> |
+   | `<slug>` | <descrição curta> | 🟡/🟢/🔴 | `<branch>` | `<bloco>` | ⚙️/🧠 + ponto de entrada | `<data>` |
 
 4. Feche com 1 linha: para entrar num escopo, `/sessao start <slug>`. Se a branch atual coincide com a
    "Branch de trabalho" de algum escopo, diga isso como informação — nunca como escopo assumido.

@@ -23,6 +23,11 @@
 # estava em "Não lançado" e atualiza os links de comparação. Commit, tag e push ficam com quem
 # lança, cada um com a validação do usuário — o script só imprime os comandos.
 #
+# Antes de editar, o `lancar` roda os testes (`scripts/testar.sh`, camadas 1 e 2) e, se a skill
+# mudou instrução desde a última tag, exige uma rodada verde da camada 3 — o agente de verdade —
+# para o conteúdo atual (`testes/comportamento/rodar.sh --conferir-selo`). Lançar é dizer a quem usa
+# a skill que esta versão funciona; vermelho, ou teste que não rodou, não lança.
+#
 set -o pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -150,6 +155,26 @@ verificar() {
     (( ruins == 0 ))
 }
 
+# Os testes que um lançamento exige; sem eles, não lança. Sem os scripts de teste, falha fechado (2).
+testes_antes_de_lancar() {
+    local s="$1" atual="$2" saida codigo
+    local testar="${REPO_DIR}/scripts/testar.sh" camada3="${REPO_DIR}/testes/comportamento/rodar.sh"
+    [[ -x "${testar}" && -x "${camada3}" ]] || {
+        echo "🔴 faltam os testes (scripts/testar.sh, testes/comportamento/rodar.sh): sem eles, não lança" >&2
+        exit 2
+    }
+    echo "Antes de lançar: os testes (scripts/testar.sh)…"
+    saida="$("${testar}" 2>&1)"
+    codigo=$?
+    if [[ "${codigo}" -ne 0 ]]; then
+        printf '%s\n' "${saida}"
+        echo "🔴 os testes $([[ ${codigo} -eq 1 ]] && echo 'estão vermelhos' || echo 'não rodaram por inteiro'): ${s} não é lançada."
+        exit 1
+    fi
+    printf '%s\n' "${saida}" | tail -2 | head -1
+    "${camada3}" --conferir-selo "${s}" "${s}-v${atual}" || exit 1
+}
+
 lancar() {
     [[ $# -eq 2 ]] || uso
     local s="${1%/}" nivel="$2" cl atual nova hoje base ma mi pa tmp ramo
@@ -175,6 +200,7 @@ lancar() {
     fi
     base="$(sed -n -E 's|^\[Não lançado\]: (.*)/compare/.*$|\1|p' "${cl}")"
     [[ -n "${base}" ]] || { echo "🔴 ${cl} sem o link '[Não lançado]: <repo>/compare/…'" >&2; exit 2; }
+    testes_antes_de_lancar "${s}" "${atual}"
 
     hoje="$(date +%F)"
     tmp="$(mktemp)"

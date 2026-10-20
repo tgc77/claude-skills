@@ -31,6 +31,7 @@ sessão mostrando o comando da próxima. Para começar: [Instalação](#instala�
 - [Como as duas se integram](#como-as-duas-se-integram)
 - [Estrutura do repositório](#estrutura-do-repositório)
 - [Manutenção](#manutenção)
+- [Testes](#testes)
 - [Versionamento](#versionamento)
 
 ---
@@ -449,10 +450,20 @@ flowchart LR
 ```text
 .
 ├── README.md                         ← este arquivo
+├── .github/workflows/testes.yml      ← as camadas 1 e 2 dos testes a cada push e pull request
 ├── openspec/                         ← specs vivas das próprias skills (specs/) e changes arquivadas
 ├── scripts/
+│   ├── testar.sh                     ← os testes numa chamada só (ver Testes)
 │   ├── versao.sh                     ← confere VERSION × CHANGELOG × tag e prepara um lançamento
 │   └── autoteste_versao.sh           ← testa o versao.sh num repositório descartável
+├── testes/
+│   ├── documentacao.py               ← a camada 2: diagramas, texto que some, links, subcomandos
+│   ├── autoteste_documentacao.sh     ← testa a conferência da documentação
+│   └── comportamento/                ← a camada 3: o agente de verdade em cenários roteirizados
+│       ├── rodar.sh                  ← roda os cenários, soma o custo e grava o selo
+│       ├── lib.sh                    ← a caixa descartável, o turno do agente e as asserções
+│       ├── cenarios/                 ← um arquivo por cenário
+│       └── fixtures/                 ← o projeto de mentira e o PLAN pronto para o Executor
 ├── sessao/
 │   ├── SKILL.md                      ← o roteador: ativação, subcomando → arquivo, regras invioláveis
 │   ├── VERSION                       ← a versão atual (SemVer)
@@ -490,19 +501,17 @@ flowchart LR
   este README apontam para eles. Se divergirem, a fonte canônica vence — e a divergência é bug a
   corrigir no mesmo commit.
 - **Mexeu numa regra? Leia antes o caso que a criou** em `sessao/HISTORICO.md`, e registre lá o novo.
-- **Mexeu no portão, no `bloco_agents.sh`, no `openspec_ambiente.sh`, no schema ou nos templates? Rode o
-  autoteste** antes de commitar:
-
-  ```bash
-  ~/.claude/skills/sessao/scripts/autoteste_portao.sh   # exit 0 = íntegro; exit 1 = regressão
-  ```
-
-  Ele monta repositórios descartáveis a partir dos templates, num `HOME` falso, e afirma que cada item
-  do portão dispara quando deve e fica verde quando deve, que o `--estado` devolve JSON correto e que o
-  bloco gerenciado é sincronizado sem tocar no resto do `AGENTS.md`; cobre também o ⑦ e o ambiente do
-  OpenSpec. São 54 casos, e o 51 usa o OpenSpec real, se instalado. Existe porque, em 2026-08-24, o
-  portão e o `PLAN.template.md` falavam dialetos diferentes e o portão aprovava sem conferir quase
-  nada — com exit 0.
+- **Antes de cada commit, rode `scripts/testar.sh`** (camadas 1 e 2, ver [Testes](#testes)). O CI roda o
+  mesmo a cada push, mas lá o vermelho chega depois do commit. Entre os testes está o autoteste do
+  portão (`sessao/scripts/autoteste_portao.sh`): ele monta repositórios descartáveis a partir dos
+  templates, num `HOME` falso, e afirma que cada item do portão dispara quando deve e fica verde quando
+  deve, que o `--estado` devolve JSON correto e que o bloco gerenciado é sincronizado sem tocar no resto
+  do `AGENTS.md`; cobre também o ⑦ e o ambiente do OpenSpec. São 54 casos, e o 51 usa o OpenSpec real,
+  se instalado. Existe porque, em 2026-08-24, o portão e o `PLAN.template.md` falavam dialetos
+  diferentes e o portão aprovava sem conferir quase nada — com exit 0.
+- **Mexeu em instrução de uma skill** (`SKILL.md`, `subcomandos/`, `referencia/`, templates)? Rode
+  também a camada 3, `scripts/testar.sh --comportamento`: só o agente de verdade mostra se ele passou a
+  fazer o que o texto novo diz. O `lancar` a exige antes de dar número à versão.
 - **Mudou o bloco gerenciado do `AGENTS.template.md`?** Rode `/sessao update` em cada projeto instalado.
 - **Mudou um comportamento verificável de uma skill** (portão, lançador, bloco gerenciado, ambiente do
   OpenSpec)? Este repositório usa o próprio módulo: abra uma change em `openspec/`
@@ -521,6 +530,53 @@ flowchart LR
   [Versionamento](#versionamento).
 - O antigo espelho `~/workspace/playbook-controle-sessoes/` foi **aposentado** em 2026-09-24. Este
   repositório é a única fonte.
+
+## Testes
+
+Três camadas, todas por um comando só, o [`scripts/testar.sh`](scripts/testar.sh):
+
+| Camada | O que confere | Quando roda | Custo |
+|---|---|---|---|
+| 1. Scripts | O portão, o `versao.sh` e a própria conferência da documentação, cada um no seu autoteste, em repositórios descartáveis; e VERSION × CHANGELOG × tag. | Sozinha: a cada push e pull request (GitHub Actions) e no `versao.sh lancar`. | Grátis, segundos. |
+| 2. Documentação | Diagrama Mermaid que não renderiza ou que o VS Code apaga (`&lt;` num rótulo); `<placeholder>` fora de código, que some da página; link relativo e âncora quebrados; subcomando que o roteador, o `HELP.md` e o README não listam igual. | Junto com a 1. | Grátis. |
+| 3. Comportamento do agente | O agente de verdade, em cenários roteirizados num projeto descartável — o ciclo inteiro (`init` → `start` 🧠 → aceite → push → `start` ⚙️ → "gere os apontamentos de hoje") e as travas da skill. | Você, antes de lançar uma versão que mexeu em instrução: o `lancar` exige. | Gasta do seu plano. |
+
+```bash
+scripts/testar.sh                                # camadas 1 e 2 — o que o CI roda
+scripts/testar.sh --comportamento                # e a camada 3
+testes/comportamento/rodar.sh --listar           # os cenários da camada 3
+testes/comportamento/rodar.sh ciclo-completo     # um cenário só (não grava o selo)
+testes/comportamento/rodar.sh --ferramenta codex # o mesmo roteiro no Codex
+```
+
+**Os cenários da camada 3**, do mais barato ao mais caro: o `help` mostra o guia; o `start` sem
+slug pergunta qual escopo, mesmo com um só; um pedido técnico comum não liga a skill; "gere os
+apontamentos de hoje" sem escopo ativo pergunta o card; o `start` avisa do bloco gerenciado
+desatualizado e da sessão anterior que não fechou; sem o "ok", nada é commitado nem vai para o
+work-log; e o ciclo completo, num repositório virgem.
+
+**Como ela confere.** Cada cenário roda numa caixa em `/tmp`: o projeto (uma calculadora que só
+soma), um remoto local que flagra push e um work-log próprio (`SESSAO_WORKLOG_DIR`). O seu work-log e
+este repositório não são tocados, e o teste confere isso a cada turno. As mensagens são as que você
+mandaria ("Aceito o plano do B1. Pode commitar.", "gere os apontamentos de hoje"), e cada sessão
+nova é uma conversa nova, como no uso real. As asserções olham primeiro o estado — o `--estado` do
+portão, os commits, o work-log, o remoto, o portão rodado de novo — e só depois a resposta. O
+Planejador roda com o modelo forte (opus) e o Executor com o barato (sonnet), a divisão que a skill
+recomenda.
+
+**O selo.** A rodada completa e verde da camada 3 grava, dentro do `.git` (fora de qualquer commit), a
+impressão digital das instruções das skills e dos cenários. O `versao.sh lancar` roda as camadas 1 e
+2 e, se a skill mudou instrução desde a última tag, exige o selo do conteúdo atual; sem ele, recusa e
+mostra o comando. Mudança só no CHANGELOG, no HISTORICO, no README ou no VERSION não exige.
+
+**Requisitos da camada 3:** o CLI logado (`claude` ou `codex`), `jq`, `python3` e `openspec`. O
+`claude` do PATH precisa estar em dia (`claude update`); para usar outro binário, aponte
+`SESSAO_TESTE_CLAUDE` para ele. Os modelos mudam com `SESSAO_TESTE_MODELO_FORTE` e
+`SESSAO_TESTE_MODELO_BARATO`. O custo que a rodada informa é o preço de tabela; nos planos Pro e Max,
+ele sai do uso do plano. Medido em 2026-10-20: os sete cenários baratos, uns US$ 1,30; o ciclo completo,
+com o Planejador no opus, uns US$ 8 a 10 — o bastante para esgotar a janela de 5 horas do Pro numa
+tarde de testes. `SESSAO_TESTE_MODELO_FORTE=sonnet` barateia a rodada, ao custo de testar o
+Planejador com o modelo que a skill não recomenda para ele.
 
 ## Versionamento
 
@@ -568,8 +624,12 @@ mostra só o lançamento e `git log --grep '^release:'` lista todas as versões.
 não cria tag e não faz push: ele imprime estes três comandos com a versão nova preenchida, e cada um
 segue a regra de sempre — o agente só o roda com a sua validação explícita.
 `scripts/versao.sh verificar` confere que VERSION, CHANGELOG e tag concordam e que nenhuma skill mudou
-desde a última tag sem entrada no CHANGELOG. Rode antes de cada push. `scripts/autoteste_versao.sh`
-testa o próprio verificador.
+desde a última tag sem entrada no CHANGELOG; o `scripts/testar.sh` e o CI o rodam.
+`scripts/autoteste_versao.sh` testa o próprio verificador.
+
+**O `lancar` só lança o que passou nos testes.** Antes de editar qualquer arquivo, ele roda as camadas
+1 e 2 e, se a skill mudou instrução desde a última tag, exige o selo da camada 3 para o conteúdo atual
+(ver [Testes](#testes)). Vermelho, ou teste que não rodou, e ele recusa, mostrando o que falta.
 
 **Antes de 2026-10-19 não havia número.** A primeira versão numerada da `sessao` é a 3.0.0: o
 repositório já a chamava de "controle de sessões v2" desde o primeiro commit, e a reestruturação de

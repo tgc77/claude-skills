@@ -7,6 +7,12 @@ numeração [SemVer](https://semver.org/lang/pt-BR/), com o critério de MAJOR, 
 
 ## [Não lançado]
 
+### Corrigido
+- O `<data>` da tabela que o `escopos` mostra aparece como código, como os outros campos da linha:
+  fora dele, sumia da página renderizada. A forma `não se aplica — <motivo>` da spec viva
+  `portao-conferencia` ganhou a mesma correção, pela change `motivo-em-codigo-na-spec`. Os dois casos
+  foram achados pela conferência da documentação nova (`testes/documentacao.py`).
+
 ## [3.2.0] - 2026-10-20
 
 ### Adicionado

@@ -1,0 +1,38 @@
+# As camadas 1 e 2 dos testes (scripts e documentação) a cada push e pull request — determinísticas e
+# grátis. A camada 3, o agente de verdade, não roda aqui: gasta do plano de quem roda e precisa da
+# conta logada no CLI (`scripts/testar.sh --comportamento`, na máquina de quem mantém).
+name: testes
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  scripts-e-documentacao:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # o versao.sh confere as tags
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: OpenSpec, na versão contra a qual o portão foi escrito
+        run: npm install -g --ignore-scripts @fission-ai/openspec@1.14.3
+
+      - name: mermaid-cli, para renderizar os diagramas (o puppeteer baixa o Chromium na instalação)
+        run: npm install -g @mermaid-js/mermaid-cli@11.16.0
+
+      - name: Identidade do git (os autotestes commitam em repositórios descartáveis)
+        run: |
+          git config --global user.name "CI"
+          git config --global user.email ci@example.invalid
+          git config --global init.defaultBranch main
+
+      - name: Testes
+        env:
+          OPENSPEC_TELEMETRY: "0"
+        run: scripts/testar.sh

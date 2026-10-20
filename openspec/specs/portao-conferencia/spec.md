@@ -133,7 +133,7 @@ por ele.
 
 ### Requirement: Declaração OpenSpec do bloco
 Com o módulo, o portão DEVE reprovar o fechamento quando o contrato do bloco ativo não declara a change
-nem "não se aplica — <motivo>" e o baton está com o Executor ou o bloco concluiu; com o baton no
+nem `não se aplica — <motivo>` e o baton está com o Executor ou o bloco concluiu; com o baton no
 Planejador, DEVE só avisar.
 
 #### Scenario: Declaração ainda de modelo, baton no Executor
