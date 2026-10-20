@@ -6,6 +6,8 @@ numeração [SemVer](https://semver.org/lang/pt-BR/), com o critério de MAJOR, 
 
 ## [Não lançado]
 
+## [1.0.2] - 2026-10-20
+
 ### Corrigido
 - Pedido de resumo sem card, numa conversa sem label nem escopo ativo, pergunta o card em vez de
   escolher o escopo pelo índice do `AGENTS.md` do repositório. A escolha contradizia a ativação
@@ -39,6 +41,7 @@ Marcos, do mais recente ao mais antigo (os detalhes estão no `git log`):
 - **2026-07-22** — regra do leitor não técnico: explicar antes, sem cortar detalhe.
 - **2026-07-18** — a skill entra no repositório, junto com a integração com a `sessao`.
 
-[Não lançado]: https://github.com/tgc77/claude-skills/compare/resumo-trabalho-v1.0.1...HEAD
+[Não lançado]: https://github.com/tgc77/claude-skills/compare/resumo-trabalho-v1.0.2...HEAD
+[1.0.2]: https://github.com/tgc77/claude-skills/compare/resumo-trabalho-v1.0.1...resumo-trabalho-v1.0.2
 [1.0.1]: https://github.com/tgc77/claude-skills/compare/resumo-trabalho-v1.0.0...resumo-trabalho-v1.0.1
 [1.0.0]: https://github.com/tgc77/claude-skills/releases/tag/resumo-trabalho-v1.0.0
