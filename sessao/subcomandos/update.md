@@ -32,7 +32,7 @@ desta skill.
    `<skill>/scripts/openspec_ambiente.sh --verificar`. Ele confere a máquina (CLI e versão mínima,
    `node`, telemetria desligada, schema `sessao` ligado à skill) e, se o repositório tem `openspec/`, o
    `config.yaml` e a ausência de cópia local do schema. Symlink ou telemetria → `--aplicar`, com o
-   "ok"; CLI ausente → mostre a instalação e deixe a decisão ao usuário. Só pesa para escopos com o
+   "ok"; CLI ausente → mostre os comandos de instalação e ofereça rodá-los, como no `init`. Só pesa para escopos com o
    parâmetro **OpenSpec**; repositório sem nenhum escopo assim não precisa do OpenSpec.
-5. **Commit isolado, com validação do usuário**, só com os arquivos acima. Reporte o hash. `push` é
-   pedido à parte.
+5. **Commit isolado, com validação do usuário**, só com os arquivos acima. Reporte o hash e pergunte se
+   pode fazer o push — em separado do ok do commit.

@@ -24,6 +24,15 @@ blockers e a declaração OpenSpec do bloco (`openspec`). **Exit 1 = baton podre
 duplicada): **não execute**, não adivinhe a próxima tarefa e não replaneje por conta própria — mostre
 ao usuário o que a linha 🎬 diz × o que o Board diz e pergunte.
 
+Duas conferências de uma linha, antes de seguir:
+
+- **A sessão anterior fechou?** Se o `git status --porcelain` aponta edições na pasta do PLAN (o `plan`
+  do JSON), a sessão anterior terminou sem `end` nem `handoff`. **Não execute por cima:** mostre os
+  arquivos e pergunte se fecha aquela sessão primeiro — o `end` dela — ou se as edições são descartadas.
+- **O projeto está em dia com a skill?** Se o `<skill>/scripts/bloco_agents.sh --verificar AGENTS.md`
+  sai ≠ 0, ou se o `scripts/conferencia_saida.sh` não é o lançador, avise em 1 linha e mostre o comando,
+  `/sessao update`. Isso não para a sessão.
+
 Depois leia **só** o cabeçalho "🔎 Agora" e o bloco ativo do PLAN (o contrato: DoR, DoD, critérios,
 escalonamento). Se o `openspec` do JSON aponta uma change **aberta**, leia também
 `openspec/changes/<id>/` (proposta e delta): é o comportamento que o bloco entrega e faz parte do
@@ -66,7 +75,9 @@ o do baton, mas a sessão para no briefing).
   **comece a executar** dali, à risca, marcando checkboxes — não pare para perguntar o papel. Daí em
   diante vale o loop de `referencia/protocolo.md` (seção "O Executor não escolhe quando parar"):
   tarefa concluída não encerra sessão nem resposta.
-- **`🧠 Planejador`** → entre planejando: detalhar, replanejar, preparar o `handoff`.
+- **`🧠 Planejador`** → entre planejando: detalhar, replanejar e fechar com o `handoff`. Quando o bloco
+  ficar executor-ready, siga direto para os passos de [`handoff.md`](handoff.md), sem esperar o usuário
+  digitar o comando: mostrar o plano e pedir o aceite fazem parte deles, e sem o aceite nada é selado.
 - **Baton ausente ou ambíguo** → só aí resuma o estado e pergunte o papel.
 
 ## 5. Gates por-sessão não são retrabalho

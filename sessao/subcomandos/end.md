@@ -62,3 +62,5 @@ O índice do registro é um só: **a sessão terminou.**
    - Na branch default, use a branch de trabalho declarada no PLAN.
    - Mensagem no padrão do projeto. Reporte o(s) hash(es).
    - `push` é pedido à parte, também com validação — inclusive quando o commit se destina a deploy.
+7. **Feche com os próximos passos** ([`conferencia.md`](../referencia/conferencia.md), seção "Próximos
+   passos"): o comando completo da próxima sessão, o push a aprovar e o que mais depender do usuário.

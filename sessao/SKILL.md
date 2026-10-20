@@ -42,7 +42,7 @@ ler** — não execute de memória nem por este resumo. Sem subcomando, pergunte
 | `escopos [<slug>]` | lista os escopos do repo e onde cada um parou; não altera nada | [`subcomandos/escopos.md`](subcomandos/escopos.md) |
 | `init` | abre um escopo, instalando o sistema se o repo for virgem | [`subcomandos/init.md`](subcomandos/init.md) |
 | `start <slug> [nota]` | início de sessão: assume o papel que o baton manda | [`subcomandos/start.md`](subcomandos/start.md) |
-| `handoff` | Planejador → Executor: bloco executor-ready, critérios medidos, aceite | [`subcomandos/handoff.md`](subcomandos/handoff.md) |
+| `handoff` | Planejador → Executor: bloco executor-ready, critérios medidos, aceite; o Planejador o faz sozinho ao fim do planejamento | [`subcomandos/handoff.md`](subcomandos/handoff.md) |
 | `end` | fim de sessão; o Executor o dispara sozinho ao fechar o bloco ou ao parar | [`subcomandos/end.md`](subcomandos/end.md) |
 | `update` | põe o projeto em dia com a skill: bloco gerenciado do `AGENTS.md`, lançador do portão, ambiente do OpenSpec | [`subcomandos/update.md`](subcomandos/update.md) |
 | `help` | mostra o guia de uso; não altera nada | [`HELP.md`](HELP.md) |

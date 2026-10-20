@@ -12,10 +12,11 @@ Elas se encontram num ponto só: **o slug de um escopo do `sessao` é o label de
 `resumo-trabalho`**. Toda sessão que termina grava a sua entrada nesse log, e o resumo do dia sai
 completo com um comando.
 
-**A divisão do trabalho, em uma frase:** você digita os comandos `/sessao …` e valida o que o agente
-mostra; o agente planeja com você, executa, registra, confere e commita, e para em cada ponto que
-depende de você. Para começar: [Instalação](#instalação), [Primeiros passos](#primeiros-passos) e
-[Quem faz o quê](#quem-faz-o-quê).
+**A divisão do trabalho, em uma frase:** você digita `/sessao init` uma vez por escopo e
+`/sessao start <slug>` a cada sessão, e responde e valida o que o agente mostra; o agente planeja com
+você, executa, registra, confere e commita, para em cada ponto que depende de você e termina toda
+sessão mostrando o comando da próxima. Para começar: [Instalação](#instalação),
+[Primeiros passos](#primeiros-passos) e [Quem faz o quê](#quem-faz-o-quê).
 
 ---
 
@@ -36,7 +37,7 @@ depende de você. Para começar: [Instalação](#instalação), [Primeiros passo
 
 ## Instalação
 
-Uma vez por máquina, em dois passos, os dois com você.
+Uma vez por máquina. O primeiro passo é seu; o segundo, o agente faz com o seu ok.
 
 **1. As skills.** A raiz deste repositório **é** o diretório de skills do Claude Code. Cada skill mora
 em um lugar só; as outras ferramentas enxergam a mesma cópia por symlink.
@@ -51,11 +52,11 @@ ln -s ~/.claude/skills/sessao          ~/.codex/skills/sessao
 ln -s ~/.claude/skills/resumo-trabalho ~/.codex/skills/resumo-trabalho
 ```
 
-**2. O CLI do OpenSpec**, sem o qual não se abre escopo novo: o `/sessao init` confere e, se ele
-faltar, para e mostra como instalar. O passo a passo — Node ≥ 20.19, o CLI na versão mínima, a
-conferência de assinaturas e a telemetria desligada — está em
-[`sessao/referencia/openspec.md`](sessao/referencia/openspec.md#ambiente--uma-vez-por-máquina). O
-resto do ambiente, o schema da skill ligado ao OpenSpec, o agente aplica no `init`, com o seu ok.
+**2. O CLI do OpenSpec**, sem o qual não se abre escopo novo. Basta ter Node ≥ 20.19 na máquina: o
+`/sessao init` confere o resto e, se o CLI faltar, mostra os comandos e, com o seu ok, instala ele
+mesmo — na versão mínima, com a conferência de assinaturas e a telemetria desligada — e liga o schema
+da skill ao OpenSpec. O passo a passo está em
+[`sessao/referencia/openspec.md`](sessao/referencia/openspec.md#ambiente--uma-vez-por-máquina).
 
 - Uma skill nova só aparece para o Claude Code numa **sessão nova**, não na sessão em que foi instalada.
 - O Codex também reconhece `.agents/skills/`. Um symlink `~/.agents/skills → ~/.claude/skills` funciona,
@@ -80,7 +81,9 @@ sessão (uma conversa com o agente) assume um de dois papéis: 🧠 **Planejador
 bloco, ou ⚙️ **Executor**, que o executa. Quem diz o papel da sessão seguinte é o **baton**, uma linha
 do PLAN que o próprio agente grava.
 
-Os comandos abaixo são os do Claude Code; no Codex, troque `/sessao` por `$sessao`.
+Você não precisa decorar nada disto: toda sessão termina com os **próximos passos**, que trazem o
+comando da sessão seguinte pronto para copiar. Os comandos abaixo são os do Claude Code; no Codex,
+troque `/sessao` por `$sessao`.
 
 1. **Abra o escopo.** No repositório do projeto, numa sessão nova:
 
@@ -92,19 +95,23 @@ Os comandos abaixo são os do Claude Code; no Codex, troque `/sessao` por `$sess
    ambiente e os guardrails; na primeira vez naquele repositório, também como tratar você, o idioma, a
    política de commit e os repos irmãos. **Você** responde, confere a estrutura que ele mostra e dá o
    "ok" para criar; depois, outro "ok" para o commit. Num repositório que já usa a skill, o `init` só
-   acrescenta o escopo novo.
+   acrescenta o escopo novo. No fim, ele mostra o comando da próxima sessão e oferece seguir direto
+   para o planejamento do primeiro bloco, ali mesmo.
 
-2. **Feche o plano do primeiro bloco**, com um modelo forte — pode ser na mesma sessão do `init`:
+2. **Planeje o primeiro bloco**, com um modelo forte — na mesma sessão do `init`, se aceitou a oferta,
+   ou numa sessão nova:
 
    ```text
-   /sessao handoff upgrade-postgres-16
+   /sessao start upgrade-postgres-16
    ```
 
-   O agente deixa o bloco **executor-ready**: tarefas atômicas, cada critério de aceite medido, as
-   decisões de design resolvidas com você e, se o bloco muda um comportamento de que alguém depende,
-   uma change do OpenSpec com a proposta e o delta das specs. Ele mostra o plano; **você lê e dá o
-   aceite**. Só o aceite libera o commit: responder às perguntas dele não conta. Se o `init` já deixou
-   o bloco executor-ready, com o baton em ⚙️, pule para o passo 3.
+   O baton diz 🧠 Planejador. O agente deixa o bloco **executor-ready**: tarefas atômicas, cada
+   critério de aceite medido, as decisões de design resolvidas com você e, se o bloco muda um
+   comportamento de que alguém depende, uma change do OpenSpec com a proposta e o delta das specs.
+   Então ele mostra o plano, e **você lê e dá o aceite** — responder às perguntas dele não conta como
+   aceite. Com o aceite, que vale também como o ok do commit, ele mesmo faz o **handoff**: passa o baton
+   ao ⚙️ Executor, grava o apontamento, roda o portão e commita. Você não digita `/sessao handoff`. Se
+   o `init` já deixou o bloco executor-ready, com o baton em ⚙️, pule para o passo 3.
 
 3. **Execute**, numa **sessão nova** e com um modelo mais barato:
 
@@ -118,17 +125,26 @@ Os comandos abaixo são os do Claude Code; no Codex, troque `/sessao` por `$sess
    sessão sozinho (é o `end`) e pede o seu "ok" para commitar.
 
 4. **Valide.** Responda "ok", ou peça ajustes. Com o ok, o agente grava o apontamento, roda o portão e
-   commita. `push` só quando você pedir, à parte.
+   commita. Depois pergunta se pode fazer o push e termina com os **próximos passos**:
 
-5. **Repita a partir do `start`**, sempre numa sessão nova: com o baton em 🧠, o Planejador detalha o
-   próximo bloco e você fecha o plano com `/sessao handoff`; com o baton em ⚙️, o Executor executa. Não
-   lembra de quem é a vez? `/sessao escopos` mostra o baton de cada escopo.
+   ```text
+   ▶ Próxima sessão — 🧠 Planejador, com um modelo forte, numa sessão nova:
+       /sessao start upgrade-postgres-16
+   • Push: o commit 3f2a9c1 está só no repositório local. Posso fazer o push?
+   • Apontamento do dia: é só pedir "gere os apontamentos de hoje" — o escopo já está ativo nesta conversa.
+   ```
 
-6. **Apontamento do dia:** `/resumo-trabalho gerar upgrade-postgres-16` entrega o resumo pronto para
-   colar no card.
+5. **Repita com o comando que a sessão anterior mostrou**, sempre numa sessão nova: com o baton em 🧠,
+   o Planejador detalha o próximo bloco e, com o seu aceite, faz o handoff; com o baton em ⚙️, o
+   Executor executa. Ficou um tempo longe do escopo? Veja [como conferir onde parou](#quem-faz-o-quê).
 
-Para encerrar uma sessão no meio, peça `/sessao end`: o agente registra onde parou e pede o ok para
-commitar, como no fim de um bloco.
+6. **Apontamento do dia:** peça "gere os apontamentos de hoje". As entradas já foram gravadas sessão a
+   sessão, e o escopo ativo na conversa diz de qual escopo é o resumo, que sai pronto para colar no card.
+   Numa conversa sem escopo ativo, diga qual: "gere os apontamentos de hoje do upgrade-postgres-16".
+
+Para encerrar uma sessão no meio, peça `/sessao end`: o agente registra onde parou e fecha como no fim
+de um bloco. Se a conversa terminar sem isso, o próximo `start` percebe as edições que ficaram sem
+commit e pergunta o que fazer antes de seguir.
 
 ## Quem faz o quê
 
@@ -137,24 +153,35 @@ pedir. Os scripts de `sessao/scripts/` também são do agente: você não precis
 
 | Momento | Você | O agente, sozinho |
 |---|---|---|
-| **Uma vez por máquina** | Instala as skills e o CLI do OpenSpec ([Instalação](#instalação)). | No `init`, confere o ambiente do OpenSpec e liga o schema da skill, com o seu ok. |
-| **Abrir um escopo** | `/sessao init`; responde slug, blocos, branch, ambiente e guardrails; dá o ok para criar e para commitar. | Confere se o slug é único. Na 1ª vez no repositório, cria `AGENTS.md`, `CLAUDE.md`, o lançador do portão e o template de relatório; em todo escopo novo, o `PLAN.md` com o 1º bloco detalhado, a linha no índice, a pasta `openspec/` (se faltar) e o baton. |
-| **Começar uma sessão** | Abre uma sessão nova, escolhe o modelo — forte para 🧠, mais barato para ⚙️ — e digita `/sessao start <slug>`. | Lê o estado do escopo, confere o baton e assume o papel que ele manda, sem perguntar. |
-| **Planejar (🧠)** | Responde às decisões de design, pede `/sessao handoff`, lê o plano e dá o aceite. | Detalha o bloco, mede os critérios de aceite, cria e valida a change do OpenSpec, grava o contrato, o aceite e o baton ⚙️. |
+| **Uma vez por máquina** | Clona as skills ([Instalação](#instalação)) e aprova a instalação do CLI do OpenSpec, quando o agente pedir. | No `init`, confere o ambiente do OpenSpec; se faltar o CLI, mostra os comandos e, com o seu ok, instala, confere as assinaturas, desliga a telemetria e liga o schema da skill. |
+| **Abrir um escopo** | `/sessao init`; responde slug, blocos, branch, ambiente e guardrails; dá o ok para criar e para commitar. | Confere se o slug é único. Na 1ª vez no repositório, cria `AGENTS.md`, `CLAUDE.md`, o lançador do portão e o template de relatório; em todo escopo novo, o `PLAN.md` com o 1º bloco detalhado, a linha no índice, a pasta `openspec/` (se faltar) e o baton. No fim, mostra o comando da próxima sessão. |
+| **Começar uma sessão** | Abre uma sessão nova, com o modelo que os próximos passos sugeriram, e cola o comando deles (`/sessao start <slug>`). | Lê o estado do escopo, confere o baton e assume o papel que ele manda, sem perguntar. Avisa se a sessão anterior não fechou e se o projeto precisa de `/sessao update`. |
+| **Planejar (🧠)** | Responde às decisões de design, lê o plano — e a proposta e o delta do OpenSpec, se houver — e dá o aceite. | Detalha o bloco, mede os critérios de aceite, cria e valida a change do OpenSpec e mostra o plano. Com o seu aceite, faz o handoff sozinho: grava o contrato, o aceite e o baton ⚙️. |
 | **Executar (⚙️)** | Acompanha. Pode interromper, ou pedir `/sessao end` para encerrar no meio. | Executa o bloco em loop e marca as tarefas; quando a realidade diverge do plano, para e devolve ao Planejador. |
-| **Fechar a sessão** | Dá o ok para o commit, ou pede ajustes; pede o `push` à parte. | Dispara o `end` ao fechar o bloco ou ao parar; atualiza PLAN, baton e registro de sessões; gera o relatório se o bloco fechou e arquiva a change; com o ok, grava o apontamento, roda o portão e commita. |
-| **Apontamento do dia** | `/resumo-trabalho gerar <slug>` e cola o resultado no card. | Já gravou uma entrada no log para cada sessão. |
-| **A skill mudou** | `/sessao update` em cada projeto, quando o CHANGELOG pedir. | Sincroniza o bloco gerenciado do `AGENTS.md`, o lançador e o ambiente do OpenSpec; commita com o seu ok. |
+| **Fechar a sessão** | Dá o ok para o commit, ou pede ajustes (na sessão de Planejador, o aceite já vale como esse ok); responde se pode fazer o push. | Fecha a sessão sozinho: o Planejador com o `handoff`, o Executor com o `end`, ao fechar o bloco ou ao parar. Atualiza PLAN, baton e registro de sessões; gera o relatório se o bloco fechou e arquiva a change; com o ok, grava o apontamento, roda o portão e commita. Pergunta do push e termina com os **próximos passos**. |
+| **Apontamento do dia** | Pede "gere os apontamentos de hoje" e cola o resultado no card. | Já gravou uma entrada no log para cada sessão; com o pedido, gera o resumo do escopo ativo na conversa. |
+| **A skill mudou** | `/sessao update`, quando o agente mostrar o comando. | Percebe no `start` e no `escopos` que o bloco gerenciado do `AGENTS.md` ficou desatualizado e mostra o comando; no `update`, sincroniza o bloco, o lançador e o ambiente do OpenSpec e commita com o seu ok. |
 
-- **O agente nunca faz sem o seu ok:** commit, `push` e a entrada no log de apontamentos. E nunca dá o
-  aceite de um plano por você, não instala ferramenta e não escolhe o escopo quando você não deu o
-  slug: mostra o que falta e pergunta.
+- **Os próximos passos, no fim de toda sessão,** trazem tudo o que depende de você, com o comando
+  exato: a próxima sessão (papel, modelo sugerido e `/sessao start <slug>`), o push a aprovar, o merge,
+  quando o commit não está na branch base, e o lembrete de que o apontamento do dia sai com um pedido:
+  "gere os apontamentos de hoje".
+- **O agente nunca faz sem o seu ok:** commit, `push`, a entrada no log de apontamentos e instalação de
+  ferramenta. E nunca dá o aceite de um plano por você nem escolhe o escopo quando você não deu o slug:
+  mostra o que falta e pergunta.
 - **Você não precisa fazer à mão:** editar o PLAN, o baton ou o registro de sessões; rodar o portão;
-  escrever no log; criar, validar ou arquivar a change do OpenSpec.
-- **O modelo é escolha sua:** a skill não troca de modelo, e o baton só diz o papel. Um modelo só também
-  funciona; a divisão compensa quando executar custa muito mais que planejar.
-- **O merge também:** o PLAN e o `AGENTS.md` precisam viver na branch base compartilhada. Mergeie cedo
-  e com frequência, senão um escopo que está em outra branch parece ter sumido.
+  escrever no log; criar, validar ou arquivar a change do OpenSpec; digitar `handoff` ou `end` no fim
+  de um bloco; lembrar o comando da próxima sessão.
+- **Para conferir onde parou** — depois de um tempo longe do escopo, ou para ver se o baton foi mesmo
+  para o Executor: `/sessao escopos` mostra o baton de cada escopo, e
+  `/sessao start <slug> onde paramos?` dá um briefing sem executar nada. Nenhum dos dois altera o
+  repositório. O `handoff` não serve para isso: rodado de novo, ele refaz o ritual e pede outro aceite.
+- **O modelo é escolha sua:** a skill não troca de modelo; os próximos passos dizem o papel da próxima
+  sessão e sugerem o modelo. Um modelo só também funciona; a divisão compensa quando executar custa
+  muito mais que planejar.
+- **O merge também:** o PLAN e o `AGENTS.md` precisam viver na branch base compartilhada, senão um
+  escopo que está em outra branch parece ter sumido. Os próximos passos avisam quando o commit ficou
+  fora dela.
 - **Uma sessão por working tree:** duas sessões ao mesmo tempo no mesmo diretório colidem em arquivos e
   commits. Para trabalhar em paralelo, use `git worktree`.
 
@@ -250,23 +277,23 @@ slug passado; sem slug, o agente lista os escopos e pergunta.
 | `help` | você | Mostra o [`HELP.md`](sessao/HELP.md). | Não |
 | `init` | você | Abre um escopo: instala o sistema num repo virgem, ou só cria a pasta do escopo novo num repo já instalado. Levanta os dados **com você**, confirma a estrutura antes de criar e prepara o OpenSpec. | Sim, com o seu ok |
 | `start <slug> [nota]` | você, a cada sessão | Início de sessão: lê o estado do escopo pelo portão (`--estado`, em JSON) e o bloco ativo, confere se o baton não está podre e assume o papel que ele manda. A nota pode pedir só um briefing ("onde paramos?") ou impor diretivas ("só as tarefas de código, sem commit"). | Conforme o papel |
-| `handoff` | você, para fechar o planejamento | Planejador → Executor: deixa o bloco executor-ready, mede os critérios, declara a change do OpenSpec e mostra o plano; com o seu **aceite**, grava o baton e o apontamento, roda o portão e commita. | Sim, com o seu aceite |
+| `handoff` | o Planejador, sozinho, ao fim do planejamento; você só o digita para ir direto a ele (ex.: logo depois do `init`) | Planejador → Executor: deixa o bloco executor-ready, mede os critérios, declara a change do OpenSpec e mostra o plano; com o seu **aceite**, grava o baton e o apontamento, roda o portão e commita. | Sim, com o seu aceite |
 | `end` | o Executor, sozinho, quando o bloco fecha ou para; você, para encerrar no meio | Fim de sessão (ver abaixo). | Sim, com o seu ok |
-| `update` | você, quando o CHANGELOG pedir | Põe o projeto em dia com a skill: sincroniza o bloco gerenciado do `AGENTS.md` (`scripts/bloco_agents.sh`), troca a cópia antiga do portão pelo lançador, confere o `CLAUDE.md` e o ambiente do OpenSpec. | Sim, com o seu ok |
+| `update` | você, quando o agente mostrar o comando (no `start` ou no `escopos`) | Põe o projeto em dia com a skill: sincroniza o bloco gerenciado do `AGENTS.md` (`scripts/bloco_agents.sh`), troca a cópia antiga do portão pelo lançador, confere o `CLAUDE.md` e o ambiente do OpenSpec. | Sim, com o seu ok |
 
 ### Ciclo de vida
 
 ```mermaid
 flowchart TD
-    init["/sessao init<br/>estrutura + PLAN com B1 detalhado"] -->|"baton 🧠"| handoff
-    handoff["/sessao handoff<br/>B1 executor-ready + o seu aceite"] -->|"baton ⚙️"| exec
+    init["/sessao init<br/>estrutura + PLAN com B1 detalhado"] -->|"baton 🧠"| plan
+    plan["/sessao start #lt;slug#gt;<br/>o Planejador detalha o bloco e mede os critérios"] --> handoff
+    handoff["handoff, feito pelo Planejador<br/>depois do seu aceite"] -->|"baton ⚙️"| exec
     exec["/sessao start #lt;slug#gt;<br/>o Executor executa o bloco em loop"] --> term{"condição<br/>terminal"}
     term -->|"bloco fechou"| fecha["auto-end: relatório + registro<br/>pede o seu ok para commitar"]
     term -->|"parada no meio"| para["registro sem relatório<br/>pede o seu ok para commitar"]
     fecha -->|"último bloco"| fim["escopo 🟢 no índice<br/>a pasta fica como histórico"]
-    fecha -->|"baton 🧠"| plan["/sessao start #lt;slug#gt;<br/>o Planejador detalha o próximo bloco"]
+    fecha -->|"baton 🧠"| plan
     para -->|"baton 🧠"| plan
-    plan --> handoff
 ```
 
 ### Como uma sessão fecha
@@ -283,8 +310,10 @@ Quem conduz o ritual é o agente; a validação é sua, e é o eixo. A ordem:
    log.
 3. Com o "ok", grava o **apontamento** no log (ver [integração](#como-as-duas-se-integram)).
 4. Roda o **portão**.
-5. **Commita** só o que é daquele escopo e daquela sessão. `push` só quando você pedir, à parte —
-   inclusive para deploy.
+5. **Commita** só o que é daquele escopo e daquela sessão.
+6. Pergunta, em separado, se pode fazer o **push** — inclusive para deploy — e termina com os
+   **próximos passos**: o comando completo da próxima sessão, o merge, se o commit ficou fora da branch
+   base, e o lembrete do apontamento do dia.
 
 O log vem depois do aval porque é append-only e fica fora do repo: um apontamento gravado sobre
 trabalho que você rejeitou vira histórico falso que nenhum `git reset` desfaz.
@@ -342,9 +371,9 @@ isso o log é **um arquivo por label** (card), global e fora de qualquer reposit
 `<work-log>/<label>.md` — e append-only. O resumo é gerado a partir dele, no modelo "Apontamentos",
 pronto para colar no card.
 
-**Com a `sessao`, as entradas são automáticas:** cada sessão grava a sua, depois do seu ok, e você só
-pede o `gerar`. O `label` e o `registrar` servem para registrar à mão — o trabalho feito fora de um
-escopo, por exemplo.
+**Com a `sessao`, as entradas são automáticas:** cada sessão grava a sua, depois do seu ok, e para o
+resumo basta pedir "gere os apontamentos de hoje" na conversa do escopo. O `label` e o `registrar`
+servem para registrar à mão — o trabalho feito fora de um escopo, por exemplo.
 
 ### Subcomandos
 
@@ -364,8 +393,9 @@ do card X").
 **"Resumo do dia" sem card não é `gerar dia`.** O alvo é o label ativo da conversa (ou o slug do
 escopo do `sessao` que a sessão operou); sem ele, o agente pergunta o card — não o deduz pelo
 repositório nem pelo índice de escopos, como a `sessao` também não deduz. O agregado só sai com pedido
-explícito. "Hoje" filtra a data **dentro** do card, nunca amplia a busca. O motivo é concreto: o apontamento é colado num card específico, e misturar labels entrega à
-chefia trabalho de outra frente, em outro repo.
+explícito. "Hoje" filtra a data **dentro** do card, nunca amplia a busca. O motivo é concreto: o
+apontamento é colado num card específico, e misturar labels entrega à chefia trabalho de outra frente,
+em outro repo.
 
 ### Regras do resumo
 
@@ -387,14 +417,16 @@ chefia trabalho de outra frente, em outro repo.
 
 ```mermaid
 flowchart LR
-    sessao["/sessao end · handoff · parada no meio do bloco"] -->|"só depois do seu ok"| log[("#lt;work-log#gt;/#lt;slug#gt;.md<br/>uma entrada por sessão<br/>com a linha Sessão: #lt;chave#gt;")]
-    log --> resumo["/resumo-trabalho gerar #lt;slug#gt;"]
+    sessao["sessão que termina<br/>end · handoff · parada no meio do bloco"] -->|"só depois do seu ok"| log[("#lt;work-log#gt;/#lt;slug#gt;.md<br/>uma entrada por sessão<br/>com a linha Sessão: #lt;chave#gt;")]
+    log --> resumo["pedido: gere os apontamentos de hoje<br/>= /resumo-trabalho gerar #lt;slug#gt;"]
 ```
 
 - **Automático:** você não chama `registrar`. O agente grava a entrada da sessão no log sozinho, logo
-  depois do seu ok para o commit; você só pede o `/resumo-trabalho gerar <slug>`.
+  depois do seu ok para o commit; para o resumo, basta pedir "gere os apontamentos de hoje" na conversa
+  do escopo.
 - **O label é o slug.** Não há campo separado, nem apelido: o escopo `upgrade-postgres-16` escreve em
-  `<work-log>/upgrade-postgres-16.md`, e o resumo sai com `/resumo-trabalho gerar upgrade-postgres-16`.
+  `<work-log>/upgrade-postgres-16.md`. O pedido em linguagem natural equivale a
+  `/resumo-trabalho gerar upgrade-postgres-16`, que dá o mesmo resultado em qualquer conversa.
 - **Uma sessão = uma entrada — o índice é a sessão, não o relatório.** `end`, `handoff` e toda parada
   no meio de bloco gravam a entrada da sessão. Com relatório, ele é a matéria-prima; sem relatório, a
   fonte é a linha do §8 + as decisões + os commits daquela sessão.

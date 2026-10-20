@@ -177,3 +177,25 @@ sozinha quando havia um escopo só. Com as duas carregadas na mesma sessão, o a
 qual obedecer. → Sem label nem escopo ativo na conversa, a `resumo-trabalho` pergunta o card: pode
 listar os slugs do índice como opções, mas não escolhe por eles. Onde está: `resumo-trabalho/SKILL.md`,
 aviso da seção "Sintaxe".
+
+## 2026-10-20 — Handoff lido como comando do usuário
+
+O README novo mandava o dev digitar `/sessao handoff` para fechar o planejamento, e o `HELP.md` dava a
+mesma leitura. O usuário apontou que o Planejador faz o handoff sozinho quando o plano é aceito — e era
+o que a skill pedia: na v2, o `start` com baton 🧠 dizia "detalhar/replanejar/handoff do próximo
+bloco", e o incidente de 2026-08-24 foi justamente um Planejador que selou o handoff sozinho, só que
+sem aceite. Na 3.0.0 o texto encolheu para "preparar o `handoff`", que não diz quem dispara. → O
+`start`, o `handoff`, o protocolo e o `HELP.md` dizem que o Planejador faz o handoff ao fim do
+planejamento, sem esperar o comando, com o aceite como trava; o usuário só o digita para ir direto a
+ele. Onde está: `subcomandos/start.md`, `subcomandos/handoff.md` e `referencia/protocolo.md`.
+
+## 2026-10-20 — O dev tinha de lembrar o próximo passo
+
+A mesma revisão mostrou quanto do fluxo dependia da memória do dev: o comando e o papel da próxima
+sessão, o push, o `update` quando a skill mudava, os comandos de instalação do OpenSpec. E nada
+avisava quando uma sessão terminava sem `end`: a seguinte começava por cima de um PLAN com edições não
+commitadas e sem a linha da sessão no registro. → Toda sessão termina com os "Próximos passos" (o
+comando completo da próxima sessão, o push a aprovar, o merge, o apontamento); o `start` avisa quando a
+sessão anterior não fechou e quando o projeto precisa de `update`; e o `init` e o `update` oferecem
+rodar a instalação do CLI. Onde está: `referencia/conferencia.md` (Próximos passos),
+`subcomandos/start.md` e `subcomandos/init.md`.

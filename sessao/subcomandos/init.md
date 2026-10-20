@@ -56,10 +56,11 @@ Mostre em texto a árvore, o Board e os guardrails. Só crie depois do "ok".
     `<repo>/.agents/skills/sessao`) e falha fechado (exit 2) se não a achar — portão que não roda não
     pode parecer portão que passou.
 - **Sempre, o OpenSpec:** rode `<skill>/scripts/openspec_ambiente.sh --verificar`. Falta symlink ou
-  telemetria desligada → `--aplicar`. **CLI ausente → PARE** e mostre ao usuário a instalação de
-  [`../referencia/openspec.md`](../referencia/openspec.md): instalar ferramenta é decisão dele. Com o
-  ambiente pronto, `--preparar-repo` cria `openspec/` (`openspec init --tools none`, sem arquivos de
-  ferramenta) com `schema: sessao`.
+  telemetria desligada → `--aplicar`. **CLI ausente → PARE**, mostre os comandos de instalação de
+  [`../referencia/openspec.md`](../referencia/openspec.md) e ofereça rodá-los: a decisão de instalar é
+  do usuário, a execução é sua. Com o ok, rode-os na ordem, a conferência de assinaturas incluída, e
+  siga; assinatura que não confere ⇒ PARE e mostre a saída. Com o ambiente pronto, `--preparar-repo`
+  cria `openspec/` (`openspec init --tools none`, sem arquivos de ferramenta) com `schema: sessao`.
 - **Sempre:** `docs/sessoes/<slug>/PLAN.md`. Detalhe **só o bloco B1**; os demais em uma linha,
   marcados `(rascunho)`. Preencha o cabeçalho de parâmetros (slug, branch, ambiente, namespaces,
   relatórios) e a seção "🚧 Guardrails deste escopo". O parâmetro **OpenSpec** vem ligado do template:
@@ -79,3 +80,9 @@ Sem baton, o `start` fica adivinhando o papel. B1 🔬 descoberta, ou ainda não
 PLAN não-commitado faz a próxima sessão ler estado do working tree; mas commit é ato que o usuário
 autoriza. A pasta `openspec/` entra no mesmo commit. Na branch default, use a branch de trabalho declarada no PLAN. Reporte o hash e mostre a
 árvore criada.
+
+## 7. Feche com os próximos passos
+
+Como no fim de toda sessão ([`../referencia/conferencia.md`](../referencia/conferencia.md), seção
+"Próximos passos"): o comando completo da próxima sessão, pelo baton do passo 5. Com o baton em 🧠,
+ofereça também seguir, nesta mesma sessão, direto para o handoff do B1.

@@ -23,7 +23,7 @@ branch e não roda ritual.
 | `/sessao escopos [<slug>]` | lista os escopos: slug, descrição, estado, branch, bloco ativo, baton, última atualização | não |
 | `/sessao init` | abre um escopo (num repo virgem, instala o sistema); levanta os dados com você e confirma antes de criar | sim, com o seu ok |
 | `/sessao start <slug> [nota]` | início de sessão: confere o baton e assume o papel que ele manda | conforme o papel |
-| `/sessao handoff` | 🧠 → ⚙️: bloco executor-ready, critérios medidos, o seu aceite | sim, com o seu ok |
+| `/sessao handoff` | 🧠 → ⚙️: bloco executor-ready, critérios medidos, o seu aceite. O Planejador o faz sozinho ao fim do planejamento; digite só para ir direto a ele | sim, com o seu aceite |
 | `/sessao end` | fim de sessão: registro sempre; relatório só se o bloco fechou ou você pediu | sim, com o seu ok |
 | `/sessao update` | põe o projeto em dia com a skill (bloco gerenciado do `AGENTS.md`, lançador do portão, ambiente do OpenSpec) | sim, com o seu ok |
 | `/sessao help` | este guia | não |
@@ -31,12 +31,18 @@ branch e não roda ritual.
 ## Ciclo de vida
 
 1. `init` cria o PLAN com o B1 detalhado e o resto em rascunho; o baton fica com o 🧠 Planejador.
-2. `handoff` deixa o B1 executor-ready e, com o seu aceite, passa o baton ao ⚙️ Executor.
+2. `start <slug>` com baton 🧠: o Planejador deixa o B1 executor-ready, mede os critérios e mostra o
+   plano; com o seu aceite, ele mesmo faz o `handoff` e passa o baton ao ⚙️ Executor. Logo depois do
+   `init`, na mesma sessão, `handoff <slug>` vai direto a esse ponto.
 3. `start <slug>` com baton ⚙️: o Executor executa o bloco em loop até uma condição terminal.
 4. O bloco fechou → auto-`end` com relatório. Parou no meio → registro sem relatório. Nos dois casos, o
    baton volta ao 🧠 e o agente pede o seu ok para commitar.
-5. `start <slug>` com baton 🧠: o Planejador detalha o próximo bloco e volta ao passo 2, até o escopo
-   fechar (🟢 no índice; a pasta fica como histórico).
+5. Volta ao passo 2 com o próximo bloco, até o escopo fechar (🟢 no índice; a pasta fica como
+   histórico).
+
+Toda sessão termina com os **próximos passos**: o comando completo da próxima sessão (papel, modelo
+sugerido e `/sessao start <slug>`), o push a aprovar e o que mais depender de você. E o `start` avisa
+quando a sessão anterior não fechou ou quando o projeto precisa de `/sessao update`.
 
 ## `start` com nota — exemplos
 
@@ -74,7 +80,8 @@ branch e não roda ritual.
   delta das specs, arquivada quando o bloco conclui) ou `não se aplica — <motivo>`. O item ⑦ do portão
   confere.
 - **Apontamentos** — toda sessão que termina grava uma entrada em `<work-log>/<slug>.md`, só depois do
-  seu ok; `/resumo-trabalho gerar <slug>` dá o dia completo.
+  seu ok. Na conversa do escopo, "gere os apontamentos de hoje" dá o dia completo — é o
+  `/resumo-trabalho gerar <slug>`, sem precisar do slug.
 
 ## Onde está cada coisa
 

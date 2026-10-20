@@ -7,6 +7,23 @@ numeração [SemVer](https://semver.org/lang/pt-BR/), com o critério de MAJOR, 
 
 ## [Não lançado]
 
+### Adicionado
+- **Próximos passos no fim de toda sessão.** O `end`, o `handoff` e o `init` terminam mostrando o
+  comando completo da próxima sessão (papel, modelo sugerido e `/sessao start <slug>`), o push a
+  aprovar, o merge quando o commit não está na branch base e o lembrete de que o apontamento do dia
+  sai com um pedido em linguagem natural ("gere os apontamentos de hoje").
+- O `start` avisa quando a sessão anterior terminou sem `end` nem `handoff` (edições não commitadas na
+  pasta do PLAN) e não executa por cima delas; e mostra o `/sessao update` quando o bloco gerenciado do
+  `AGENTS.md` está desatualizado ou o portão do projeto não é o lançador.
+- O `init` e o `update` oferecem rodar eles mesmos a instalação do CLI do OpenSpec quando ele falta, com
+  a conferência de assinaturas, em vez de deixar os comandos para o usuário.
+
+### Corrigido
+- O `start` com baton 🧠, o `handoff`, o protocolo e o `HELP.md` dizem quem dispara o handoff: o
+  Planejador, sozinho, quando o bloco fica executor-ready, com o aceite do usuário como trava. Desde a
+  3.0.0 o texto dizia só "preparar o `handoff`", e o `HELP.md` dava a entender que o usuário tinha de
+  digitar o comando — ele só serve para ir direto ao handoff, como logo depois do `init`.
+
 ## [3.1.1] - 2026-10-20
 
 ### Corrigido

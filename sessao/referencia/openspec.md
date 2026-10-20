@@ -123,6 +123,8 @@ OPENSPEC_TELEMETRY=0 openspec config set telemetry.enabled false
 <skill>/scripts/openspec_ambiente.sh --aplicar
 ```
 
+- **Quem roda estes comandos é o agente.** O `init` e o `update` conferem o ambiente e, faltando o CLI,
+  mostram os comandos acima e oferecem rodá-los; com o ok do usuário, o agente os roda na ordem.
 - **`openspec_ambiente.sh --verificar`** confere tudo: CLI e versão mínima, `node`, telemetria
   desligada, o schema `sessao` ligado à skill e, no repositório atual, o `config.yaml` e a ausência de
   cópia local do schema. O `update` o roda.

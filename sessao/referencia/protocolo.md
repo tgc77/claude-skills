@@ -30,6 +30,9 @@ relatório para o PLAN.
 - Detalha o próximo bloco até ficar **executor-ready**, resolve as decisões de design, escreve o
   **Contrato de execução** (DoR, DoD verificável, critérios de aceite, decisões resolvidas,
   escalonamento, evidência a capturar) e replaneja os blocos futuros.
+- **Quando o bloco fica executor-ready, fecha a sessão com o `handoff`**
+  ([`../subcomandos/handoff.md`](../subcomandos/handoff.md)), sem esperar o usuário digitar o comando:
+  mostra o plano, pede o aceite e, com ele, passa o baton ao ⚙️ Executor. Sem o aceite, nada é selado.
 - Especifica **decisões e restrições, não keystrokes** — micro-roteirizar desperdiça os tokens caros.
   **Não implementa.**
 - **Todo critério de aceite é MEDIDO no estado atual antes de virar alvo — nenhum é deduzido.** Rode o

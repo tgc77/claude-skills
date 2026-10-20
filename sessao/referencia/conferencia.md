@@ -18,10 +18,38 @@ relatório.
 5. Rode o portão (abaixo), com o apontamento já no lugar — antes disso o item ⑤ reprova por um motivo
    falso.
 6. Commite.
-7. `push` só com validação própria, pedida em separado.
+7. `push` só com validação própria, pedida em separado — no bloco do passo 8, nunca junto com o "ok" do
+   commit.
+8. **Feche com os próximos passos** (seção abaixo): é a última coisa que a sessão mostra.
 
 O log vem depois do aval porque é append-only e fica fora do repo: apontamento gravado sobre trabalho
 que o usuário rejeitou vira histórico falso que nenhum `git reset` desfaz.
+
+## Próximos passos — o fim de toda sessão
+
+Depois do commit, a última mensagem da sessão — no `end`, no `handoff` e no `init` — termina com este
+bloco. Quem decide o que digitar é o usuário; quem lembra é o agente: ninguém precisa guardar de cabeça
+o slug, o papel da próxima sessão nem o que ficou pendente.
+
+```text
+▶ Próxima sessão — ⚙️ Executor, com um modelo mais barato, numa sessão nova:
+    /sessao start <slug>
+• Push: o commit <hash> está só no repositório local. Posso fazer o push?
+• Merge: o commit está na branch <branch>; as outras branches só veem este PLAN depois do merge na <base>.
+• Apontamento do dia: é só pedir "gere os apontamentos de hoje" — o escopo já está ativo nesta conversa.
+```
+
+- **A próxima sessão** sai da linha 🎬 que esta sessão gravou: o papel, o modelo sugerido (🧠 → forte,
+  ⚙️ → mais barato) e o comando completo, com o slug, na forma da ferramenta em uso (`/sessao` no Claude
+  Code, `$sessao` no Codex). Escopo concluído: "Escopo concluído — não há próxima sessão; para abrir
+  outro, `/sessao init`".
+- **As outras linhas, só quando valem:** o push, se há commit que não foi para o remoto; o merge, se o
+  commit não está na branch base do repositório; o apontamento, sempre — como pedido em linguagem
+  natural, porque o escopo já está ativo na conversa e o `resumo-trabalho` resolve o alvo sozinho, sem o
+  slug nem o subcomando. Qualquer outra coisa que dependa
+  do usuário — autorização, job de deploy, ferramenta a instalar — entra com o pedido ou o comando
+  exato, nunca como "lembre-se de…".
+- Sem o "ok" do commit não há este bloco: a sessão não fechou, e as edições estão no working tree.
 
 ## ⓪ O portão — rode e cole a saída crua no resumo da sessão
 

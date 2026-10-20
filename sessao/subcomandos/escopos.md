@@ -20,7 +20,7 @@ listar não é `start`.
    - escopo com sessões no §8 e log de apontamento inexistente (`apontamento.existe: false` no JSON);
    - baton incoerente com o Board (o `--estado` sai com exit 1);
    - bloco gerenciado do `AGENTS.md` ausente ou desatualizado (`scripts/bloco_agents.sh --verificar`
-     da skill), ou `scripts/conferencia_saida.sh` que é cópia integral do portão — nos dois casos, a
-     correção é o `update`.
+     da skill), ou `scripts/conferencia_saida.sh` que é cópia integral do portão — nos dois casos,
+     mostre o comando da correção, `/sessao update`.
 
 `/sessao escopos <slug>` detalha um só.

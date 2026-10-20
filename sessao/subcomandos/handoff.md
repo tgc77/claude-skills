@@ -1,5 +1,12 @@
 # `handoff` — preparar a troca de modelo (Planejador → Executor)
 
+**Quem dispara:** o 🧠 Planejador, sozinho, quando o bloco que ele planejou fica executor-ready — é o
+fechamento de uma sessão aberta com `start` e baton 🧠. O usuário só digita `/sessao handoff [<slug>]`
+para ir direto a este ponto, por exemplo logo depois do `init`, na mesma sessão. Para ver onde o escopo
+parou — se o baton foi mesmo para o Executor, por exemplo —, o caminho é o `escopos` ou um `start` com
+nota de briefing, que não alteram nada: rodado de novo sobre um bloco já entregue, o `handoff` refaz o
+ritual.
+
 Opera o escopo do `start` desta sessão, ou o slug passado (`/sessao handoff <slug>`); sem nenhum dos
 dois, pergunte. Leia antes: [`../referencia/protocolo.md`](../referencia/protocolo.md) (DoD do
 planejamento), [`../referencia/conferencia.md`](../referencia/conferencia.md),
@@ -42,3 +49,5 @@ planejamento), [`../referencia/conferencia.md`](../referencia/conferencia.md),
    campo, aceite registrado e, com o módulo OpenSpec, change válida (⑦).
 9. **Commite as edições do handoff** (mesma regra do `end`): só o que é do escopo e da sessão, `openspec/` incluído. Reporte
    o hash. `push` é pedido à parte.
+10. **Feche com os próximos passos** ([`conferencia.md`](../referencia/conferencia.md), seção "Próximos
+    passos"): a próxima sessão é a do ⚙️ Executor, com um modelo mais barato.
