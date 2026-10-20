@@ -8,6 +8,11 @@ numeração [SemVer](https://semver.org/lang/pt-BR/), com o critério de MAJOR, 
 ## [Não lançado]
 
 ### Corrigido
+- O `start` que acha a sessão anterior aberta tira o papel do baton do último commit, não do working
+  tree, e só oferece fechá-la ou descartar as edições. Handoff que parou sem aceite é fechado pelo 🧠
+  Planejador, com o plano mostrado e o aceite colhido. Antes, a sessão entrava como ⚙️ Executor, pelo
+  baton que o handoff incompleto deixou, e oferecia executar por cima ou colher ela mesma o aceite.
+  Achado pelos testes de comportamento novos (camada 3).
 - O `<data>` da tabela que o `escopos` mostra aparece como código, como os outros campos da linha:
   fora dele, sumia da página renderizada. A forma `não se aplica — <motivo>` da spec viva
   `portao-conferencia` ganhou a mesma correção, pela change `motivo-em-codigo-na-spec`. Os dois casos

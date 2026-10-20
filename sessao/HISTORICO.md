@@ -199,3 +199,14 @@ comando completo da próxima sessão, o push a aprovar, o merge, o apontamento);
 sessão anterior não fechou e quando o projeto precisa de `update`; e o `init` e o `update` oferecem
 rodar a instalação do CLI. Onde está: `referencia/conferencia.md` (Próximos passos),
 `subcomandos/start.md` e `subcomandos/init.md`.
+
+## 2026-10-20 — Handoff sem aceite retomado pelo Executor
+
+No primeiro ciclo completo dos testes de comportamento, o Planejador deixou uma decisão em aberto e não
+selou o handoff — certo. Mas o baton do working tree já dizia ⚙️ (o handoff grava o baton antes de
+mostrar o plano), e o `start` seguinte entrou como Executor. A trava de sessão aberta funcionou; as
+saídas oferecidas, não: "seguir com as edições no working tree" (executar por cima) e mostrar o plano
+para colher o aceite ali mesmo, numa sessão de Executor e com o modelo barato. → O papel de uma sessão
+que acha a anterior aberta sai do baton do último commit, e só há dois caminhos: fechar aquela sessão
+no papel dela ou descartar as edições. Handoff sem aceite se fecha como handoff, pelo 🧠 Planejador.
+Onde está: `subcomandos/start.md`. O cenário `handoff-sem-aceite` da camada 3 o cobre.

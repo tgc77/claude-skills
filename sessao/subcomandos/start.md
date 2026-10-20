@@ -27,8 +27,17 @@ ao usuário o que a linha 🎬 diz × o que o Board diz e pergunte.
 Duas conferências de uma linha, antes de seguir:
 
 - **A sessão anterior fechou?** Se o `git status --porcelain` aponta edições na pasta do PLAN (o `plan`
-  do JSON), a sessão anterior terminou sem `end` nem `handoff`. **Não execute por cima:** mostre os
-  arquivos e pergunte se fecha aquela sessão primeiro — o `end` dela — ou se as edições são descartadas.
+  do JSON), a sessão anterior terminou sem `end` nem `handoff`. **Não execute por cima e não feche por
+  ela num papel que não é o dela:** mostre os arquivos e ofereça só dois caminhos — fechar aquela
+  sessão ou descartar as edições. O papel desta sessão sai do baton do último commit
+  (`git show HEAD:<plan>`), não do working tree, que é justamente o que não fechou:
+  - edições de Executor (checkboxes, código, relatório), com o baton do commit em ⚙️ → fechar é o
+    `end` dela;
+  - handoff sem a linha `**Aceite:**` nova (o baton do working tree foi para ⚙️, o do commit está em
+    🧠) → esta sessão é de 🧠 Planejador, e fechar é concluir aquele handoff: mostrar o plano, levar as
+    decisões que ficaram abertas e colher o aceite ([`handoff.md`](handoff.md)). Nada é executado nem
+    commitado antes disso. Diga sempre que o handoff pede o modelo forte: quem abriu a sessão pelo
+    baton ⚙️ do working tree pode estar com o barato.
 - **O projeto está em dia com a skill?** Se o `<skill>/scripts/bloco_agents.sh --verificar AGENTS.md`
   sai ≠ 0, ou se o `scripts/conferencia_saida.sh` não é o lançador, avise em 1 linha e mostre o comando,
   `/sessao update`. Isso não para a sessão.

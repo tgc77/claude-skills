@@ -7,9 +7,9 @@ Calculadora mínima em Python, o projeto de mentira dos testes de comportamento 
 
 ## 🎯 Escopos de trabalho
 
-| Slug             | Escopo (o que é)                    | Estado   | PLAN                                                                         |
-|------------------|-------------------------------------|----------|------------------------------------------------------------------------------|
-| `calc-subtracao` | adicionar a subtração à calculadora | 🟡 Ativo | [`docs/sessoes/calc-subtracao/PLAN.md`](docs/sessoes/calc-subtracao/PLAN.md) |
+| Slug             | Escopo (o que é)                                     | Estado   | PLAN                                                                         |
+|------------------|------------------------------------------------------|----------|------------------------------------------------------------------------------|
+| `calc-subtracao` | adicionar a subtração e a multiplicação à calculadora | 🟡 Ativo | [`docs/sessoes/calc-subtracao/PLAN.md`](docs/sessoes/calc-subtracao/PLAN.md) |
 
 **Legenda:** 🟡 Ativo · 🟢 Concluído · 🔴 Bloqueado/pausado. Escopo concluído continua na tabela; a
 pasta dele fica como histórico.
