@@ -7,6 +7,8 @@ numeração [SemVer](https://semver.org/lang/pt-BR/), com o critério de MAJOR, 
 
 ## [Não lançado]
 
+## [3.2.0] - 2026-10-20
+
 ### Adicionado
 - **Próximos passos no fim de toda sessão.** O `end`, o `handoff` e o `init` terminam mostrando o
   comando completo da próxima sessão (papel, modelo sugerido e `/sessao start <slug>`), o push a
@@ -118,7 +120,8 @@ do mais recente ao mais antigo (os detalhes estão no `git log`):
   não se autopromove).
 - **2026-06-26** — nasce a skill; ela vira a fonte canônica e o kit passa a ser espelho.
 
-[Não lançado]: https://github.com/tgc77/claude-skills/compare/sessao-v3.1.1...HEAD
+[Não lançado]: https://github.com/tgc77/claude-skills/compare/sessao-v3.2.0...HEAD
+[3.2.0]: https://github.com/tgc77/claude-skills/compare/sessao-v3.1.1...sessao-v3.2.0
 [3.1.1]: https://github.com/tgc77/claude-skills/compare/sessao-v3.1.0...sessao-v3.1.1
 [3.1.0]: https://github.com/tgc77/claude-skills/compare/sessao-v3.0.0...sessao-v3.1.0
 [3.0.0]: https://github.com/tgc77/claude-skills/compare/193cfdb...sessao-v3.0.0
